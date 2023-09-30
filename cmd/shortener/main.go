@@ -12,7 +12,7 @@ const addr = `localhost:8080`
 
 var urlMap = map[string]string{shortName: "https://practicum.yandex.ru/"}
 
-func addUrl(w http.ResponseWriter, r *http.Request) {
+func addURL(w http.ResponseWriter, r *http.Request) {
 
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -20,13 +20,13 @@ func addUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqUrl := strings.TrimSpace(string(reqBody))
-	if reqUrl == "" {
+	reqURL := strings.TrimSpace(string(reqBody))
+	if reqURL == "" {
 		http.Error(w, `Request body is empty`, http.StatusBadRequest)
 		return
 	}
 
-	_, err = url.ParseRequestURI(reqUrl)
+	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
 		http.Error(w, `Only valid url allowed`, http.StatusBadRequest)
 		return
@@ -41,17 +41,17 @@ func addUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUrl(w http.ResponseWriter, r *http.Request) {
+func getURL(w http.ResponseWriter, r *http.Request) {
 
-	urlId := strings.TrimSpace(r.RequestURI)
-	if urlId == "" {
+	urlID := strings.TrimSpace(r.RequestURI)
+	if urlID == "" {
 		http.Error(w, `Invalid url`, http.StatusBadRequest)
 		return
 	}
 
-	urlId = strings.TrimLeft(urlId, `/`)
+	urlID = strings.TrimLeft(urlID, `/`)
 
-	location, exists := urlMap[urlId]
+	location, exists := urlMap[urlID]
 	if !exists {
 		http.Error(w, `Unknown identifier`, http.StatusBadRequest)
 		return
@@ -66,15 +66,10 @@ func main() {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
-		if r.Header.Get(`Content-Type`) != `text/plain` {
-			http.Error(w, `Only text/plain are allowed!`, http.StatusBadRequest)
-			return
-		}
-
 		if r.Method == http.MethodPost {
-			addUrl(w, r)
+			addURL(w, r)
 		} else {
-			getUrl(w, r)
+			getURL(w, r)
 		}
 	})
 
