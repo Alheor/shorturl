@@ -10,7 +10,7 @@ import (
 const shortName = `EwHXdJfB`
 const addr = `localhost:8080`
 
-var urlMap = map[string]string{shortName: "https://practicum.yandex.ru/"}
+var urlMap = map[string]string{shortName: "http://fj6dgd0jd.yandex/hwlxqpmtr"}
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 
