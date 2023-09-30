@@ -10,7 +10,7 @@ import (
 const shortName = `EwHXdJfB`
 const addr = `localhost:8080`
 
-var urlMap = map[string]string{shortName: "http://fj6dgd0jd.yandex/hwlxqpmtr"}
+var urlMap = make(map[string]string)
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 
@@ -31,6 +31,8 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `Only valid url allowed`, http.StatusBadRequest)
 		return
 	}
+
+	urlMap[shortName] = reqURL
 
 	w.Header().Add(`Content-Type`, `text/plain; charset=utf-8`)
 	w.WriteHeader(http.StatusCreated)
