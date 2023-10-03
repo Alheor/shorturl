@@ -19,21 +19,21 @@ type want struct {
 
 type test struct {
 	name        string
-	requestUrl  string
+	requestURL  string
 	requestBody io.Reader
 	method      string
 	want        want
 }
 
-const targetUrl = `https://practicum.yandex.ru/`
+const targetURL = `https://practicum.yandex.ru/`
 
 func TestAddUrlSuccess(t *testing.T) {
 
 	tests := []test{
 		{
 			name:        `positive test send POST`,
-			requestUrl:  `/`,
-			requestBody: strings.NewReader(targetUrl),
+			requestURL:  `/`,
+			requestBody: strings.NewReader(targetURL),
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
@@ -49,16 +49,16 @@ func TestAddUrlSuccess(t *testing.T) {
 
 func TestGetUrlSuccess(t *testing.T) {
 
-	urlMap[shortName] = targetUrl
+	urlMap[shortName] = targetURL
 	tests := []test{
 		{
 			name:       `positive test #2: call GET`,
-			requestUrl: `/` + shortName,
+			requestURL: `/` + shortName,
 			method:     http.MethodGet,
 			want: want{
 				code:        http.StatusTemporaryRedirect,
 				headerName:  `Location`,
-				headerValue: targetUrl,
+				headerValue: targetURL,
 			},
 		},
 	}
@@ -71,7 +71,7 @@ func TestAddUrlError(t *testing.T) {
 	tests := []test{
 		{
 			name:       `negative test #1: send POST without body`,
-			requestUrl: `/`,
+			requestURL: `/`,
 			method:     http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
@@ -81,7 +81,7 @@ func TestAddUrlError(t *testing.T) {
 			},
 		}, {
 			name:        `negative test #1: send POST empty body 1`,
-			requestUrl:  `/`,
+			requestURL:  `/`,
 			requestBody: strings.NewReader(``),
 			method:      http.MethodPost,
 			want: want{
@@ -92,7 +92,7 @@ func TestAddUrlError(t *testing.T) {
 			},
 		}, {
 			name:        `negative test #1: send POST empty body 2`,
-			requestUrl:  `/`,
+			requestURL:  `/`,
 			requestBody: strings.NewReader(` `),
 			method:      http.MethodPost,
 			want: want{
@@ -103,7 +103,7 @@ func TestAddUrlError(t *testing.T) {
 			},
 		}, {
 			name:        `negative test #1: send POST invalid url`,
-			requestUrl:  `/`,
+			requestURL:  `/`,
 			requestBody: strings.NewReader(`invalid url`),
 			method:      http.MethodPost,
 			want: want{
@@ -123,7 +123,7 @@ func TestGetUrlError(t *testing.T) {
 	tests := []test{
 		{
 			name:       `negative test #1: call GET empty identifier`,
-			requestUrl: `/`,
+			requestURL: `/`,
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
@@ -133,7 +133,7 @@ func TestGetUrlError(t *testing.T) {
 			},
 		}, {
 			name:       `negative test #1: call GET unknown identifier`,
-			requestUrl: `/unknown-identifier`,
+			requestURL: `/unknown-identifier`,
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
@@ -151,7 +151,7 @@ func runTests(t *testing.T, tests []test) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, test.requestUrl, test.requestBody)
+			request := httptest.NewRequest(test.method, test.requestURL, test.requestBody)
 			w := httptest.NewRecorder()
 
 			if test.method == http.MethodPost {
