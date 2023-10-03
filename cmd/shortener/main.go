@@ -47,7 +47,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	urlID := strings.TrimSpace(r.RequestURI)
 	if urlID == "" {
-		http.Error(w, `Invalid url`, http.StatusBadRequest)
+		http.Error(w, `Identifier is empty`, http.StatusBadRequest)
 		return
 	}
 
