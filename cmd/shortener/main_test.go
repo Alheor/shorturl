@@ -173,10 +173,7 @@ func runTests(t *testing.T, tests []test) {
 			}
 
 			//проверка тела ответа
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				require.NoError(t, err)
-			}(res.Body)
+			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
