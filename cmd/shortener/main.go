@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"net/url"
@@ -45,13 +46,11 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 func getURL(w http.ResponseWriter, r *http.Request) {
 
-	urlID := strings.TrimSpace(r.RequestURI)
+	urlID := chi.URLParam(r, "id")
 	if urlID == "" {
 		http.Error(w, `Identifier is empty`, http.StatusBadRequest)
 		return
 	}
-
-	urlID = strings.TrimLeft(urlID, `/`)
 
 	location, exists := urlMap[urlID]
 	if !exists {
@@ -64,19 +63,17 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
-		if r.Method == http.MethodPost {
-			addURL(w, r)
-		} else {
-			getURL(w, r)
-		}
-	})
-
-	err := http.ListenAndServe(addr, mux)
+	err := http.ListenAndServe(addr, getRouter())
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getRouter() chi.Router {
+	r := chi.NewRouter()
+
+	r.Post("/", addURL)
+	r.Get("/{id}", getURL)
+
+	return r
 }

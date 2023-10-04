@@ -122,14 +122,11 @@ func TestGetUrlError(t *testing.T) {
 
 	tests := []test{
 		{
-			name:       `negative test: call GET empty identifier`,
+			name:       `negative test: method GET not allowed`,
 			requestURL: `/`,
 			method:     http.MethodGet,
 			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: "Identifier is empty\n",
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				code: http.StatusMethodNotAllowed,
 			},
 		}, {
 			name:       `negative test: call GET unknown identifier`,
@@ -141,6 +138,13 @@ func TestGetUrlError(t *testing.T) {
 				headerName:   `Content-Type`,
 				headerValue:  `text/plain; charset=utf-8`,
 			},
+		}, {
+			name:       `negative test: method POST not allowed`,
+			requestURL: `/unknown-identifier`,
+			method:     http.MethodPost,
+			want: want{
+				code: http.StatusMethodNotAllowed,
+			},
 		},
 	}
 
@@ -149,34 +153,31 @@ func TestGetUrlError(t *testing.T) {
 
 func runTests(t *testing.T, tests []test) {
 
+	ts := httptest.NewServer(getRouter())
+	defer ts.Close()
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, test.requestURL, test.requestBody)
-			w := httptest.NewRecorder()
 
-			if test.method == http.MethodPost {
-				addURL(w, request)
-			} else {
-				getURL(w, request)
+			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, test.requestBody)
+			require.NoError(t, err)
+
+			client := ts.Client()
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
 			}
 
-			res := w.Result()
+			resp, err := client.Do(req)
+			require.NoError(t, err)
 
-			//првоерка кода ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			//проверка заголовка
-			assert.Equal(t, test.want.headerValue, res.Header.Get(test.want.headerName))
-
-			if test.method == http.MethodGet {
-				return
-			}
+			assert.Equal(t, test.want.code, resp.StatusCode)
+			assert.Equal(t, test.want.headerValue, resp.Header.Get(test.want.headerName))
 
 			//проверка тела ответа
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
+			resBody, err := io.ReadAll(resp.Body)
+			defer resp.Body.Close()
 			require.NoError(t, err)
+
 			assert.Equal(t, test.want.responseBody, string(resBody))
 		})
 	}
