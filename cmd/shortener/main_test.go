@@ -31,7 +31,7 @@ func TestAddUrlSuccess(t *testing.T) {
 
 	tests := []test{
 		{
-			name:        `positive test send POST`,
+			name:        `positive test: send POST`,
 			requestURL:  `/`,
 			requestBody: strings.NewReader(targetURL),
 			method:      http.MethodPost,
@@ -52,7 +52,7 @@ func TestGetUrlSuccess(t *testing.T) {
 	urlMap[shortName] = targetURL
 	tests := []test{
 		{
-			name:       `positive test #2: call GET`,
+			name:       `positive test: call GET`,
 			requestURL: `/` + shortName,
 			method:     http.MethodGet,
 			want: want{
@@ -70,7 +70,7 @@ func TestAddUrlError(t *testing.T) {
 
 	tests := []test{
 		{
-			name:       `negative test #1: send POST without body`,
+			name:       `negative test: send POST without body`,
 			requestURL: `/`,
 			method:     http.MethodPost,
 			want: want{
@@ -80,7 +80,7 @@ func TestAddUrlError(t *testing.T) {
 				headerValue:  `text/plain; charset=utf-8`,
 			},
 		}, {
-			name:        `negative test #1: send POST empty body 1`,
+			name:        `negative test: send POST empty body 1`,
 			requestURL:  `/`,
 			requestBody: strings.NewReader(``),
 			method:      http.MethodPost,
@@ -91,7 +91,7 @@ func TestAddUrlError(t *testing.T) {
 				headerValue:  `text/plain; charset=utf-8`,
 			},
 		}, {
-			name:        `negative test #1: send POST empty body 2`,
+			name:        `negative test: send POST empty body 2`,
 			requestURL:  `/`,
 			requestBody: strings.NewReader(` `),
 			method:      http.MethodPost,
@@ -102,7 +102,7 @@ func TestAddUrlError(t *testing.T) {
 				headerValue:  `text/plain; charset=utf-8`,
 			},
 		}, {
-			name:        `negative test #1: send POST invalid url`,
+			name:        `negative test: send POST invalid url`,
 			requestURL:  `/`,
 			requestBody: strings.NewReader(`invalid url`),
 			method:      http.MethodPost,
@@ -122,7 +122,7 @@ func TestGetUrlError(t *testing.T) {
 
 	tests := []test{
 		{
-			name:       `negative test #1: call GET empty identifier`,
+			name:       `negative test: call GET empty identifier`,
 			requestURL: `/`,
 			method:     http.MethodGet,
 			want: want{
@@ -132,7 +132,7 @@ func TestGetUrlError(t *testing.T) {
 				headerValue:  `text/plain; charset=utf-8`,
 			},
 		}, {
-			name:       `negative test #1: call GET unknown identifier`,
+			name:       `negative test: call GET unknown identifier`,
 			requestURL: `/unknown-identifier`,
 			method:     http.MethodGet,
 			want: want{
