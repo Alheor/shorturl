@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/Alheor/shorturl/internal/config"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -9,7 +11,6 @@ import (
 )
 
 const shortName = `EwHXdJfB`
-const addr = `localhost:8080`
 
 var urlMap = make(map[string]string)
 
@@ -38,7 +39,7 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add(`Content-Type`, `text/plain; charset=utf-8`)
 	w.WriteHeader(http.StatusCreated)
 
-	_, err = w.Write([]byte(`http://` + addr + `/` + shortName))
+	_, err = w.Write([]byte(strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName))
 	if err != nil {
 		panic(err)
 	}
@@ -63,10 +64,18 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	err := http.ListenAndServe(addr, getRouter())
+	loadConfig()
+
+	fmt.Println(`Server listen ` + config.Options.Addr)
+
+	err := http.ListenAndServe(config.Options.Addr, getRouter())
 	if err != nil {
 		panic(err)
 	}
+}
+
+func loadConfig() {
+	config.ParseFlags()
 }
 
 func getRouter() chi.Router {

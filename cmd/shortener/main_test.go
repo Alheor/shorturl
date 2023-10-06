@@ -1,11 +1,13 @@
 package main
 
 import (
+	"github.com/Alheor/shorturl/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -37,7 +39,7 @@ func TestAddUrlSuccess(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
-				responseBody: `http://` + addr + `/` + shortName,
+				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName,
 				headerName:   `Content-Type`,
 				headerValue:  `text/plain; charset=utf-8`,
 			},
@@ -149,6 +151,17 @@ func TestGetUrlError(t *testing.T) {
 	}
 
 	runTests(t, tests)
+}
+
+func TestLoadConfig(t *testing.T) {
+
+	os.Args = append(os.Args, `-a=addr_test_value`)
+	os.Args = append(os.Args, `-b=base_host_test_value`)
+
+	loadConfig()
+
+	assert.Equal(t, `addr_test_value`, config.Options.Addr)
+	assert.Equal(t, `base_host_test_value`, config.Options.BaseHost)
 }
 
 func runTests(t *testing.T, tests []test) {
