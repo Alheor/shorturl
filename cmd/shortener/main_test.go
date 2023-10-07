@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 )
@@ -28,6 +27,8 @@ type test struct {
 }
 
 const targetURL = `https://practicum.yandex.ru/`
+const headerContentTypeName = `Content-Type`
+const headerContentTypeValue = `text/plain; charset=utf-8`
 
 func TestAddUrlSuccess(t *testing.T) {
 
@@ -40,8 +41,8 @@ func TestAddUrlSuccess(t *testing.T) {
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName,
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				headerName:   headerContentTypeName,
+				headerValue:  headerContentTypeValue,
 			},
 		},
 	}
@@ -78,8 +79,8 @@ func TestAddUrlError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: "Request body is empty\n",
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				headerName:   headerContentTypeName,
+				headerValue:  headerContentTypeValue,
 			},
 		}, {
 			name:        `negative test: send POST empty body 1`,
@@ -89,8 +90,8 @@ func TestAddUrlError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: "Request body is empty\n",
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				headerName:   headerContentTypeName,
+				headerValue:  headerContentTypeValue,
 			},
 		}, {
 			name:        `negative test: send POST empty body 2`,
@@ -100,8 +101,8 @@ func TestAddUrlError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: "Request body is empty\n",
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				headerName:   headerContentTypeName,
+				headerValue:  headerContentTypeValue,
 			},
 		}, {
 			name:        `negative test: send POST invalid url`,
@@ -111,8 +112,8 @@ func TestAddUrlError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: "Only valid url allowed\n",
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				headerName:   headerContentTypeName,
+				headerValue:  headerContentTypeValue,
 			},
 		},
 	}
@@ -137,8 +138,8 @@ func TestGetUrlError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: "Unknown identifier\n",
-				headerName:   `Content-Type`,
-				headerValue:  `text/plain; charset=utf-8`,
+				headerName:   headerContentTypeName,
+				headerValue:  headerContentTypeValue,
 			},
 		}, {
 			name:       `negative test: method POST not allowed`,
@@ -151,17 +152,6 @@ func TestGetUrlError(t *testing.T) {
 	}
 
 	runTests(t, tests)
-}
-
-func TestLoadConfig(t *testing.T) {
-
-	os.Args = append(os.Args, `-a=addr_test_value`)
-	os.Args = append(os.Args, `-b=base_host_test_value`)
-
-	loadConfig()
-
-	assert.Equal(t, `addr_test_value`, config.Options.Addr)
-	assert.Equal(t, `base_host_test_value`, config.Options.BaseHost)
 }
 
 func runTests(t *testing.T, tests []test) {

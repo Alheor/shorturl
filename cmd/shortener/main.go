@@ -1,3 +1,4 @@
+// Short url service
 package main
 
 import (
@@ -64,7 +65,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	loadConfig()
+	config.Load()
 
 	fmt.Println(`Server listen ` + config.Options.Addr)
 
@@ -72,10 +73,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func loadConfig() {
-	config.ParseFlags()
 }
 
 func getRouter() chi.Router {
