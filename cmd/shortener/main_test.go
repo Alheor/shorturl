@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -27,8 +28,16 @@ type test struct {
 }
 
 const targetURL = `https://practicum.yandex.ru/`
-const headerContentTypeName = `Content-Type`
-const headerContentTypeValue = `text/plain; charset=utf-8`
+
+type mockShortName struct{}
+
+func (rg mockShortName) Generate() string {
+	return `mockString`
+}
+
+func init() {
+	randomShortName = new(mockShortName)
+}
 
 func TestAddUrlSuccess(t *testing.T) {
 
@@ -40,9 +49,9 @@ func TestAddUrlSuccess(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
-				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName,
-				headerName:   headerContentTypeName,
-				headerValue:  headerContentTypeValue,
+				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
 			},
 		},
 	}
@@ -51,8 +60,9 @@ func TestAddUrlSuccess(t *testing.T) {
 }
 
 func TestGetUrlSuccess(t *testing.T) {
+	shortName := randomShortName.Generate()
+	_ = shortNameRepository.AddUrl(shortName, targetURL)
 
-	urlMap[shortName] = targetURL
 	tests := []test{
 		{
 			name:       `positive test: call GET`,
@@ -60,7 +70,7 @@ func TestGetUrlSuccess(t *testing.T) {
 			method:     http.MethodGet,
 			want: want{
 				code:        http.StatusTemporaryRedirect,
-				headerName:  `Location`,
+				headerName:  HeaderLocation,
 				headerValue: targetURL,
 			},
 		},
@@ -78,9 +88,9 @@ func TestAddUrlError(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: "Request body is empty\n",
-				headerName:   headerContentTypeName,
-				headerValue:  headerContentTypeValue,
+				responseBody: ErrorEmptyRequestBody + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
 			},
 		}, {
 			name:        `negative test: send POST empty body 1`,
@@ -89,9 +99,9 @@ func TestAddUrlError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: "Request body is empty\n",
-				headerName:   headerContentTypeName,
-				headerValue:  headerContentTypeValue,
+				responseBody: ErrorEmptyRequestBody + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
 			},
 		}, {
 			name:        `negative test: send POST empty body 2`,
@@ -100,9 +110,9 @@ func TestAddUrlError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: "Request body is empty\n",
-				headerName:   headerContentTypeName,
-				headerValue:  headerContentTypeValue,
+				responseBody: ErrorEmptyRequestBody + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
 			},
 		}, {
 			name:        `negative test: send POST invalid url`,
@@ -111,9 +121,49 @@ func TestAddUrlError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: "Only valid url allowed\n",
-				headerName:   headerContentTypeName,
-				headerValue:  headerContentTypeValue,
+				responseBody: ErrorInvalidUrl + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+
+	//test if exists by url
+	_ = shortNameRepository.AddUrl(`otherShortName`, targetURL)
+
+	tests = []test{
+		{
+			name:        `negative test: send POST with existed url`,
+			requestURL:  `/`,
+			requestBody: strings.NewReader(targetURL),
+			method:      http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: repository.ErrorUrlAlreadyExist + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+
+	//test if exists by short name
+	_ = shortNameRepository.AddUrl(randomShortName.Generate(), targetURL)
+
+	tests = []test{
+		{
+			name:        `negative test: send POST with existed short name`,
+			requestURL:  `/`,
+			requestBody: strings.NewReader(targetURL),
+			method:      http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: repository.ErrorUrlAlreadyExist + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
 			},
 		},
 	}
@@ -137,9 +187,9 @@ func TestGetUrlError(t *testing.T) {
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: "Unknown identifier\n",
-				headerName:   headerContentTypeName,
-				headerValue:  headerContentTypeValue,
+				responseBody: repository.ErrorUrlNotFound + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeValue,
 			},
 		}, {
 			name:       `negative test: method POST not allowed`,
