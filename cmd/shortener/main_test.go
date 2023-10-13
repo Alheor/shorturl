@@ -39,7 +39,7 @@ func init() {
 	randomShortName = new(mockShortName)
 }
 
-func TestAddUrlSuccess(t *testing.T) {
+func TestAddURLSuccess(t *testing.T) {
 
 	tests := []test{
 		{
@@ -59,9 +59,9 @@ func TestAddUrlSuccess(t *testing.T) {
 	runTests(t, tests)
 }
 
-func TestGetUrlSuccess(t *testing.T) {
+func TestGetURLSuccess(t *testing.T) {
 	shortName := randomShortName.Generate()
-	_ = shortNameRepository.AddUrl(shortName, targetURL)
+	_ = shortNameRepository.AddURL(shortName, targetURL)
 
 	tests := []test{
 		{
@@ -79,7 +79,7 @@ func TestGetUrlSuccess(t *testing.T) {
 	runTests(t, tests)
 }
 
-func TestAddUrlError(t *testing.T) {
+func TestAddURLError(t *testing.T) {
 
 	tests := []test{
 		{
@@ -121,7 +121,7 @@ func TestAddUrlError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorInvalidUrl + "\n",
+				responseBody: ErrorInvalidURL + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -131,7 +131,7 @@ func TestAddUrlError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists by url
-	_ = shortNameRepository.AddUrl(`otherShortName`, targetURL)
+	_ = shortNameRepository.AddURL(`otherShortName`, targetURL)
 
 	tests = []test{
 		{
@@ -141,7 +141,7 @@ func TestAddUrlError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorUrlAlreadyExist + "\n",
+				responseBody: repository.ErrorURLAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -151,7 +151,7 @@ func TestAddUrlError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists by short name
-	_ = shortNameRepository.AddUrl(randomShortName.Generate(), targetURL)
+	_ = shortNameRepository.AddURL(randomShortName.Generate(), targetURL)
 
 	tests = []test{
 		{
@@ -161,7 +161,7 @@ func TestAddUrlError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorUrlAlreadyExist + "\n",
+				responseBody: repository.ErrorURLAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -171,7 +171,7 @@ func TestAddUrlError(t *testing.T) {
 	runTests(t, tests)
 }
 
-func TestGetUrlError(t *testing.T) {
+func TestGetURLError(t *testing.T) {
 
 	tests := []test{
 		{
@@ -187,7 +187,7 @@ func TestGetUrlError(t *testing.T) {
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorUrlNotFound + "\n",
+				responseBody: repository.ErrorURLNotFound + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},

@@ -17,8 +17,8 @@ const (
 	//ErrorEmptyRequestBody error message
 	ErrorEmptyRequestBody = `Request body is empty`
 
-	//ErrorInvalidUrl error message
-	ErrorInvalidUrl = `Only valid url allowed`
+	//ErrorInvalidURL error message
+	ErrorInvalidURL = `Only valid url allowed`
 
 	//HeaderContentTypeName header "Content-Type" name
 	HeaderContentTypeName = `Content-Type`
@@ -56,19 +56,19 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
-		http.Error(w, ErrorInvalidUrl, http.StatusBadRequest)
+		http.Error(w, ErrorInvalidURL, http.StatusBadRequest)
 		return
 	}
 
 	shortName := randomShortName.Generate()
 
 	//try 1
-	err = shortNameRepository.AddUrl(shortName, reqURL)
+	err = shortNameRepository.AddURL(shortName, reqURL)
 	if err != nil {
 		shortName = randomShortName.Generate()
 
 		//try 2
-		err = shortNameRepository.AddUrl(shortName, reqURL)
+		err = shortNameRepository.AddURL(shortName, reqURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -88,11 +88,11 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	shortName := chi.URLParam(r, "id")
 	if shortName == "" {
-		http.Error(w, repository.ErrorUrlNotFound, http.StatusBadRequest)
+		http.Error(w, repository.ErrorURLNotFound, http.StatusBadRequest)
 		return
 	}
 
-	location, err := shortNameRepository.GetUrl(shortName)
+	location, err := shortNameRepository.GetURL(shortName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

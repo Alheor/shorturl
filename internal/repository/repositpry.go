@@ -7,17 +7,17 @@ import (
 )
 
 const (
-	// ErrorUrlNotFound error message
-	ErrorUrlNotFound = `url not found`
+	// ErrorURLNotFound error message
+	ErrorURLNotFound = `url not found`
 
-	// ErrorUrlAlreadyExist error message
-	ErrorUrlAlreadyExist = `url already exist`
+	// ErrorURLAlreadyExist error message
+	ErrorURLAlreadyExist = `url already exist`
 )
 
 // Repository interface
 type Repository interface {
-	AddUrl(shortName string, url string) error
-	GetUrl(shortName string) (url string, error error)
+	AddURL(shortName string, url string) error
+	GetURL(shortName string) (url string, error error)
 }
 
 // ShortName struct
@@ -33,16 +33,16 @@ func (sn ShortName) Init() *ShortName {
 	return instance
 }
 
-func (sn ShortName) AddUrl(shortName string, url string) error {
+func (sn ShortName) AddURL(shortName string, url string) error {
 
 	_, exists := sn.urlMap[shortName]
 	if exists {
-		return errors.New(ErrorUrlAlreadyExist)
+		return errors.New(ErrorURLAlreadyExist)
 	}
 
 	for _, value := range sn.urlMap {
 		if value == url {
-			return errors.New(ErrorUrlAlreadyExist)
+			return errors.New(ErrorURLAlreadyExist)
 		}
 	}
 
@@ -51,11 +51,11 @@ func (sn ShortName) AddUrl(shortName string, url string) error {
 	return nil
 }
 
-func (sn ShortName) GetUrl(shortName string) (url string, error error) {
+func (sn ShortName) GetURL(shortName string) (url string, error error) {
 
 	url, exists := sn.urlMap[shortName]
 	if !exists {
-		return ``, errors.New(ErrorUrlNotFound)
+		return ``, errors.New(ErrorURLNotFound)
 	}
 
 	return url, nil

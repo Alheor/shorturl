@@ -8,41 +8,41 @@ import (
 
 const targetURL = `https://practicum.yandex.ru/`
 
-func TestAddUrlAndGetUrlSuccess(t *testing.T) {
+func TestAddURLAndGetURLSuccess(t *testing.T) {
 	r := new(ShortName).Init()
 
-	err := r.AddUrl(`shortName`, targetURL)
+	err := r.AddURL(`shortName`, targetURL)
 	require.NoError(t, err)
 
-	url, err := r.GetUrl(`shortName`)
+	url, err := r.GetURL(`shortName`)
 	require.NoError(t, err)
 
 	assert.Equal(t, targetURL, url)
 }
 
-func TestAddUrlShortNameExistsError(t *testing.T) {
+func TestAddURLShortNameExistsError(t *testing.T) {
 	r := new(ShortName).Init()
 
-	err := r.AddUrl(`shortName`, targetURL)
+	err := r.AddURL(`shortName`, targetURL)
 	require.NoError(t, err)
 
-	err = r.AddUrl(`shortName`, targetURL)
+	err = r.AddURL(`shortName`, targetURL)
 	require.Error(t, err)
 }
 
-func TestAddUrlUrlExistsError(t *testing.T) {
+func TestAddURLURLExistsError(t *testing.T) {
 	r := new(ShortName).Init()
 
-	err := r.AddUrl(`shortName`, targetURL)
+	err := r.AddURL(`shortName`, targetURL)
 	require.NoError(t, err)
 
-	err = r.AddUrl(`otherShortName`, targetURL)
+	err = r.AddURL(`otherShortName`, targetURL)
 	require.Error(t, err)
 }
 
-func TestGetUrlError(t *testing.T) {
+func TestGetURLError(t *testing.T) {
 	r := new(ShortName).Init()
 
-	_, err := r.GetUrl(`shortName`)
+	_, err := r.GetURL(`shortName`)
 	require.Error(t, err)
 }
