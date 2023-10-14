@@ -2,8 +2,8 @@
 package repository
 
 const (
-	// ErrorIdNotFound error message
-	ErrorIdNotFound = `id not found`
+	// ErrorIDNotFound error message
+	ErrorIDNotFound = `id not found`
 
 	// ErrorValueAlreadyExist error message
 	ErrorValueAlreadyExist = `value already exist`

@@ -49,7 +49,7 @@ func (sn *ShortName) Get(id string) (value string, error error) {
 
 	url, exists := sn.urlMap[id]
 	if !exists {
-		return ``, errors.New(ErrorIdNotFound)
+		return ``, errors.New(ErrorIDNotFound)
 	}
 
 	return url, nil

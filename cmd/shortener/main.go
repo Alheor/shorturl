@@ -88,7 +88,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	shortName := chi.URLParam(r, "id")
 	if shortName == "" {
-		http.Error(w, repository.ErrorIdNotFound, http.StatusBadRequest)
+		http.Error(w, repository.ErrorIDNotFound, http.StatusBadRequest)
 		return
 	}
 

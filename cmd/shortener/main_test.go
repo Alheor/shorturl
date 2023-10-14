@@ -187,7 +187,7 @@ func TestGetURLError(t *testing.T) {
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorIdNotFound + "\n",
+				responseBody: repository.ErrorIDNotFound + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
