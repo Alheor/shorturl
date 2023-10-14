@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/Alheor/shorturl/internal/short_name_repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -61,7 +61,7 @@ func TestAddURLSuccess(t *testing.T) {
 
 func TestGetURLSuccess(t *testing.T) {
 	shortName := randomShortName.Generate()
-	_ = shortNameRepository.AddURL(shortName, targetURL)
+	_ = shortNameRepository.Add(shortName, targetURL)
 
 	tests := []test{
 		{
@@ -131,7 +131,7 @@ func TestAddURLError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists by url
-	_ = shortNameRepository.AddURL(`otherShortName`, targetURL)
+	_ = shortNameRepository.Add(`otherShortName`, targetURL)
 
 	tests = []test{
 		{
@@ -141,7 +141,7 @@ func TestAddURLError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorURLAlreadyExist + "\n",
+				responseBody: short_name_repository.ErrorURLAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -151,7 +151,7 @@ func TestAddURLError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists by short name
-	_ = shortNameRepository.AddURL(randomShortName.Generate(), targetURL)
+	_ = shortNameRepository.Add(randomShortName.Generate(), targetURL)
 
 	tests = []test{
 		{
@@ -161,7 +161,7 @@ func TestAddURLError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorURLAlreadyExist + "\n",
+				responseBody: short_name_repository.ErrorURLAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -187,7 +187,7 @@ func TestGetURLError(t *testing.T) {
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorURLNotFound + "\n",
+				responseBody: short_name_repository.ErrorURLNotFound + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},

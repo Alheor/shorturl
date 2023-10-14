@@ -1,4 +1,4 @@
-package repository
+package short_name_repository
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -9,40 +9,40 @@ import (
 const targetURL = `https://practicum.yandex.ru/`
 
 func TestAddURLAndGetURLSuccess(t *testing.T) {
-	r := new(ShortName).Init()
+	r := Init()
 
-	err := r.AddURL(`shortName`, targetURL)
+	err := r.Add(`shortName`, targetURL)
 	require.NoError(t, err)
 
-	url, err := r.GetURL(`shortName`)
+	url, err := r.Get(`shortName`)
 	require.NoError(t, err)
 
 	assert.Equal(t, targetURL, url)
 }
 
 func TestAddURLShortNameExistsError(t *testing.T) {
-	r := new(ShortName).Init()
+	r := Init()
 
-	err := r.AddURL(`shortName`, targetURL)
+	err := r.Add(`shortName`, targetURL)
 	require.NoError(t, err)
 
-	err = r.AddURL(`shortName`, targetURL)
+	err = r.Add(`shortName`, targetURL)
 	require.Error(t, err)
 }
 
 func TestAddURLURLExistsError(t *testing.T) {
-	r := new(ShortName).Init()
+	r := Init()
 
-	err := r.AddURL(`shortName`, targetURL)
+	err := r.Add(`shortName`, targetURL)
 	require.NoError(t, err)
 
-	err = r.AddURL(`otherShortName`, targetURL)
+	err = r.Add(`otherShortName`, targetURL)
 	require.Error(t, err)
 }
 
 func TestGetURLError(t *testing.T) {
-	r := new(ShortName).Init()
+	r := Init()
 
-	_, err := r.GetURL(`shortName`)
+	_, err := r.Get(`shortName`)
 	require.Error(t, err)
 }

@@ -1,9 +1,10 @@
-// Package repository
+// Package short_name_repository
 // Short url repository
-package repository
+package short_name_repository
 
 import (
 	"errors"
+	"sync"
 )
 
 const (
@@ -14,46 +15,47 @@ const (
 	ErrorURLAlreadyExist = `url already exist`
 )
 
-// Repository interface
-type Repository interface {
-	AddURL(shortName string, url string) error
-	GetURL(shortName string) (url string, error error)
-}
-
 // ShortName struct
 type ShortName struct {
 	urlMap map[string]string
+	sync.RWMutex
 }
 
 // Init repository constructor
-func (sn ShortName) Init() *ShortName {
+func Init() *ShortName {
 	instance := new(ShortName)
 	instance.urlMap = make(map[string]string)
 
 	return instance
 }
 
-func (sn ShortName) AddURL(shortName string, url string) error {
+func (sn *ShortName) Add(id string, value string) error {
 
-	_, exists := sn.urlMap[shortName]
+	_, exists := sn.urlMap[id]
 	if exists {
 		return errors.New(ErrorURLAlreadyExist)
 	}
 
 	for _, value := range sn.urlMap {
-		if value == url {
+		if value == value {
 			return errors.New(ErrorURLAlreadyExist)
 		}
 	}
 
-	sn.urlMap[shortName] = url
+	sn.Lock()
+	defer sn.Unlock()
+
+	sn.urlMap[id] = value
 
 	return nil
 }
 
-func (sn ShortName) GetURL(shortName string) (url string, error error) {
+func (sn *ShortName) Get(id string) (value string, error error) {
 
-	url, exists := sn.urlMap[shortName]
+	sn.RLock()
+	defer sn.RUnlock()
+
+	url, exists := sn.urlMap[id]
 	if !exists {
 		return ``, errors.New(ErrorURLNotFound)
 	}
