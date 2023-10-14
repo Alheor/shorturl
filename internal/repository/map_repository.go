@@ -1,18 +1,10 @@
-// Package short_name_repository
+// Package repository
 // Short url repository
-package short_name_repository
+package repository
 
 import (
 	"errors"
 	"sync"
-)
-
-const (
-	// ErrorURLNotFound error message
-	ErrorURLNotFound = `url not found`
-
-	// ErrorURLAlreadyExist error message
-	ErrorURLAlreadyExist = `url already exist`
 )
 
 // ShortName struct
@@ -21,8 +13,8 @@ type ShortName struct {
 	sync.RWMutex
 }
 
-// Init repository constructor
-func Init() *ShortName {
+// InitMap repository constructor
+func InitMap() *ShortName {
 	instance := new(ShortName)
 	instance.urlMap = make(map[string]string)
 
@@ -33,12 +25,12 @@ func (sn *ShortName) Add(id string, value string) error {
 
 	_, exists := sn.urlMap[id]
 	if exists {
-		return errors.New(ErrorURLAlreadyExist)
+		return errors.New(ErrorValueAlreadyExist)
 	}
 
-	for _, value := range sn.urlMap {
-		if value == value {
-			return errors.New(ErrorURLAlreadyExist)
+	for _, mapValue := range sn.urlMap {
+		if mapValue == value {
+			return errors.New(ErrorValueAlreadyExist)
 		}
 	}
 
@@ -57,7 +49,7 @@ func (sn *ShortName) Get(id string) (value string, error error) {
 
 	url, exists := sn.urlMap[id]
 	if !exists {
-		return ``, errors.New(ErrorURLNotFound)
+		return ``, errors.New(ErrorIdNotFound)
 	}
 
 	return url, nil

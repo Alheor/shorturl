@@ -1,4 +1,4 @@
-package short_name_repository
+package repository
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -9,7 +9,7 @@ import (
 const targetURL = `https://practicum.yandex.ru/`
 
 func TestAddURLAndGetURLSuccess(t *testing.T) {
-	r := Init()
+	r := InitMap()
 
 	err := r.Add(`shortName`, targetURL)
 	require.NoError(t, err)
@@ -21,7 +21,7 @@ func TestAddURLAndGetURLSuccess(t *testing.T) {
 }
 
 func TestAddURLShortNameExistsError(t *testing.T) {
-	r := Init()
+	r := InitMap()
 
 	err := r.Add(`shortName`, targetURL)
 	require.NoError(t, err)
@@ -31,7 +31,7 @@ func TestAddURLShortNameExistsError(t *testing.T) {
 }
 
 func TestAddURLURLExistsError(t *testing.T) {
-	r := Init()
+	r := InitMap()
 
 	err := r.Add(`shortName`, targetURL)
 	require.NoError(t, err)
@@ -41,7 +41,7 @@ func TestAddURLURLExistsError(t *testing.T) {
 }
 
 func TestGetURLError(t *testing.T) {
-	r := Init()
+	r := InitMap()
 
 	_, err := r.Get(`shortName`)
 	require.Error(t, err)

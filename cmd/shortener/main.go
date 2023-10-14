@@ -6,7 +6,6 @@ import (
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/randomname"
 	"github.com/Alheor/shorturl/internal/repository"
-	"github.com/Alheor/shorturl/internal/short_name_repository"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -38,7 +37,7 @@ var (
 
 func init() {
 	randomShortName = new(randomname.ShortName)
-	shortNameRepository = short_name_repository.Init()
+	shortNameRepository = repository.InitMap()
 }
 
 func addURL(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +88,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	shortName := chi.URLParam(r, "id")
 	if shortName == "" {
-		http.Error(w, short_name_repository.ErrorURLNotFound, http.StatusBadRequest)
+		http.Error(w, repository.ErrorIdNotFound, http.StatusBadRequest)
 		return
 	}
 

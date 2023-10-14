@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/short_name_repository"
+	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -141,7 +141,7 @@ func TestAddURLError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: short_name_repository.ErrorURLAlreadyExist + "\n",
+				responseBody: repository.ErrorValueAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -161,7 +161,7 @@ func TestAddURLError(t *testing.T) {
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: short_name_repository.ErrorURLAlreadyExist + "\n",
+				responseBody: repository.ErrorValueAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
@@ -187,7 +187,7 @@ func TestGetURLError(t *testing.T) {
 			method:     http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: short_name_repository.ErrorURLNotFound + "\n",
+				responseBody: repository.ErrorIdNotFound + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeValue,
 			},
