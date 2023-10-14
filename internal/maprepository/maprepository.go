@@ -1,9 +1,10 @@
-// Package repository
+// Package maprepository
 // Short url repository
-package repository
+package maprepository
 
 import (
 	"errors"
+	"github.com/Alheor/shorturl/internal/repository"
 	"sync"
 )
 
@@ -23,16 +24,23 @@ func InitMap() *ShortName {
 
 func (sn *ShortName) Add(id string, value string) error {
 
+	sn.RLock()
+	//если сразу вызывать defer sn.RUnlock(), возникает deadlock
+
 	_, exists := sn.urlMap[id]
 	if exists {
-		return errors.New(ErrorValueAlreadyExist)
+		sn.RUnlock()
+		return errors.New(repository.ErrorValueAlreadyExist)
 	}
 
 	for _, mapValue := range sn.urlMap {
 		if mapValue == value {
-			return errors.New(ErrorValueAlreadyExist)
+			sn.RUnlock()
+			return errors.New(repository.ErrorValueAlreadyExist)
 		}
 	}
+
+	sn.RUnlock()
 
 	sn.Lock()
 	defer sn.Unlock()
@@ -49,7 +57,7 @@ func (sn *ShortName) Get(id string) (value string, error error) {
 
 	url, exists := sn.urlMap[id]
 	if !exists {
-		return ``, errors.New(ErrorIDNotFound)
+		return ``, errors.New(repository.ErrorIDNotFound)
 	}
 
 	return url, nil

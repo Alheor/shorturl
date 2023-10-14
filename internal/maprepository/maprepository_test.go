@@ -1,4 +1,4 @@
-package repository
+package maprepository
 
 import (
 	"github.com/stretchr/testify/assert"
