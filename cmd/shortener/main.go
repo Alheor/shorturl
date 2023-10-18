@@ -4,7 +4,6 @@ package main
 import (
 	"fmt"
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/maprepository"
 	"github.com/Alheor/shorturl/internal/randomname"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -32,14 +31,9 @@ const (
 )
 
 var (
-	shortNameRepository repository.Repository
-	randomShortName     randomname.RandomString
+	randomShortName     = randomname.Init()
+	shortNameRepository = repository.Init()
 )
-
-func init() {
-	randomShortName = new(randomname.ShortName)
-	shortNameRepository = maprepository.InitMap()
-}
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 

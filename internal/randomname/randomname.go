@@ -7,15 +7,20 @@ import (
 	"time"
 )
 
-const shortNameLength = 8
-
-// RandomString interface
-type RandomString interface {
+// RandomStringGenerator interface
+type RandomStringGenerator interface {
 	Generate() string
 }
 
+const shortNameLength = 8
+
 // ShortName short name structure
 type ShortName struct{}
+
+// Init randomname constructor
+func Init() RandomStringGenerator {
+	return new(ShortName)
+}
 
 func (rg ShortName) Generate() string {
 	randSource := rand.New(rand.NewSource(time.Now().UnixNano()))
