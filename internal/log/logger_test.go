@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,7 +15,7 @@ import (
 )
 
 type logResult struct {
-	Url      string `json:"url"`
+	URL      string `json:"url"`
 	Method   string `json:"method"`
 	Duration string `json:"duration"`
 	Status   int    `json:"status"`
@@ -85,14 +86,18 @@ func runTests(t *testing.T, tests []test) {
 			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, nil)
 			require.NoError(t, err)
 
-			_, err = client.Do(req)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+
+			_, err = io.ReadAll(resp.Body)
+			defer resp.Body.Close()
 			require.NoError(t, err)
 
 			result := new(logResult)
-			err = json.Unmarshal([]byte(sink.String()), result)
+			err = json.Unmarshal(sink.Bytes(), result)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.requestURL, result.Url)
+			assert.Equal(t, test.requestURL, result.URL)
 			assert.Equal(t, test.method, result.Method)
 			assert.Equal(t, test.responseCode, result.Status)
 			assert.Equal(t, test.responseSize, result.Size)
