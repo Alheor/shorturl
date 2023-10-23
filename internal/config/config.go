@@ -8,16 +8,22 @@ import (
 )
 
 // DefaultAddr default server address
-const DefaultAddr = `localhost:8080`
+const defaultAddr = `localhost:8080`
 
 // DefaultBaseHost default host url
-const DefaultBaseHost = `http://localhost:8080`
+const defaultBaseHost = `http://localhost:8080`
+
+// DefaultLogLevel default log level
+const defaultLogLevel = `info`
 
 // EnvAddr env variable name
-const EnvAddr = `SHORT_URL_ADDR`
+const envAddr = `SHORT_URL_ADDR`
 
 // EnvBaseHost env variable name
-const EnvBaseHost = `SHORT_URL_BASE_HOST`
+const envBaseHost = `SHORT_URL_BASE_HOST`
+
+// EnvDefaultLogLevel env variable log level
+const envLogLevel = `LOG_LEVEl`
 
 // Options Server options
 var Options struct {
@@ -27,24 +33,32 @@ var Options struct {
 
 	// Host for urls (default: http://localhost:8080)
 	BaseHost string
+
+	LogLevel string
 }
 
 func init() {
-	flag.StringVar(&Options.Addr, `a`, DefaultAddr, "listening host:port")
-	flag.StringVar(&Options.BaseHost, `b`, DefaultBaseHost, "base host of url")
+	flag.StringVar(&Options.Addr, `a`, defaultAddr, "listening host:port")
+	flag.StringVar(&Options.BaseHost, `b`, defaultBaseHost, "base host of url")
+	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "log level")
 }
 
 // Load loading config
 func Load() {
 	flag.Parse()
 
-	addr, exist := os.LookupEnv(EnvAddr)
+	addr, exist := os.LookupEnv(envAddr)
 	if exist && len(addr) > 0 {
 		Options.Addr = addr
 	}
 
-	baseHost, exist := os.LookupEnv(EnvBaseHost)
+	baseHost, exist := os.LookupEnv(envBaseHost)
 	if exist && len(baseHost) > 0 {
 		Options.BaseHost = baseHost
+	}
+
+	logLevel, exist := os.LookupEnv(envLogLevel)
+	if exist && len(logLevel) > 0 {
+		Options.LogLevel = logLevel
 	}
 }

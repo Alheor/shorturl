@@ -2,11 +2,12 @@
 package main
 
 import (
-	"fmt"
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/log"
 	"github.com/Alheor/shorturl/internal/randomname"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/url"
@@ -33,6 +34,7 @@ const (
 var (
 	randomShortName     = randomname.Init()
 	shortNameRepository = repository.Init()
+	logger              = log.Init(config.Options.LogLevel)
 )
 
 func addURL(w http.ResponseWriter, r *http.Request) {
@@ -100,19 +102,19 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 func main() {
 	config.Load()
 
-	fmt.Println(`Server listen ` + config.Options.Addr)
+	logger.Log.Info("Starting server", zap.String("addr", config.Options.Addr))
 
 	err := http.ListenAndServe(config.Options.Addr, getRouter())
 	if err != nil {
-		panic(err)
+		logger.Log.Fatal(err.Error())
 	}
 }
 
 func getRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Post("/", addURL)
-	r.Get("/{id}", getURL)
+	r.Post("/", logger.WithLogging(addURL))
+	r.Get("/{id}", logger.WithLogging(getURL))
 
 	return r
 }
