@@ -16,7 +16,6 @@ type ShortNameMap struct {
 func (sn *ShortNameMap) Add(id string, value string) error {
 
 	sn.RLock()
-	//если сразу вызывать defer sn.RUnlock(), возникает deadlock
 
 	_, exists := sn.urlMap[id]
 	if exists {
@@ -52,4 +51,12 @@ func (sn *ShortNameMap) Get(id string) (value string, error error) {
 	}
 
 	return url, nil
+}
+
+func (sn *ShortNameMap) Remove(id string) {
+
+	sn.RLock()
+	defer sn.RUnlock()
+
+	delete(sn.urlMap, id)
 }

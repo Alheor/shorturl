@@ -14,6 +14,7 @@ const (
 type Repository interface {
 	Add(id string, value string) error
 	Get(id string) (value string, error error)
+	Remove(id string)
 }
 
 // Init repository constructor
