@@ -22,11 +22,11 @@ const (
 	//ErrorInvalidURL error message
 	ErrorInvalidURL = `Only valid url allowed`
 
-	//ErrorOnlyJsonDataAllowed error message
-	ErrorOnlyJsonDataAllowed = `Only json data allowed`
+	//ErrorOnlyJSONDataAllowed error message
+	ErrorOnlyJSONDataAllowed = `Only json data allowed`
 
-	//ErrorEmptyUrl error message
-	ErrorEmptyUrl = `Url is empty`
+	//ErrorEmptyURL error message
+	ErrorEmptyURL = `URL is empty`
 
 	//HeaderContentTypeName header "Content-Type" name
 	HeaderContentTypeName = `Content-Type`
@@ -34,8 +34,8 @@ const (
 	//HeaderContentTypeTextPlainValue header "Content-Type" text/plain
 	HeaderContentTypeTextPlainValue = `text/plain; charset=utf-8`
 
-	//HeaderContentTypeJsonValue header "Content-Type" application/json
-	HeaderContentTypeJsonValue = `application/json`
+	//HeaderContentTypeJSONValue header "Content-Type" application/json
+	HeaderContentTypeJSONValue = `application/json`
 
 	//HeaderLocation header "Location" name
 	HeaderLocation = `Location`
@@ -47,13 +47,13 @@ var (
 	logger              = log.Init(config.Options.LogLevel)
 )
 
-type ApiResponse struct {
+type APIResponse struct {
 	Result string `json:"result,omitempty"`
 	Error  string `json:"error,omitempty"`
 }
 
-type ApiRequest struct {
-	Url string `json:"url"`
+type APIRequest struct {
+	URL string `json:"url"`
 }
 
 func addURL(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortName, err := appendUrl(reqURL)
+	shortName, err := appendURL(reqURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -111,69 +111,69 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 func apiShorten(w http.ResponseWriter, r *http.Request) {
 
-	var response ApiResponse
+	var response APIResponse
 
 	contentType := r.Header.Get(HeaderContentTypeName)
-	if contentType != HeaderContentTypeJsonValue {
-		response = ApiResponse{Error: ErrorOnlyJsonDataAllowed}
-		sendApiResponse(w, &response, http.StatusBadRequest)
+	if contentType != HeaderContentTypeJSONValue {
+		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
 	}
 
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		response = ApiResponse{Error: err.Error()}
-		sendApiResponse(w, &response, http.StatusInternalServerError)
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusInternalServerError)
 
 		return
 	}
 
-	var request ApiRequest
+	var request APIRequest
 
 	err = json.Unmarshal(reqBody, &request)
 	if err != nil {
-		response = ApiResponse{Error: ErrorOnlyJsonDataAllowed}
-		sendApiResponse(w, &response, http.StatusBadRequest)
+		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
 	}
 
-	reqURL := strings.TrimSpace(request.Url)
+	reqURL := strings.TrimSpace(request.URL)
 	if reqURL == "" {
-		response = ApiResponse{Error: ErrorEmptyUrl}
-		sendApiResponse(w, &response, http.StatusBadRequest)
+		response = APIResponse{Error: ErrorEmptyURL}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
 	}
 
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
-		response = ApiResponse{Error: ErrorInvalidURL}
-		sendApiResponse(w, &response, http.StatusBadRequest)
+		response = APIResponse{Error: ErrorInvalidURL}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
 	}
 
-	shortName, err := appendUrl(reqURL)
+	shortName, err := appendURL(reqURL)
 	if err != nil {
-		response = ApiResponse{Error: err.Error()}
-		sendApiResponse(w, &response, http.StatusBadRequest)
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
 	}
 
-	response = ApiResponse{Result: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName}
-	sendApiResponse(w, &response, http.StatusCreated)
+	response = APIResponse{Result: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName}
+	sendAPIResponse(w, &response, http.StatusCreated)
 }
 
-func sendApiResponse(w http.ResponseWriter, apiResponse *ApiResponse, statusCode int) {
+func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode int) {
 
 	if statusCode == http.StatusInternalServerError {
 		logger.Log.Panic(apiResponse.Error)
 	}
 
-	w.Header().Set(HeaderContentTypeName, HeaderContentTypeJsonValue)
+	w.Header().Set(HeaderContentTypeName, HeaderContentTypeJSONValue)
 
 	rawByte, err := json.Marshal(apiResponse)
 	if err != nil {
@@ -194,7 +194,7 @@ func sendApiResponse(w http.ResponseWriter, apiResponse *ApiResponse, statusCode
 	}
 }
 
-func appendUrl(reqURL string) (string, error) {
+func appendURL(reqURL string) (string, error) {
 	shortName := randomShortName.Generate()
 
 	//try 1
