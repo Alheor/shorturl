@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/loghandler"
@@ -88,7 +87,6 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
-		fmt.Println(reqURL)
 		http.Error(w, ErrorInvalidURL, http.StatusBadRequest)
 		return
 	}
