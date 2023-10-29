@@ -149,7 +149,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(reqBody, &request)
 	if err != nil {
 		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
-		sendAPIResponse(w, &response, http.StatusBadRequest)
+		sendAPIResponse(w, &response, http.StatusUnauthorized)
 
 		return
 	}
@@ -157,7 +157,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 	reqURL := strings.TrimSpace(request.URL)
 	if reqURL == "" {
 		response = APIResponse{Error: ErrorEmptyURL}
-		sendAPIResponse(w, &response, http.StatusBadRequest)
+		sendAPIResponse(w, &response, http.StatusPaymentRequired)
 
 		return
 	}
@@ -165,7 +165,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
 		response = APIResponse{Error: ErrorInvalidURL}
-		sendAPIResponse(w, &response, http.StatusBadRequest)
+		sendAPIResponse(w, &response, http.StatusForbidden)
 
 		return
 	}
@@ -173,7 +173,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 	shortName, err := appendURL(reqURL)
 	if err != nil {
 		response = APIResponse{Error: err.Error()}
-		sendAPIResponse(w, &response, http.StatusBadRequest)
+		sendAPIResponse(w, &response, http.StatusNotFound)
 
 		return
 	}
