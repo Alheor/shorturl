@@ -39,19 +39,19 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 		}
 		defer gz.Close()
 
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			f(w, r)
-			return
-		}
-
-		data, err := Decompress(reqBody)
-		if err != nil {
-			f(w, r)
-			return
-		}
-
-		r.Body = io.NopCloser(strings.NewReader(string(data)))
+		//reqBody, err := io.ReadAll(r.Body)
+		//if err != nil {
+		//	f(w, r)
+		//	return
+		//}
+		//
+		//data, err := Decompress(reqBody)
+		//if err != nil {
+		//	f(w, r)
+		//	return
+		//}
+		//
+		//r.Body = io.NopCloser(strings.NewReader(string(data)))
 
 		w.Header().Set("Content-Encoding", "gzip")
 
