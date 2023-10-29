@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +25,7 @@ type want struct {
 type test struct {
 	name           string
 	requestURL     string
-	requestBody    string
+	requestBody    []byte
 	requestHeaders map[string]string
 	method         string
 	want           want
@@ -48,7 +50,7 @@ func TestAddURLSuccess(t *testing.T) {
 			name:           `positive test: send POST`,
 			requestURL:     `/`,
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
-			requestBody:    targetURL,
+			requestBody:    []byte(targetURL),
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
@@ -100,7 +102,7 @@ func TestAddURLError(t *testing.T) {
 		}, {
 			name:           `negative test: send POST empty body 1`,
 			requestURL:     `/`,
-			requestBody:    ``,
+			requestBody:    []byte(``),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
 			method:         http.MethodPost,
 			want: want{
@@ -112,7 +114,7 @@ func TestAddURLError(t *testing.T) {
 		}, {
 			name:           `negative test: send POST empty body 2`,
 			requestURL:     `/`,
-			requestBody:    ` `,
+			requestBody:    []byte(` `),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
 			method:         http.MethodPost,
 			want: want{
@@ -121,18 +123,18 @@ func TestAddURLError(t *testing.T) {
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
-			//}, {
-			//	name:           `negative test: send POST invalid url`,
-			//	requestURL:     `/`,
-			//	requestBody:    `invalid url`,
-			//	requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
-			//	method:         http.MethodPost,
-			//	want: want{
-			//		code:         http.StatusBadRequest,
-			//		responseBody: ErrorInvalidURL + "\n",
-			//		headerName:   HeaderContentTypeName,
-			//		headerValue:  HeaderContentTypeTextPlainValue,
-			//	},
+		}, {
+			name:           `negative test: send POST invalid url`,
+			requestURL:     `/`,
+			requestBody:    []byte(`invalid url`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: ErrorInvalidURL + "\n",
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeTextPlainValue,
+			},
 		},
 	}
 
@@ -145,7 +147,7 @@ func TestAddURLError(t *testing.T) {
 		{
 			name:           `negative test: send POST with existed url`,
 			requestURL:     `/`,
-			requestBody:    targetURL,
+			requestBody:    []byte(targetURL),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
 			method:         http.MethodPost,
 			want: want{
@@ -205,7 +207,7 @@ func TestAiShortenSuccess(t *testing.T) {
 		{
 			name:           `positive api test: send POST with valid body`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":"` + targetURL + `"}`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -230,7 +232,7 @@ func TestAiShortenError(t *testing.T) {
 		{
 			name:           `negative api test: with existed url`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":"` + targetURL + `"}`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -242,7 +244,7 @@ func TestAiShortenError(t *testing.T) {
 		}, {
 			name:           `negative api test: invalid url`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":"invalid url"}`,
+			requestBody:    []byte(`{"url":"invalid url"}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -254,7 +256,7 @@ func TestAiShortenError(t *testing.T) {
 		}, {
 			name:           `negative api test: empty url 1`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":""}`,
+			requestBody:    []byte(`{"url":""}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -266,7 +268,7 @@ func TestAiShortenError(t *testing.T) {
 		}, {
 			name:           `negative api test: empty url 2`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":" "}`,
+			requestBody:    []byte(`{"url":" "}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -278,7 +280,7 @@ func TestAiShortenError(t *testing.T) {
 		}, {
 			name:           `negative api test: url is null`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":null}`,
+			requestBody:    []byte(`{"url":null}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -290,7 +292,7 @@ func TestAiShortenError(t *testing.T) {
 		}, {
 			name:           `negative api test: invalid json`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":null`,
+			requestBody:    []byte(`{"url":null`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
@@ -302,7 +304,7 @@ func TestAiShortenError(t *testing.T) {
 		}, {
 			name:           `negative api test: invalid header`,
 			requestURL:     `/api/shorten`,
-			requestBody:    `{"url":"` + targetURL + `"}`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
 			method:         http.MethodPost,
 			want: want{
@@ -330,7 +332,7 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
-			requestBody: targetURL,
+			requestBody: []byte(targetURL),
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
@@ -345,7 +347,7 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
-			requestBody: targetURL,
+			requestBody: []byte(targetURL),
 			method:      http.MethodGet,
 			want: want{
 				code:        http.StatusTemporaryRedirect,
@@ -367,7 +369,7 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeJSONValue,
 			},
-			requestBody: `{"url":"` + targetURL + `"}`,
+			requestBody: []byte(`{"url":"` + targetURL + `"}`),
 			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
@@ -389,7 +391,13 @@ func runTests(t *testing.T, tests []test) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, strings.NewReader(test.requestBody))
+			var err error
+			if test.requestHeaders[HeaderAcceptEncodingName] == HeaderAcceptEncodingValue {
+				test.requestBody, err = gziphandler.Compress(test.requestBody)
+				require.NoError(t, err)
+			}
+
+			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, bytes.NewReader(test.requestBody))
 			require.NoError(t, err)
 
 			for hName, hVal := range test.requestHeaders {

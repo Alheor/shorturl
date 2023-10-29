@@ -1,6 +1,8 @@
 package gziphandler
 
 import (
+	"bytes"
+	"compress/flate"
 	"compress/gzip"
 	"io"
 	"net/http"
@@ -37,8 +39,61 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 		}
 		defer gz.Close()
 
+		reqBody, err := io.ReadAll(r.Body)
+		if err != nil {
+			f(w, r)
+			return
+		}
+
+		data, err := Decompress(reqBody)
+		if err != nil {
+			f(w, r)
+			return
+		}
+
+		r.Body = io.NopCloser(strings.NewReader(string(data)))
+
 		w.Header().Set("Content-Encoding", "gzip")
 
 		f(gzipWriter{w, gz}, r)
 	}
+}
+
+func Compress(data []byte) ([]byte, error) {
+	var b bytes.Buffer
+
+	w, err := gzip.NewWriterLevel(&b, flate.BestCompression)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = w.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = w.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+func Decompress(data []byte) ([]byte, error) {
+
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	var b bytes.Buffer
+
+	_, err = b.ReadFrom(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
 }
