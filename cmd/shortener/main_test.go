@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -26,7 +27,6 @@ type test struct {
 	name           string
 	requestURL     string
 	requestBody    []byte
-	compressBody   bool
 	requestHeaders map[string]string
 	method         string
 	want           want
@@ -333,9 +333,8 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
-			requestBody:  []byte(targetURL),
-			compressBody: true,
-			method:       http.MethodPost,
+			requestBody: []byte(targetURL),
+			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
@@ -349,9 +348,8 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
-			requestBody:  []byte(targetURL),
-			compressBody: true,
-			method:       http.MethodGet,
+			requestBody: []byte(targetURL),
+			method:      http.MethodGet,
 			want: want{
 				code:        http.StatusTemporaryRedirect,
 				headerName:  HeaderLocation,
@@ -362,7 +360,6 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	//Тест запроса с заголовоком и со сжатым телом
 	shortNameRepository.Remove(shortName)
 
 	tests = []test{
@@ -373,9 +370,8 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeJSONValue,
 			},
-			requestBody:  []byte(`{"url":"` + targetURL + `"}`),
-			compressBody: true,
-			method:       http.MethodPost,
+			requestBody: []byte(`{"url":"` + targetURL + `"}`),
+			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
@@ -387,20 +383,18 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	//Тест запроса с заголовоком и с НЕ сжатым телом
 	shortNameRepository.Remove(shortName)
 
 	tests = []test{
 		{
-			name:       `test: gzip is enable on /api/shorten1`,
+			name:       `test: gzip is enable on /api/shorten with application/x-gzip header`,
 			requestURL: `/api/shorten`,
 			requestHeaders: map[string]string{
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
-				HeaderContentTypeName:    HeaderContentTypeJSONValue,
+				HeaderContentTypeName:    HeaderContentTypeXgzipValue,
 			},
-			requestBody:  []byte(`{"url":"` + targetURL + `"}`),
-			compressBody: false,
-			method:       http.MethodPost,
+			requestBody: []byte(`{"url":"` + targetURL + `"}`),
+			method:      http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
@@ -422,8 +416,9 @@ func runTests(t *testing.T, tests []test) {
 		t.Run(test.name, func(t *testing.T) {
 
 			var err error
-			if test.compressBody {
+			if test.requestHeaders[HeaderContentTypeName] == HeaderContentTypeXgzipValue {
 				test.requestBody, err = gziphandler.Compress(test.requestBody)
+				fmt.Println(` data Compressed:` + string(test.requestBody))
 				require.NoError(t, err)
 			}
 

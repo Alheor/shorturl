@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -27,29 +28,29 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 		}
 
 		ct := r.Header.Get(`Content-Type`)
-		if ct != `application/json` && ct != `text/html; charset=utf-8` {
+		if ct != `application/json` && ct != `text/html; charset=utf-8` && ct != `application/x-gzip` {
 			f(w, r)
 			return
 		}
 
-		var data []byte
+		if ct == `application/x-gzip` {
 
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			f(w, r)
-			return
-		}
+			var data []byte
 
-		filetype := http.DetectContentType(data)
-		if filetype == `application/zip` || filetype == `application/x-gzip` {
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				f(w, r)
+				return
+			}
+
 			data, err = Decompress(data)
 			if err != nil {
 				f(w, r)
 				return
 			}
+			fmt.Println(` data UNCompressed:` + string(data))
+			r.Body = io.NopCloser(strings.NewReader(string(data)))
 		}
-
-		r.Body = io.NopCloser(strings.NewReader(string(data)))
 
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {

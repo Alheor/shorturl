@@ -50,6 +50,9 @@ const (
 	//HeaderContentTypeJSONValue header "Content-Type" application/json
 	HeaderContentTypeJSONValue = `application/json`
 
+	//HeaderContentTypeXgzipValue header "Content-Type" application/x-gzip
+	HeaderContentTypeXgzipValue = `application/x-gzip`
+
 	//HeaderLocation header "Location" name
 	HeaderLocation = `Location`
 )
@@ -129,7 +132,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 	var response APIResponse
 
 	contentType := r.Header.Get(HeaderContentTypeName)
-	if contentType != HeaderContentTypeJSONValue {
+	if contentType != HeaderContentTypeJSONValue && contentType != HeaderContentTypeXgzipValue {
 		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 
