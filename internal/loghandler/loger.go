@@ -1,4 +1,4 @@
-package log
+package loghandler
 
 import (
 	"go.uber.org/zap"
@@ -41,21 +41,26 @@ func (l *Logger) WithLogging(f http.HandlerFunc) http.HandlerFunc {
 			size:       0,
 		}
 
-		w1 := &loggingResponseWriter{
+		lw := &loggingResponseWriter{
 			ResponseWriter: w,
 			ResponseInfo:   responseData,
 		}
 
 		start := time.Now()
-		f(w1, r)
+		f(lw, r)
 		duration := time.Since(start).String()
 
-		l.Log.Info(`got incoming HTTP request`,
+		encodingType := lw.Header().Get(`Content-Encoding`)
+		if encodingType != `` {
+			encodingType = ` with encoding: ` + encodingType
+		}
+
+		l.Log.Info(`got incoming HTTP request`+encodingType,
 			zap.String("url", requestURI),
 			zap.String("method", requestMethod),
 			zap.String("duration", duration),
-			zap.Int("status", w1.ResponseInfo.statusCode),
-			zap.Int("size", w1.ResponseInfo.size),
+			zap.Int("status", lw.ResponseInfo.statusCode),
+			zap.Int("size", lw.ResponseInfo.size),
 		)
 	}
 }

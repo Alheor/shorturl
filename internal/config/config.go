@@ -13,7 +13,7 @@ const defaultAddr = `localhost:8080`
 // DefaultBaseHost default host url
 const defaultBaseHost = `http://localhost:8080`
 
-// DefaultLogLevel default log level
+// DefaultLogLevel default loghandler level
 const defaultLogLevel = `info`
 
 // EnvAddr env variable name
@@ -22,7 +22,7 @@ const envAddr = `SHORT_URL_ADDR`
 // EnvBaseHost env variable name
 const envBaseHost = `SHORT_URL_BASE_HOST`
 
-// EnvDefaultLogLevel env variable log level
+// EnvDefaultLogLevel env variable loghandler level
 const envLogLevel = `LOG_LEVEl`
 
 // Options Server options
@@ -40,7 +40,7 @@ var Options struct {
 func init() {
 	flag.StringVar(&Options.Addr, `a`, defaultAddr, "listening host:port")
 	flag.StringVar(&Options.BaseHost, `b`, defaultBaseHost, "base host of url")
-	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "log level")
+	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "loghandler level")
 }
 
 // Load loading config

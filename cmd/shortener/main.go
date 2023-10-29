@@ -4,7 +4,8 @@ package main
 import (
 	"encoding/json"
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/log"
+	"github.com/Alheor/shorturl/internal/gziphandler"
+	"github.com/Alheor/shorturl/internal/loghandler"
 	"github.com/Alheor/shorturl/internal/randomname"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -31,6 +32,15 @@ const (
 	//HeaderContentTypeName header "Content-Type" name
 	HeaderContentTypeName = `Content-Type`
 
+	//HeaderAcceptEncodingName  header "Accept-Encoding" name
+	HeaderAcceptEncodingName = `Accept-Encoding`
+
+	//HeaderContentEncodingName  header "Content-Encoding" name
+	HeaderContentEncodingName = `Content-Encoding`
+
+	//HeaderAcceptEncodingValue header "Accept-Encoding" value
+	HeaderAcceptEncodingValue = `gzip`
+
 	//HeaderContentTypeTextPlainValue header "Content-Type" text/plain
 	HeaderContentTypeTextPlainValue = `text/plain; charset=utf-8`
 
@@ -44,7 +54,7 @@ const (
 var (
 	randomShortName     = randomname.Init()
 	shortNameRepository = repository.Init()
-	logger              = log.Init(config.Options.LogLevel)
+	logger              = loghandler.Init(config.Options.LogLevel)
 )
 
 type APIResponse struct {
@@ -55,6 +65,8 @@ type APIResponse struct {
 type APIRequest struct {
 	URL string `json:"url"`
 }
+
+type middleware func(f http.HandlerFunc) http.HandlerFunc
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 
@@ -226,10 +238,25 @@ func main() {
 func getRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Post("/", logger.WithLogging(addURL))
-	r.Post("/api/shorten", logger.WithLogging(apiShorten))
+	logMiddleware := middleware(func(f http.HandlerFunc) http.HandlerFunc {
+		return logger.WithLogging(f)
+	})
 
-	r.Get("/{id}", logger.WithLogging(getURL))
+	gzipMiddleware := middleware(func(f http.HandlerFunc) http.HandlerFunc {
+		return gziphandler.WithGzip(f)
+	})
+
+	r.Post("/", middlewareConveyor(addURL, gzipMiddleware, logMiddleware))
+	r.Post("/api/shorten", middlewareConveyor(apiShorten, gzipMiddleware, logMiddleware))
+	r.Get("/{id}", middlewareConveyor(getURL, gzipMiddleware, logMiddleware))
 
 	return r
+}
+
+func middlewareConveyor(h http.HandlerFunc, middlewares ...middleware) http.HandlerFunc {
+	for _, middleware := range middlewares {
+		h = middleware(h)
+	}
+
+	return h
 }
