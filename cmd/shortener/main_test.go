@@ -328,7 +328,7 @@ func TestGzip(t *testing.T) {
 			requestURL: `/`,
 			requestHeaders: map[string]string{
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
-				HeaderContentTypeName:    HeaderContentTypeTextPlainValue,
+				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
 			requestBody: targetURL,
 			method:      http.MethodPost,
@@ -343,7 +343,7 @@ func TestGzip(t *testing.T) {
 			requestURL: `/` + shortName,
 			requestHeaders: map[string]string{
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
-				HeaderContentTypeName:    HeaderContentTypeTextPlainValue,
+				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
 			requestBody: targetURL,
 			method:      http.MethodGet,

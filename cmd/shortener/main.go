@@ -44,6 +44,9 @@ const (
 	//HeaderContentTypeTextPlainValue header "Content-Type" text/plain
 	HeaderContentTypeTextPlainValue = `text/plain; charset=utf-8`
 
+	//HeaderContentTypeTextHTMLValue header "Content-Type" text/html
+	HeaderContentTypeTextHTMLValue = `text/html; charset=utf-8`
+
 	//HeaderContentTypeJSONValue header "Content-Type" application/json
 	HeaderContentTypeJSONValue = `application/json`
 
