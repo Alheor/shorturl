@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -418,7 +417,7 @@ func runTests(t *testing.T, tests []test) {
 			var err error
 			if test.requestHeaders[HeaderContentTypeName] == HeaderContentTypeXgzipValue {
 				test.requestBody, err = gziphandler.Compress(test.requestBody)
-				fmt.Println(` data Compressed:` + string(test.requestBody))
+
 				require.NoError(t, err)
 			}
 

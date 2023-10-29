@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -48,7 +47,7 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 				f(w, r)
 				return
 			}
-			fmt.Println(` data UNCompressed:` + string(data))
+
 			r.Body = io.NopCloser(strings.NewReader(string(data)))
 		}
 
