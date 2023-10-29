@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/loghandler"
@@ -149,8 +148,6 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(reqBody, &request)
 	if err != nil {
-		fmt.Println(string(reqBody))
-		logger.Log.Panic(string(reqBody))
 		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 

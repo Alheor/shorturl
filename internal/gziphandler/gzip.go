@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
+	"github.com/Alheor/shorturl/internal/loghandler"
 	"io"
 	"net/http"
 	"strings"
@@ -44,6 +45,9 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 			f(w, r)
 			return
 		}
+
+		logger := loghandler.Init(`debug`)
+		logger.Log.Error(string(reqBody))
 
 		data, err := Decompress(reqBody)
 		if err != nil {
