@@ -25,7 +25,7 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 		}
 
 		ct := r.Header.Get(`Content-Type`)
-		if ct != `application/json` && ct != `text/html; charset=utf-8` && ct != `application/x-gzip` {
+		if ct != `application/json` && ct != `text/html; charset=utf-8` {
 			f(w, r)
 			return
 		}
