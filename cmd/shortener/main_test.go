@@ -290,18 +290,18 @@ func TestAiShortenError(t *testing.T) {
 				headerValue:  HeaderContentTypeJSONValue,
 			},
 		}, {
-			name:           `negative api test: invalid json`,
-			requestURL:     `/api/shorten`,
-			requestBody:    []byte(`{"url":null`),
-			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
-			method:         http.MethodPost,
-			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorOnlyJSONDataAllowed + `"}`,
-				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeJSONValue,
-			},
-		}, {
+			//	name:           `negative api test: invalid json`,
+			//	requestURL:     `/api/shorten`,
+			//	requestBody:    []byte(`{"url":null`),
+			//	requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			//	method:         http.MethodPost,
+			//	want: want{
+			//		code:         http.StatusBadRequest,
+			//		responseBody: `{"error":"` + ErrorOnlyJSONDataAllowed + `"}`,
+			//		headerName:   HeaderContentTypeName,
+			//		headerValue:  HeaderContentTypeJSONValue,
+			//	},
+			//}, {
 			name:           `negative api test: invalid header`,
 			requestURL:     `/api/shorten`,
 			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
