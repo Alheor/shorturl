@@ -21,8 +21,11 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := loghandler.Init(`debug`)
 
-		if !strings.Contains(r.Header.Get(`Accept-Encoding`), `gzip`) {
+		asd := r.Header.Get(`Accept-Encoding`)
+		logger.Log.Error(`Accept-Encoding: ` + asd)
+		if !strings.Contains(asd, `gzip`) {
 			f(w, r)
 			return
 		}
@@ -46,7 +49,6 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		logger := loghandler.Init(`debug`)
 		logger.Log.Error(string(reqBody))
 
 		data, err := Decompress(reqBody)
