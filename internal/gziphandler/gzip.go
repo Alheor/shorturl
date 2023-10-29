@@ -32,32 +32,31 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		var data []byte
+
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			f(w, r)
+			return
+		}
+
+		filetype := http.DetectContentType(data)
+		if filetype == `application/zip` || filetype == `application/x-gzip` {
+			data, err = Decompress(data)
+			if err != nil {
+				f(w, r)
+				return
+			}
+		}
+
+		r.Body = io.NopCloser(strings.NewReader(string(data)))
+
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
 			f(w, r)
 			return
 		}
 		defer gz.Close()
-
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			f(w, r)
-			return
-		}
-
-		filetype := http.DetectContentType(reqBody)
-		if filetype != `application/zip` && filetype != `application/x-gzip` {
-			f(w, r)
-			return
-		}
-
-		data, err := Decompress(reqBody)
-		if err != nil {
-			f(w, r)
-			return
-		}
-
-		r.Body = io.NopCloser(strings.NewReader(string(data)))
 
 		w.Header().Set("Content-Encoding", "gzip")
 
