@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
-	"github.com/Alheor/shorturl/internal/loghandler"
 	"io"
 	"net/http"
 	"strings"
@@ -21,11 +20,8 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := loghandler.Init(`debug`)
 
-		asd := r.Header.Get(`Accept-Encoding`)
-		logger.Log.Error(`Accept-Encoding: ` + asd)
-		if !strings.Contains(asd, `gzip`) {
+		if !strings.Contains(r.Header.Get(`Accept-Encoding`), `gzip`) {
 			f(w, r)
 			return
 		}
@@ -49,7 +45,11 @@ func WithGzip(f http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		logger.Log.Error(string(reqBody))
+		filetype := http.DetectContentType(reqBody)
+		if filetype != `application/zip` && filetype != `application/x-gzip` {
+			f(w, r)
+			return
+		}
 
 		data, err := Decompress(reqBody)
 		if err != nil {
