@@ -87,7 +87,7 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
-		http.Error(w, ErrorInvalidURL, http.StatusBadRequest)
+		http.Error(w, ErrorInvalidURL+reqURL, http.StatusBadRequest)
 		return
 	}
 
