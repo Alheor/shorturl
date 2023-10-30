@@ -11,20 +11,20 @@ import (
 	"sync"
 )
 
-type shortUrl struct {
+type shortURl struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
 }
 
 // ShortNameFile struct
 type ShortNameFile struct {
-	urlMap map[string]string
+	URLMap map[string]string
 	sync.RWMutex
 	file *os.File
 }
 
 func (sn *ShortNameFile) Init() error {
-	sn.urlMap = make(map[string]string)
+	sn.URLMap = make(map[string]string)
 
 	err := load(sn, config.Options.FileStoragePath)
 	if err != nil {
@@ -50,13 +50,13 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 
 	sn.RLock()
 
-	_, exists := sn.urlMap[id]
+	_, exists := sn.URLMap[id]
 	if exists {
 		sn.RUnlock()
 		return errors.New(ErrorValueAlreadyExist)
 	}
 
-	for _, mapValue := range sn.urlMap {
+	for _, mapValue := range sn.URLMap {
 		if mapValue == value {
 			sn.RUnlock()
 			return errors.New(ErrorValueAlreadyExist)
@@ -66,9 +66,9 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 	sn.RUnlock()
 	sn.Lock()
 
-	sn.urlMap[id] = value
+	sn.URLMap[id] = value
 
-	data, err := json.Marshal(&shortUrl{ID: id, URL: value})
+	data, err := json.Marshal(&shortURl{ID: id, URL: value})
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (sn *ShortNameFile) Get(id string) (value string, error error) {
 	sn.RLock()
 	defer sn.RUnlock()
 
-	url, exists := sn.urlMap[id]
+	url, exists := sn.URLMap[id]
 	if !exists {
 		return ``, errors.New(ErrorIDNotFound)
 	}
@@ -111,19 +111,18 @@ func load(sn *ShortNameFile, path string) error {
 
 	sn.Lock()
 
-	var scanner *bufio.Scanner
-	scanner = bufio.NewScanner(file)
+	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
 		data := scanner.Bytes()
 
-		el := shortUrl{}
+		el := shortURl{}
 		err = json.Unmarshal(data, &el)
 		if err != nil {
 			continue
 		}
 
-		sn.urlMap[el.ID] = el.URL
+		sn.URLMap[el.ID] = el.URL
 	}
 
 	sn.Unlock()

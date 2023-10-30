@@ -122,6 +122,25 @@ func TestGetURLFileError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestLodCreatedSuccess(t *testing.T) {
+
+	config.Load()
+	config.Options.FileStoragePath = `/tmp/test.json`
+	removeFile(config.Options.FileStoragePath)
+
+	r := Init()
+	testData := getTestData()
+
+	for index, val := range testData {
+		err := r.Add(index, val)
+		require.NoError(t, err)
+	}
+
+	assert.FileExists(t, config.Options.FileStoragePath)
+
+	removeFile(config.Options.FileStoragePath)
+}
+
 func TestLodFromFileSuccess(t *testing.T) {
 
 	config.Load()

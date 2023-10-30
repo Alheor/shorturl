@@ -9,12 +9,12 @@ import (
 
 // ShortNameMap struct
 type ShortNameMap struct {
-	UrlMap map[string]string
+	URLMap map[string]string
 	sync.RWMutex
 }
 
 func (sn *ShortNameMap) Init() error {
-	sn.UrlMap = make(map[string]string)
+	sn.URLMap = make(map[string]string)
 	return nil
 }
 
@@ -22,13 +22,13 @@ func (sn *ShortNameMap) Add(id string, value string) error {
 
 	sn.RLock()
 
-	_, exists := sn.UrlMap[id]
+	_, exists := sn.URLMap[id]
 	if exists {
 		sn.RUnlock()
 		return errors.New(ErrorValueAlreadyExist)
 	}
 
-	for _, mapValue := range sn.UrlMap {
+	for _, mapValue := range sn.URLMap {
 		if mapValue == value {
 			sn.RUnlock()
 			return errors.New(ErrorValueAlreadyExist)
@@ -40,7 +40,7 @@ func (sn *ShortNameMap) Add(id string, value string) error {
 	sn.Lock()
 	defer sn.Unlock()
 
-	sn.UrlMap[id] = value
+	sn.URLMap[id] = value
 
 	return nil
 }
@@ -50,7 +50,7 @@ func (sn *ShortNameMap) Get(id string) (value string, error error) {
 	sn.RLock()
 	defer sn.RUnlock()
 
-	url, exists := sn.UrlMap[id]
+	url, exists := sn.URLMap[id]
 	if !exists {
 		return ``, errors.New(ErrorIDNotFound)
 	}
@@ -63,5 +63,5 @@ func (sn *ShortNameMap) Remove(id string) {
 	sn.Lock()
 	defer sn.Unlock()
 
-	delete(sn.UrlMap, id)
+	delete(sn.URLMap, id)
 }

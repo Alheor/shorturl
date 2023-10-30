@@ -58,9 +58,10 @@ const (
 )
 
 var (
-	randomShortName     = randomname.Init()
-	shortNameRepository = repository.Init()
-	logger              = loghandler.Init()
+	randomShortName     randomname.RandomStringGenerator
+	shortNameRepository repository.Repository
+
+	logger = loghandler.Init()
 )
 
 type APIResponse struct {
@@ -232,6 +233,9 @@ func appendURL(reqURL string) (string, error) {
 
 func main() {
 	config.Load()
+
+	randomShortName = randomname.Init()
+	shortNameRepository = repository.Init()
 
 	logger.Log.Info("Starting server", zap.String("addr", config.Options.Addr))
 
