@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-type shortURl struct {
+type shortURL struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
 }
@@ -68,7 +68,7 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 
 	sn.URLMap[id] = value
 
-	data, err := json.Marshal(&shortURl{ID: id, URL: value})
+	data, err := json.Marshal(&shortURL{ID: id, URL: value})
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func load(sn *ShortNameFile, path string) error {
 	for scanner.Scan() {
 		data := scanner.Bytes()
 
-		el := shortURl{}
+		el := shortURL{}
 		err = json.Unmarshal(data, &el)
 		if err != nil {
 			continue
