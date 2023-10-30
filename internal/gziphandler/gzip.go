@@ -1,3 +1,5 @@
+// Package gziphandler
+// Gzip handler
 package gziphandler
 
 import (

@@ -41,6 +41,8 @@ func (rg mockShortName) Generate() string {
 
 func init() {
 	randomShortName = new(mockShortName)
+	config.Options.FileStoragePath = `` //режим без записи в файл
+	shortNameRepository = repository.Init()
 }
 
 func TestAddURLSuccess(t *testing.T) {

@@ -60,7 +60,7 @@ const (
 var (
 	randomShortName     = randomname.Init()
 	shortNameRepository = repository.Init()
-	logger              = loghandler.Init(config.Options.LogLevel)
+	logger              = loghandler.Init()
 )
 
 type APIResponse struct {

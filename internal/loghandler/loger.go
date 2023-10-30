@@ -1,6 +1,7 @@
 package loghandler
 
 import (
+	"github.com/Alheor/shorturl/internal/config"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -10,8 +11,8 @@ type Logger struct {
 	Log *zap.Logger
 }
 
-func Init(level string) *Logger {
-	lvl, err := zap.ParseAtomicLevel(level)
+func Init() *Logger {
+	lvl, err := zap.ParseAtomicLevel(config.Options.LogLevel)
 	if err != nil {
 		panic(err)
 	}

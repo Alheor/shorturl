@@ -9,21 +9,26 @@ import (
 
 // ShortNameMap struct
 type ShortNameMap struct {
-	urlMap map[string]string
+	UrlMap map[string]string
 	sync.RWMutex
+}
+
+func (sn *ShortNameMap) Init() error {
+	sn.UrlMap = make(map[string]string)
+	return nil
 }
 
 func (sn *ShortNameMap) Add(id string, value string) error {
 
 	sn.RLock()
 
-	_, exists := sn.urlMap[id]
+	_, exists := sn.UrlMap[id]
 	if exists {
 		sn.RUnlock()
 		return errors.New(ErrorValueAlreadyExist)
 	}
 
-	for _, mapValue := range sn.urlMap {
+	for _, mapValue := range sn.UrlMap {
 		if mapValue == value {
 			sn.RUnlock()
 			return errors.New(ErrorValueAlreadyExist)
@@ -35,7 +40,7 @@ func (sn *ShortNameMap) Add(id string, value string) error {
 	sn.Lock()
 	defer sn.Unlock()
 
-	sn.urlMap[id] = value
+	sn.UrlMap[id] = value
 
 	return nil
 }
@@ -45,7 +50,7 @@ func (sn *ShortNameMap) Get(id string) (value string, error error) {
 	sn.RLock()
 	defer sn.RUnlock()
 
-	url, exists := sn.urlMap[id]
+	url, exists := sn.UrlMap[id]
 	if !exists {
 		return ``, errors.New(ErrorIDNotFound)
 	}
@@ -55,8 +60,8 @@ func (sn *ShortNameMap) Get(id string) (value string, error error) {
 
 func (sn *ShortNameMap) Remove(id string) {
 
-	sn.RLock()
-	defer sn.RUnlock()
+	sn.Lock()
+	defer sn.Unlock()
 
-	delete(sn.urlMap, id)
+	delete(sn.UrlMap, id)
 }

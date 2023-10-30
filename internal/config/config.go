@@ -7,40 +7,28 @@ import (
 	"os"
 )
 
-// DefaultAddr default server address
 const defaultAddr = `localhost:8080`
-
-// DefaultBaseHost default host url
 const defaultBaseHost = `http://localhost:8080`
-
-// DefaultLogLevel default loghandler level
 const defaultLogLevel = `info`
-
-// EnvAddr env variable name
+const defaultLFileStoragePath = `/tmp/short-url-db.json`
 const envAddr = `SHORT_URL_ADDR`
-
-// EnvBaseHost env variable name
 const envBaseHost = `SHORT_URL_BASE_HOST`
-
-// EnvDefaultLogLevel env variable loghandler level
+const envFileStoragePath = `FILE_STORAGE_PATH`
 const envLogLevel = `LOG_LEVEl`
 
 // Options Server options
 var Options struct {
-
-	// Server address (default: localhost:8080)
-	Addr string
-
-	// Host for urls (default: http://localhost:8080)
-	BaseHost string
-
-	LogLevel string
+	Addr            string
+	BaseHost        string
+	LogLevel        string
+	FileStoragePath string
 }
 
 func init() {
 	flag.StringVar(&Options.Addr, `a`, defaultAddr, "listening host:port")
 	flag.StringVar(&Options.BaseHost, `b`, defaultBaseHost, "base host of url")
-	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "loghandler level")
+	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "log handler level")
+	flag.StringVar(&Options.FileStoragePath, `f`, defaultLFileStoragePath, "Path to storage file")
 }
 
 // Load loading config
@@ -60,5 +48,10 @@ func Load() {
 	logLevel, exist := os.LookupEnv(envLogLevel)
 	if exist && len(logLevel) > 0 {
 		Options.LogLevel = logLevel
+	}
+
+	fileStoragePath, exist := os.LookupEnv(envFileStoragePath)
+	if exist {
+		Options.FileStoragePath = fileStoragePath
 	}
 }
