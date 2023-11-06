@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,11 +23,12 @@ type want struct {
 }
 
 type test struct {
-	name        string
-	requestURL  string
-	requestBody io.Reader
-	method      string
-	want        want
+	name           string
+	requestURL     string
+	requestBody    []byte
+	requestHeaders map[string]string
+	method         string
+	want           want
 }
 
 const targetURL = `https://practicum.yandex.ru/`
@@ -37,21 +41,24 @@ func (rg mockShortName) Generate() string {
 
 func init() {
 	randomShortName = new(mockShortName)
+	config.Options.FileStoragePath = `` //режим без записи в файл
+	shortNameRepository = repository.Init()
 }
 
 func TestAddURLSuccess(t *testing.T) {
 
 	tests := []test{
 		{
-			name:        `positive test: send POST`,
-			requestURL:  `/`,
-			requestBody: strings.NewReader(targetURL),
-			method:      http.MethodPost,
+			name:           `positive test: send POST`,
+			requestURL:     `/`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			requestBody:    []byte(targetURL),
+			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		},
 	}
@@ -65,9 +72,10 @@ func TestGetURLSuccess(t *testing.T) {
 
 	tests := []test{
 		{
-			name:       `positive test: call GET`,
-			requestURL: `/` + shortName,
-			method:     http.MethodGet,
+			name:           `positive test: call GET`,
+			requestURL:     `/` + shortName,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodGet,
 			want: want{
 				code:        http.StatusTemporaryRedirect,
 				headerName:  HeaderLocation,
@@ -83,87 +91,72 @@ func TestAddURLError(t *testing.T) {
 
 	tests := []test{
 		{
-			name:       `negative test: send POST without body`,
-			requestURL: `/`,
-			method:     http.MethodPost,
+			name:           `negative test: send POST without body`,
+			requestURL:     `/`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorEmptyRequestBody + "\n",
+				responseBody: ErrEmptyRequestBody + "\n",
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		}, {
-			name:        `negative test: send POST empty body 1`,
-			requestURL:  `/`,
-			requestBody: strings.NewReader(``),
-			method:      http.MethodPost,
+			name:           `negative test: send POST empty body 1`,
+			requestURL:     `/`,
+			requestBody:    []byte(``),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorEmptyRequestBody + "\n",
+				responseBody: ErrEmptyRequestBody + "\n",
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		}, {
-			name:        `negative test: send POST empty body 2`,
-			requestURL:  `/`,
-			requestBody: strings.NewReader(` `),
-			method:      http.MethodPost,
+			name:           `negative test: send POST empty body 2`,
+			requestURL:     `/`,
+			requestBody:    []byte(` `),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorEmptyRequestBody + "\n",
+				responseBody: ErrEmptyRequestBody + "\n",
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		}, {
-			name:        `negative test: send POST invalid url`,
-			requestURL:  `/`,
-			requestBody: strings.NewReader(`invalid url`),
-			method:      http.MethodPost,
+			name:           `negative test: send POST invalid url`,
+			requestURL:     `/`,
+			requestBody:    []byte(`invalid url`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorInvalidURL + "\n",
+				responseBody: ErrInvalidURL + "\n",
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		},
 	}
 
 	runTests(t, tests)
 
-	//test if exists by url
+	//test if exists url
 	_ = shortNameRepository.Add(`otherShortName`, targetURL)
 
 	tests = []test{
 		{
-			name:        `negative test: send POST with existed url`,
-			requestURL:  `/`,
-			requestBody: strings.NewReader(targetURL),
-			method:      http.MethodPost,
+			name:           `negative test: send POST with existed url`,
+			requestURL:     `/`,
+			requestBody:    []byte(targetURL),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorValueAlreadyExist + "\n",
+				responseBody: repository.ErrValueAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
-			},
-		},
-	}
-
-	runTests(t, tests)
-
-	//test if exists by short name
-	_ = shortNameRepository.Add(randomShortName.Generate(), targetURL)
-
-	tests = []test{
-		{
-			name:        `negative test: send POST with existed short name`,
-			requestURL:  `/`,
-			requestBody: strings.NewReader(targetURL),
-			method:      http.MethodPost,
-			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorValueAlreadyExist + "\n",
-				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		},
 	}
@@ -175,28 +168,239 @@ func TestGetURLError(t *testing.T) {
 
 	tests := []test{
 		{
-			name:       `negative test: method GET not allowed`,
-			requestURL: `/`,
-			method:     http.MethodGet,
+			name:           `negative test: method GET not allowed`,
+			requestURL:     `/`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodGet,
 			want: want{
 				code: http.StatusMethodNotAllowed,
 			},
 		}, {
-			name:       `negative test: call GET unknown identifier`,
-			requestURL: `/unknown-identifier`,
-			method:     http.MethodGet,
+			name:           `negative test: call GET unknown identifier`,
+			requestURL:     `/unknown-identifier`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorIDNotFound + "\n",
+				responseBody: repository.ErrIDNotFound + "\n",
 				headerName:   HeaderContentTypeName,
-				headerValue:  HeaderContentTypeValue,
+				headerValue:  HeaderContentTypeTextPlainValue,
 			},
 		}, {
-			name:       `negative test: method POST not allowed`,
-			requestURL: `/unknown-identifier`,
-			method:     http.MethodPost,
+			name:           `negative test: method POST not allowed`,
+			requestURL:     `/unknown-identifier`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
 			want: want{
 				code: http.StatusMethodNotAllowed,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestAiShortenSuccess(t *testing.T) {
+
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(shortName)
+
+	tests := []test{
+		{
+			name:           `positive api test: send POST with valid body`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusCreated,
+				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestAiShortenError(t *testing.T) {
+
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(shortName)
+	_ = shortNameRepository.Add(shortName, targetURL)
+
+	tests := []test{
+		{
+			name:           `negative api test: with existed url`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + repository.ErrValueAlreadyExist + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: invalid url`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":"invalid url"}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrInvalidURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: empty url 1`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":""}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: empty url 2`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":" "}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: url is null`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":null}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: invalid json`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":null`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: invalid header`,
+			requestURL:     `/api/shorten`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestGzip(t *testing.T) {
+
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(shortName)
+
+	tests := []test{
+		{
+			name:       `test: gzip is enable on /`,
+			requestURL: `/`,
+			requestHeaders: map[string]string{
+				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
+				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
+			},
+			requestBody: []byte(targetURL),
+			method:      http.MethodPost,
+			want: want{
+				code:         http.StatusCreated,
+				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
+				headerName:   HeaderContentEncodingName,
+				headerValue:  HeaderAcceptEncodingValue,
+			},
+		}, {
+			name:       `test: gzip is enable on /{id}`,
+			requestURL: `/` + shortName,
+			requestHeaders: map[string]string{
+				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
+				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
+			},
+			requestBody: []byte(targetURL),
+			method:      http.MethodGet,
+			want: want{
+				code:        http.StatusTemporaryRedirect,
+				headerName:  HeaderLocation,
+				headerValue: targetURL,
+			},
+		},
+	}
+
+	runTests(t, tests)
+
+	shortNameRepository.Remove(shortName)
+
+	tests = []test{
+		{
+			name:       `test: gzip is enable on /api/shorten`,
+			requestURL: `/api/shorten`,
+			requestHeaders: map[string]string{
+				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
+				HeaderContentTypeName:    HeaderContentTypeJSONValue,
+			},
+			requestBody: []byte(`{"url":"` + targetURL + `"}`),
+			method:      http.MethodPost,
+			want: want{
+				code:         http.StatusCreated,
+				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+
+	shortNameRepository.Remove(shortName)
+
+	tests = []test{
+		{
+			name:       `test: gzip is enable on /api/shorten with application/x-gzip header`,
+			requestURL: `/api/shorten`,
+			requestHeaders: map[string]string{
+				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
+				HeaderContentTypeName:    HeaderContentTypeXgzipValue,
+			},
+			requestBody: []byte(`{"url":"` + targetURL + `"}`),
+			method:      http.MethodPost,
+			want: want{
+				code:         http.StatusCreated,
+				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
 			},
 		},
 	}
@@ -212,10 +416,25 @@ func runTests(t *testing.T, tests []test) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, test.requestBody)
+			var err error
+			if test.requestHeaders[HeaderContentTypeName] == HeaderContentTypeXgzipValue {
+				test.requestBody, err = gziphandler.Compress(test.requestBody)
+
+				require.NoError(t, err)
+			}
+
+			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, bytes.NewReader(test.requestBody))
 			require.NoError(t, err)
 
+			for hName, hVal := range test.requestHeaders {
+				req.Header.Set(hName, hVal)
+			}
+
 			client := ts.Client()
+			transport := &http.Transport{Proxy: http.ProxyFromEnvironment}
+			transport.DisableCompression = true
+			client.Transport = transport
+
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			}
@@ -224,10 +443,21 @@ func runTests(t *testing.T, tests []test) {
 			require.NoError(t, err)
 
 			assert.Equal(t, test.want.code, resp.StatusCode)
-			assert.Equal(t, test.want.headerValue, resp.Header.Get(test.want.headerName))
+
+			respHeader := resp.Header.Get(test.want.headerName)
+			assert.Equal(t, test.want.headerValue, respHeader)
+
+			var respBody io.ReadCloser
+
+			if resp.Header.Get(HeaderContentEncodingName) == HeaderAcceptEncodingValue {
+				respBody, err = gzip.NewReader(resp.Body)
+				require.NoError(t, err)
+			} else {
+				respBody = resp.Body
+			}
 
 			//проверка тела ответа
-			resBody, err := io.ReadAll(resp.Body)
+			resBody, err := io.ReadAll(respBody)
 			defer resp.Body.Close()
 			require.NoError(t, err)
 
