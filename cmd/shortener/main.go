@@ -17,17 +17,17 @@ import (
 )
 
 const (
-	//ErrorEmptyRequestBody error message
-	ErrorEmptyRequestBody = `Request body is empty`
+	//ErrEmptyRequestBody error message
+	ErrEmptyRequestBody = `Request body is empty`
 
-	//ErrorInvalidURL error message
-	ErrorInvalidURL = `Only valid url allowed`
+	//ErrInvalidURL error message
+	ErrInvalidURL = `Only valid url allowed`
 
-	//ErrorOnlyJSONDataAllowed error message
-	ErrorOnlyJSONDataAllowed = `Only json data allowed`
+	//ErrOnlyJSONDataAllowed error message
+	ErrOnlyJSONDataAllowed = `Only json data allowed`
 
-	//ErrorEmptyURL error message
-	ErrorEmptyURL = `URL is empty`
+	//ErrEmptyURL error message
+	ErrEmptyURL = `URL is empty`
 
 	//HeaderContentTypeName header "Content-Type" name
 	HeaderContentTypeName = `Content-Type`
@@ -73,7 +73,7 @@ type APIRequest struct {
 	URL string `json:"url"`
 }
 
-type middleware func(f http.HandlerFunc) http.HandlerFunc
+type HttpMiddleware func(f http.HandlerFunc) http.HandlerFunc
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 
@@ -85,13 +85,13 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 	reqURL := strings.TrimSpace(string(reqBody))
 	if reqURL == "" {
-		http.Error(w, ErrorEmptyRequestBody, http.StatusBadRequest)
+		http.Error(w, ErrEmptyRequestBody, http.StatusBadRequest)
 		return
 	}
 
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
-		http.Error(w, ErrorInvalidURL, http.StatusBadRequest)
+		http.Error(w, ErrInvalidURL, http.StatusBadRequest)
 		return
 	}
 
@@ -114,7 +114,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	shortName := chi.URLParam(r, "id")
 	if shortName == "" {
-		http.Error(w, repository.ErrorIDNotFound, http.StatusBadRequest)
+		http.Error(w, repository.ErrIDNotFound, http.StatusBadRequest)
 		return
 	}
 
@@ -134,7 +134,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 
 	contentType := r.Header.Get(HeaderContentTypeName)
 	if contentType != HeaderContentTypeJSONValue && contentType != HeaderContentTypeXgzipValue {
-		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
+		response = APIResponse{Error: ErrOnlyJSONDataAllowed}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
@@ -152,7 +152,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(reqBody, &request)
 	if err != nil {
-		response = APIResponse{Error: ErrorOnlyJSONDataAllowed}
+		response = APIResponse{Error: ErrOnlyJSONDataAllowed}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
@@ -160,7 +160,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 
 	reqURL := strings.TrimSpace(request.URL)
 	if reqURL == "" {
-		response = APIResponse{Error: ErrorEmptyURL}
+		response = APIResponse{Error: ErrEmptyURL}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
@@ -168,7 +168,7 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 
 	_, err = url.ParseRequestURI(reqURL)
 	if err != nil {
-		response = APIResponse{Error: ErrorInvalidURL}
+		response = APIResponse{Error: ErrInvalidURL}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
@@ -216,16 +216,9 @@ func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode
 func appendURL(reqURL string) (string, error) {
 	shortName := randomShortName.Generate()
 
-	//try 1
 	err := shortNameRepository.Add(shortName, reqURL)
 	if err != nil {
-		shortName = randomShortName.Generate()
-
-		//try 2
-		err = shortNameRepository.Add(shortName, reqURL)
-		if err != nil {
-			return ``, err
-		}
+		return ``, err
 	}
 
 	return shortName, nil
@@ -248,22 +241,14 @@ func main() {
 func getRouter() chi.Router {
 	r := chi.NewRouter()
 
-	logMiddleware := middleware(func(f http.HandlerFunc) http.HandlerFunc {
-		return logger.WithLogging(f)
-	})
-
-	gzipMiddleware := middleware(func(f http.HandlerFunc) http.HandlerFunc {
-		return gziphandler.WithGzip(f)
-	})
-
-	r.Post("/", middlewareConveyor(addURL, gzipMiddleware, logMiddleware))
-	r.Post("/api/shorten", middlewareConveyor(apiShorten, gzipMiddleware, logMiddleware))
-	r.Get("/{id}", middlewareConveyor(getURL, gzipMiddleware, logMiddleware))
+	r.Post("/", middlewareConveyor(addURL, gziphandler.WithGzip, logger.WithLogging))
+	r.Post("/api/shorten", middlewareConveyor(apiShorten, gziphandler.WithGzip, logger.WithLogging))
+	r.Get("/{id}", middlewareConveyor(getURL, gziphandler.WithGzip, logger.WithLogging))
 
 	return r
 }
 
-func middlewareConveyor(h http.HandlerFunc, middlewares ...middleware) http.HandlerFunc {
+func middlewareConveyor(h http.HandlerFunc, middlewares ...HttpMiddleware) http.HandlerFunc {
 	for _, middleware := range middlewares {
 		h = middleware(h)
 	}

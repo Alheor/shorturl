@@ -48,31 +48,28 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 		panic(err)
 	}
 
-	sn.RLock()
+	sn.Lock()
 
 	_, exists := sn.URLMap[id]
 	if exists {
-		sn.RUnlock()
-		return errors.New(ErrorValueAlreadyExist)
+		sn.Unlock()
+		return errors.New(ErrValueAlreadyExist)
 	}
 
 	for _, mapValue := range sn.URLMap {
 		if mapValue == value {
-			sn.RUnlock()
-			return errors.New(ErrorValueAlreadyExist)
+			sn.Unlock()
+			return errors.New(ErrValueAlreadyExist)
 		}
 	}
 
-	sn.RUnlock()
-	sn.Lock()
-
-	sn.URLMap[id] = value
-
 	data, err := json.Marshal(&shortURL{ID: id, URL: value})
 	if err != nil {
+		sn.Unlock()
 		return err
 	}
 
+	sn.URLMap[id] = value
 	data = append(data, '\n')
 
 	_, err = sn.file.Write(data)
@@ -93,7 +90,7 @@ func (sn *ShortNameFile) Get(id string) (value string, error error) {
 
 	url, exists := sn.URLMap[id]
 	if !exists {
-		return ``, errors.New(ErrorIDNotFound)
+		return ``, errors.New(ErrIDNotFound)
 	}
 
 	return url, nil

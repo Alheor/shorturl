@@ -20,27 +20,23 @@ func (sn *ShortNameMap) Init() error {
 
 func (sn *ShortNameMap) Add(id string, value string) error {
 
-	sn.RLock()
+	sn.Lock()
 
 	_, exists := sn.URLMap[id]
 	if exists {
-		sn.RUnlock()
-		return errors.New(ErrorValueAlreadyExist)
+		sn.Unlock()
+		return errors.New(ErrValueAlreadyExist)
 	}
 
 	for _, mapValue := range sn.URLMap {
 		if mapValue == value {
-			sn.RUnlock()
-			return errors.New(ErrorValueAlreadyExist)
+			sn.Unlock()
+			return errors.New(ErrValueAlreadyExist)
 		}
 	}
 
-	sn.RUnlock()
-
-	sn.Lock()
-	defer sn.Unlock()
-
 	sn.URLMap[id] = value
+	sn.Unlock()
 
 	return nil
 }
@@ -52,7 +48,7 @@ func (sn *ShortNameMap) Get(id string) (value string, error error) {
 
 	url, exists := sn.URLMap[id]
 	if !exists {
-		return ``, errors.New(ErrorIDNotFound)
+		return ``, errors.New(ErrIDNotFound)
 	}
 
 	return url, nil

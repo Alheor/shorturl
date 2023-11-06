@@ -97,7 +97,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorEmptyRequestBody + "\n",
+				responseBody: ErrEmptyRequestBody + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -109,7 +109,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorEmptyRequestBody + "\n",
+				responseBody: ErrEmptyRequestBody + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -121,7 +121,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorEmptyRequestBody + "\n",
+				responseBody: ErrEmptyRequestBody + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -133,7 +133,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrorInvalidURL + "\n",
+				responseBody: ErrInvalidURL + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -154,7 +154,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorValueAlreadyExist + "\n",
+				responseBody: repository.ErrValueAlreadyExist + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -182,7 +182,7 @@ func TestGetURLError(t *testing.T) {
 			method:         http.MethodGet,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: repository.ErrorIDNotFound + "\n",
+				responseBody: repository.ErrIDNotFound + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -239,7 +239,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + repository.ErrorValueAlreadyExist + `"}`,
+				responseBody: `{"error":"` + repository.ErrValueAlreadyExist + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -251,7 +251,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorInvalidURL + `"}`,
+				responseBody: `{"error":"` + ErrInvalidURL + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -263,7 +263,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorEmptyURL + `"}`,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -275,7 +275,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorEmptyURL + `"}`,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -287,7 +287,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorEmptyURL + `"}`,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -299,7 +299,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorOnlyJSONDataAllowed + `"}`,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -311,7 +311,7 @@ func TestAiShortenError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + ErrorOnlyJSONDataAllowed + `"}`,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},

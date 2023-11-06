@@ -5,11 +5,11 @@ package repository
 import "github.com/Alheor/shorturl/internal/config"
 
 const (
-	// ErrorIDNotFound error message
-	ErrorIDNotFound = `id not found`
+	// ErrIDNotFound error message
+	ErrIDNotFound = `id not found`
 
-	// ErrorValueAlreadyExist error message
-	ErrorValueAlreadyExist = `value already exist`
+	// ErrValueAlreadyExist error message
+	ErrValueAlreadyExist = `value already exist`
 )
 
 // Repository interface
