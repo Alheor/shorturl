@@ -73,7 +73,7 @@ type APIRequest struct {
 	URL string `json:"url"`
 }
 
-type HttpMiddleware func(f http.HandlerFunc) http.HandlerFunc
+type HTTPMiddleware func(f http.HandlerFunc) http.HandlerFunc
 
 func addURL(w http.ResponseWriter, r *http.Request) {
 
@@ -248,7 +248,7 @@ func getRouter() chi.Router {
 	return r
 }
 
-func middlewareConveyor(h http.HandlerFunc, middlewares ...HttpMiddleware) http.HandlerFunc {
+func middlewareConveyor(h http.HandlerFunc, middlewares ...HTTPMiddleware) http.HandlerFunc {
 	for _, middleware := range middlewares {
 		h = middleware(h)
 	}
