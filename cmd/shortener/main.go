@@ -186,6 +186,16 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 	sendAPIResponse(w, &response, http.StatusCreated)
 }
 
+func ping(w http.ResponseWriter, r *http.Request) {
+
+	if !shortNameRepository.StorageIsReady() {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode int) {
 
 	if statusCode == http.StatusInternalServerError {
@@ -244,6 +254,7 @@ func getRouter() chi.Router {
 	r.Post("/", middlewareConveyor(addURL, gziphandler.WithGzip, logger.WithLogging))
 	r.Post("/api/shorten", middlewareConveyor(apiShorten, gziphandler.WithGzip, logger.WithLogging))
 	r.Get("/{id}", middlewareConveyor(getURL, gziphandler.WithGzip, logger.WithLogging))
+	r.Get("/ping", middlewareConveyor(ping, logger.WithLogging))
 
 	return r
 }

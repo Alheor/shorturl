@@ -18,6 +18,7 @@ type Repository interface {
 	Get(id string) (value string, error error)
 	Remove(id string)
 	Init() error
+	StorageIsReady() bool
 }
 
 // Init repository constructor
@@ -25,10 +26,15 @@ func Init() Repository {
 
 	var instance Repository
 
-	if config.Options.FileStoragePath == `` {
-		instance = new(ShortNameMap)
+	if config.Options.DatabaseDsn != `` {
+		instance = new(Postgres)
+
 	} else {
-		instance = new(ShortNameFile)
+		if config.Options.FileStoragePath == `` {
+			instance = new(ShortNameMap)
+		} else {
+			instance = new(ShortNameFile)
+		}
 	}
 
 	err := instance.Init()

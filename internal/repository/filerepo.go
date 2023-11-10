@@ -100,6 +100,11 @@ func (sn *ShortNameFile) Remove(id string) {
 	panic(errors.New(`method "Remove" from file repository is restricted`))
 }
 
+func (sn *ShortNameFile) StorageIsReady() bool {
+
+	return sn.file != nil
+}
+
 func load(sn *ShortNameFile, path string) error {
 	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {

@@ -61,3 +61,8 @@ func (sn *ShortNameMap) Remove(id string) {
 
 	delete(sn.URLMap, id)
 }
+
+func (sn *ShortNameMap) StorageIsReady() bool {
+
+	return sn.URLMap != nil
+}

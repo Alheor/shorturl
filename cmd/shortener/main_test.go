@@ -42,10 +42,11 @@ func (rg mockShortName) Generate() string {
 func init() {
 	randomShortName = new(mockShortName)
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	shortNameRepository = repository.Init()
 }
 
 func TestAddURLSuccess(t *testing.T) {
+
+	shortNameRepository = repository.Init()
 
 	tests := []test{
 		{
@@ -67,6 +68,9 @@ func TestAddURLSuccess(t *testing.T) {
 }
 
 func TestGetURLSuccess(t *testing.T) {
+
+	shortNameRepository = repository.Init()
+
 	shortName := randomShortName.Generate()
 	_ = shortNameRepository.Add(shortName, targetURL)
 
@@ -88,6 +92,8 @@ func TestGetURLSuccess(t *testing.T) {
 }
 
 func TestAddURLError(t *testing.T) {
+
+	shortNameRepository = repository.Init()
 
 	tests := []test{
 		{
@@ -166,6 +172,8 @@ func TestAddURLError(t *testing.T) {
 
 func TestGetURLError(t *testing.T) {
 
+	shortNameRepository = repository.Init()
+
 	tests := []test{
 		{
 			name:           `negative test: method GET not allowed`,
@@ -202,6 +210,8 @@ func TestGetURLError(t *testing.T) {
 
 func TestAiShortenSuccess(t *testing.T) {
 
+	shortNameRepository = repository.Init()
+
 	shortName := randomShortName.Generate()
 	shortNameRepository.Remove(shortName)
 
@@ -225,6 +235,8 @@ func TestAiShortenSuccess(t *testing.T) {
 }
 
 func TestAiShortenError(t *testing.T) {
+
+	shortNameRepository = repository.Init()
 
 	shortName := randomShortName.Generate()
 	shortNameRepository.Remove(shortName)
@@ -322,6 +334,8 @@ func TestAiShortenError(t *testing.T) {
 }
 
 func TestGzip(t *testing.T) {
+
+	shortNameRepository = repository.Init()
 
 	shortName := randomShortName.Generate()
 	shortNameRepository.Remove(shortName)
