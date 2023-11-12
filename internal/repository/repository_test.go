@@ -1,10 +1,13 @@
 package repository
 
 import (
+	"context"
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -165,6 +168,31 @@ func TestLodFromFileSuccess(t *testing.T) {
 	}
 
 	removeFile(config.Options.FileStoragePath)
+}
+
+func TestCreateDBSchemaSuccess(t *testing.T) {
+	config.Load()
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	ctx := context.Background()
+
+	db, err := pgxpool.New(ctx, config.Options.DatabaseDsn)
+	require.NoError(t, err)
+
+	_, err = db.Exec(ctx, `DROP TABLE IF EXISTS `+strings.ToLower(tableName))
+	require.NoError(t, err)
+
+	createDBSchema(ctx, db)
+
+	var tableExists bool
+	row := db.QueryRow(ctx, `SELECT true FROM pg_tables WHERE tablename = $1`, strings.ToLower(tableName))
+	err = row.Scan(&tableExists)
+
+	assert.Equal(t, true, tableExists)
 }
 
 func removeFile(path string) {

@@ -422,6 +422,53 @@ func TestGzip(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestPingSuccess(t *testing.T) {
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	shortNameRepository = repository.Init()
+
+	tests := []test{
+		{
+			name:       `test: db connection /ping`,
+			requestURL: `/ping`,
+			method:     http.MethodGet,
+			want: want{
+				code: http.StatusOK,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestPingError(t *testing.T) {
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	config.Options.DatabaseDsn = `host=unknown_host port=5432 user=app password=pass dbname=postgres sslmode=disable`
+	shortNameRepository = repository.Init()
+
+	tests := []test{
+		{
+			name:       `test: db connection /ping`,
+			requestURL: `/ping`,
+			method:     http.MethodGet,
+			want: want{
+				code: http.StatusInternalServerError,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
 func runTests(t *testing.T, tests []test) {
 
 	ts := httptest.NewServer(getRouter())
