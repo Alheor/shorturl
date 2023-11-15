@@ -153,7 +153,7 @@ func TestAddURLError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists url
-	_ = shortNameRepository.Add(`otherShortName`, targetURL)
+	_ = shortNameRepository.Add(`newName`, targetURL)
 
 	tests = []test{
 		{
@@ -485,7 +485,7 @@ func TestAiShortenBatchSuccess(t *testing.T) {
 	shortNameRepository.Remove(shortName)
 
 	requestBody := []byte(`[{"correlation_id":"1","original_url":"` + targetURL + `"}]`)
-	responseBody := `[{"correlation_id":"1","short_url":"` + randomShortName.Generate() + `"}]`
+	responseBody := `[{"correlation_id":"1","short_url":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}]`
 
 	tests := []test{
 		{

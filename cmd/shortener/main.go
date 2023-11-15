@@ -191,7 +191,7 @@ func apiShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batchAsJson, err := appendBatchURL(request)
+	batchAsJSON, err := appendBatchURL(request)
 	if err != nil {
 		response = APIResponse{Error: err.Error()}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
@@ -202,7 +202,7 @@ func apiShortenBatch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(HeaderContentTypeName, HeaderContentTypeJSONValue)
 	w.WriteHeader(http.StatusCreated)
 
-	_, err = w.Write(batchAsJson)
+	_, err = w.Write(batchAsJSON)
 	if err != nil {
 		response = APIResponse{Error: err.Error()}
 		sendAPIResponse(w, &response, http.StatusInternalServerError)
@@ -270,6 +270,10 @@ func appendBatchURL(batch []APIBatchRequestEl) ([]byte, error) {
 	err := shortNameRepository.AddBatch(list)
 	if err != nil {
 		return nil, err
+	}
+
+	for i, v := range list {
+		list[i].ShortURL = strings.TrimRight(config.Options.BaseHost, `/`) + `/` + v.ShortURL
 	}
 
 	rawByte, err := json.Marshal(list)

@@ -261,6 +261,7 @@ func TestCreateDBSchemaSuccess(t *testing.T) {
 	var tableExists bool
 	row := conn.QueryRow(ctx, `SELECT true FROM pg_tables WHERE tablename = $1`, strings.ToLower(tableName))
 	err = row.Scan(&tableExists)
+	require.NoError(t, err)
 
 	assert.Equal(t, true, tableExists)
 }

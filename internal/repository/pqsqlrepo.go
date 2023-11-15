@@ -103,11 +103,7 @@ func (pg *Postgres) StorageIsReady() bool {
 	defer cancel()
 
 	err := pg.Conn.Ping(ctx)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func (pg *Postgres) AddBatch(in []BatchEl) error {
@@ -166,8 +162,8 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 	_, err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS `+tableName+` (
 		    id SERIAL NOT NULL PRIMARY KEY,
-		    correlation_id varchar(`+strconv.Itoa(randomname.ShortNameLength)+`) UNIQUE,
-		    original_url text UNIQUE
+		    correlation_id varchar(`+strconv.Itoa(randomname.ShortNameLength)+`) NOT NULL UNIQUE,
+		    original_url text NOT NULL UNIQUE
 		);
 	`)
 
