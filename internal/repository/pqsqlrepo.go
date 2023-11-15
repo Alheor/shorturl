@@ -54,10 +54,10 @@ func (pg *Postgres) Add(id string, value string) error {
 		var myErr *pgconn.PgError
 		if errors.As(err, &myErr) && myErr.Code == pgerrcode.UniqueViolation {
 
-			uniqByOriginalUrl := strings.Contains(myErr.Detail, `original_url`)
+			uniqByOriginalURL := strings.Contains(myErr.Detail, `original_url`)
 			uniqByShortKey := strings.Contains(myErr.Detail, `short_key`)
 
-			if !uniqByShortKey && !uniqByOriginalUrl {
+			if !uniqByShortKey && !uniqByOriginalURL {
 				return myErr
 			}
 
@@ -65,7 +65,7 @@ func (pg *Postgres) Add(id string, value string) error {
 				return NewUniqueError(id, myErr)
 			}
 
-			if uniqByOriginalUrl {
+			if uniqByOriginalURL {
 				row := pg.Conn.QueryRow(ctx,
 					"SELECT short_key FROM "+tableName+" WHERE original_url=@originalUrl",
 					pgx.NamedArgs{"originalUrl": value},

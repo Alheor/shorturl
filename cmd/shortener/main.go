@@ -86,12 +86,21 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
+
 	shortName, err := appendURL(string(reqBody))
 	if err != nil {
 
 		var uErr *repository.UniqueError
 		if errors.As(err, &uErr) {
-			http.Error(w, repository.ErrValueAlreadyExist, http.StatusBadRequest)
+
+			w.WriteHeader(http.StatusConflict)
+
+			_, err = w.Write([]byte(strings.TrimRight(config.Options.BaseHost, `/`) + `/` + uErr.ShortKey))
+			if err != nil {
+				panic(err)
+			}
+
 			return
 		}
 
@@ -99,7 +108,6 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
 	w.WriteHeader(http.StatusCreated)
 
 	_, err = w.Write([]byte(strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName))

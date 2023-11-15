@@ -163,8 +163,8 @@ func TestAddURLError(t *testing.T) {
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
 			method:         http.MethodPost,
 			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: repository.ErrValueAlreadyExist + "\n",
+				code:         http.StatusConflict,
+				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
