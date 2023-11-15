@@ -66,3 +66,30 @@ func (sn *ShortNameMap) StorageIsReady() bool {
 
 	return sn.URLMap != nil
 }
+
+func (sn *ShortNameMap) AddBatch(in []BatchEl) error {
+
+	sn.Lock()
+
+	for _, v := range in {
+
+		_, exists := sn.URLMap[v.ShortURL]
+		if exists {
+			sn.Unlock()
+			return errors.New(ErrValueAlreadyExist)
+		}
+
+		for _, mapValue := range sn.URLMap {
+			if mapValue == v.OriginalURL {
+				sn.Unlock()
+				return errors.New(ErrValueAlreadyExist)
+			}
+		}
+
+		sn.URLMap[v.ShortURL] = v.OriginalURL
+	}
+
+	sn.Unlock()
+
+	return nil
+}

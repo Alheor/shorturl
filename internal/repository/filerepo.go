@@ -105,6 +105,50 @@ func (sn *ShortNameFile) StorageIsReady() bool {
 	return sn.file != nil
 }
 
+func (sn *ShortNameFile) AddBatch(in []BatchEl) error {
+	_, err := os.Stat(sn.file.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	sn.Lock()
+
+	var res []byte
+	for _, v := range in {
+
+		data, err := json.Marshal(&shortURL{ID: v.ShortURL, URL: v.OriginalURL})
+		if err != nil {
+			sn.Unlock()
+			return err
+		}
+
+		_, exists := sn.URLMap[v.ShortURL]
+		if exists {
+			sn.Unlock()
+			return errors.New(ErrValueAlreadyExist)
+		}
+
+		for _, mapValue := range sn.URLMap {
+			if mapValue == v.OriginalURL {
+				sn.Unlock()
+				return errors.New(ErrValueAlreadyExist)
+			}
+		}
+
+		res = append(res, append(data, '\n')...)
+	}
+
+	_, err = sn.file.Write(res)
+
+	sn.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func load(sn *ShortNameFile, path string) error {
 	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {

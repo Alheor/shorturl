@@ -12,7 +12,7 @@ import (
 )
 
 const targetURL = `https://practicum.yandex.ru/`
-const shortName = `testShortName`
+const shortName = `tstName`
 
 func TestAddURLAndGetURLMapSuccess(t *testing.T) {
 	config.Load()
@@ -59,6 +59,37 @@ func TestGetURLMapError(t *testing.T) {
 
 	_, err := r.Get(shortName)
 	require.Error(t, err)
+}
+
+func TestStorageIsReadyMapSuccess(t *testing.T) {
+	config.Load()
+	config.Options.FileStoragePath = `` //режим без записи в файл
+	r := Init()
+
+	assert.True(t, r.StorageIsReady())
+}
+
+func TestAddBatchMapSuccess(t *testing.T) {
+	config.Load()
+	config.Options.FileStoragePath = `` //режим без записи в файл
+
+	r := Init()
+
+	testData := getTestData()
+
+	list := make([]BatchEl, 0, len(testData))
+	for i, v := range testData {
+		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
+	}
+
+	err := r.AddBatch(list)
+	require.NoError(t, err)
+
+	for index, val := range testData {
+		URL, err := r.Get(index)
+		require.NoError(t, err)
+		assert.Equal(t, val, URL)
+	}
 }
 
 func TestAddURLAndGetURLFileSuccess(t *testing.T) {
@@ -125,7 +156,7 @@ func TestGetURLFileError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestLodCreatedSuccess(t *testing.T) {
+func TestCreatedFileSuccess(t *testing.T) {
 
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
@@ -144,7 +175,7 @@ func TestLodCreatedSuccess(t *testing.T) {
 	removeFile(config.Options.FileStoragePath)
 }
 
-func TestLodFromFileSuccess(t *testing.T) {
+func TestLoadFromFileSuccess(t *testing.T) {
 
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
@@ -170,8 +201,47 @@ func TestLodFromFileSuccess(t *testing.T) {
 	removeFile(config.Options.FileStoragePath)
 }
 
+func TestStorageIsReadyFileSuccess(t *testing.T) {
+	config.Load()
+	config.Options.FileStoragePath = `/tmp/test.json`
+	removeFile(config.Options.FileStoragePath)
+	r := Init()
+
+	assert.True(t, r.StorageIsReady())
+}
+
+func TestAddBatchFileSuccess(t *testing.T) {
+	config.Load()
+	config.Options.FileStoragePath = `/tmp/test.json`
+	removeFile(config.Options.FileStoragePath)
+	r := Init()
+
+	testData := getTestData()
+
+	list := make([]BatchEl, 0, len(testData))
+	for i, v := range testData {
+		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
+	}
+
+	err := r.AddBatch(list)
+	require.NoError(t, err)
+
+	r = nil
+	r = Init()
+
+	for index, val := range testData {
+		URL, err := r.Get(index)
+		require.NoError(t, err)
+		assert.Equal(t, val, URL)
+	}
+
+	removeFile(config.Options.FileStoragePath)
+}
+
 func TestCreateDBSchemaSuccess(t *testing.T) {
 	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -180,19 +250,208 @@ func TestCreateDBSchemaSuccess(t *testing.T) {
 
 	ctx := context.Background()
 
-	db, err := pgxpool.New(ctx, config.Options.DatabaseDsn)
+	conn, err := pgxpool.New(ctx, config.Options.DatabaseDsn)
 	require.NoError(t, err)
 
-	_, err = db.Exec(ctx, `DROP TABLE IF EXISTS `+strings.ToLower(tableName))
+	_, err = conn.Exec(ctx, `DROP TABLE IF EXISTS `+strings.ToLower(tableName))
 	require.NoError(t, err)
 
-	createDBSchema(ctx, db)
+	createDBSchema(ctx, conn)
 
 	var tableExists bool
-	row := db.QueryRow(ctx, `SELECT true FROM pg_tables WHERE tablename = $1`, strings.ToLower(tableName))
+	row := conn.QueryRow(ctx, `SELECT true FROM pg_tables WHERE tablename = $1`, strings.ToLower(tableName))
 	err = row.Scan(&tableExists)
 
 	assert.Equal(t, true, tableExists)
+}
+
+func TestAddURLAndGetURLDBSuccess(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	err = r.Add(shortName, targetURL)
+	require.NoError(t, err)
+
+	url, err := r.Get(shortName)
+	require.NoError(t, err)
+
+	assert.Equal(t, targetURL, url)
+}
+
+func TestGetURLNotExistDBSuccess(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	url, err := r.Get(shortName)
+	require.Error(t, err)
+
+	assert.Equal(t, ``, url)
+}
+
+func TestAddURLAndGetURLDBUniqueError(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	err = r.Add(shortName, targetURL)
+	require.NoError(t, err)
+
+	err = r.Add(shortName+`1`, targetURL)
+	require.Error(t, err)
+
+	err = r.Add(shortName, targetURL+`1`)
+	require.Error(t, err)
+}
+
+func TestRemoveURLDBSuccess(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	err = r.Add(shortName, targetURL)
+	require.NoError(t, err)
+
+	r.Remove(shortName)
+
+	url, err := r.Get(shortName)
+	require.Error(t, err)
+
+	assert.Equal(t, ``, url)
+}
+
+func TestStorageIsReadyDBSuccess(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	assert.True(t, r.StorageIsReady())
+}
+
+func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	testData := getTestData()
+
+	list := make([]BatchEl, 0, len(testData))
+	for i, v := range testData {
+		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
+	}
+
+	err = r.AddBatch(list)
+	require.NoError(t, err)
+
+	for index, val := range testData {
+		URL, err := r.Get(index)
+		require.NoError(t, err)
+		assert.Equal(t, val, URL)
+	}
+}
+
+func TestAddURLAndGetURLBatchDBUniqueError(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	r := Init()
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	testData := getTestData()
+	testData[shortName+`6`] = targetURL + `5`
+
+	list := make([]BatchEl, 0, len(testData))
+	for i, v := range testData {
+		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
+	}
+
+	err = r.AddBatch(list)
+	assert.Error(t, err)
+}
+
+func prepareDB() error {
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, config.Options.DatabaseDsn)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Exec(ctx, `TRUNCATE `+strings.ToLower(tableName))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func removeFile(path string) {

@@ -12,9 +12,16 @@ const (
 	ErrValueAlreadyExist = `value already exist`
 )
 
+type BatchEl struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"-"`
+	ShortURL      string `json:"short_url"`
+}
+
 // Repository interface
 type Repository interface {
 	Add(id string, value string) error
+	AddBatch(in []BatchEl) error
 	Get(id string) (value string, error error)
 	Remove(id string)
 	Init() error
@@ -32,6 +39,7 @@ func Init() Repository {
 	} else {
 		if config.Options.FileStoragePath == `` {
 			instance = new(ShortNameMap)
+
 		} else {
 			instance = new(ShortNameFile)
 		}
