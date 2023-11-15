@@ -88,6 +88,13 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 	shortName, err := appendURL(string(reqBody))
 	if err != nil {
+
+		var uErr *repository.UniqueError
+		if errors.As(err, &uErr) {
+			http.Error(w, repository.ErrValueAlreadyExist, http.StatusBadRequest)
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -151,9 +158,16 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 
 	shortName, err := appendURL(request.URL)
 	if err != nil {
+
+		var uErr *repository.UniqueError
+		if errors.As(err, &uErr) {
+			response = APIResponse{Result: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + uErr.ShortKey}
+			sendAPIResponse(w, &response, http.StatusConflict)
+			return
+		}
+
 		response = APIResponse{Error: err.Error()}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
-
 		return
 	}
 

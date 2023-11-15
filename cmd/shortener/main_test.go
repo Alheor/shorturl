@@ -254,8 +254,8 @@ func TestAiShortenError(t *testing.T) {
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + repository.ErrValueAlreadyExist + `"}`,
+				code:         http.StatusConflict,
+				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},

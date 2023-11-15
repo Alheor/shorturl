@@ -2,7 +2,9 @@
 // Short url repository
 package repository
 
-import "github.com/Alheor/shorturl/internal/config"
+import (
+	"github.com/Alheor/shorturl/internal/config"
+)
 
 const (
 	// ErrIDNotFound error message
@@ -16,6 +18,22 @@ type BatchEl struct {
 	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"-"`
 	ShortURL      string `json:"short_url"`
+}
+
+type UniqueError struct {
+	ShortKey string
+	Err      error
+}
+
+func (e *UniqueError) Error() string {
+	return e.Err.Error()
+}
+
+func NewUniqueError(shortKey string, err error) error {
+	return &UniqueError{
+		ShortKey: shortKey,
+		Err:      err,
+	}
 }
 
 // Repository interface

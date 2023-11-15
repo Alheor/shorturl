@@ -53,13 +53,13 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 	_, exists := sn.URLMap[id]
 	if exists {
 		sn.Unlock()
-		return errors.New(ErrValueAlreadyExist)
+		return NewUniqueError(id, nil)
 	}
 
 	for _, mapValue := range sn.URLMap {
 		if mapValue == value {
 			sn.Unlock()
-			return errors.New(ErrValueAlreadyExist)
+			return NewUniqueError(id, nil)
 		}
 	}
 

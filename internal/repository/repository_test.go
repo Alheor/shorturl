@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -330,10 +331,18 @@ func TestAddURLAndGetURLDBUniqueError(t *testing.T) {
 	require.NoError(t, err)
 
 	err = r.Add(shortName+`1`, targetURL)
-	require.Error(t, err)
+	assert.Error(t, err)
+
+	var uErr *UniqueError
+
+	assert.True(t, errors.As(err, &uErr))
+	assert.Equal(t, shortName, uErr.ShortKey)
 
 	err = r.Add(shortName, targetURL+`1`)
-	require.Error(t, err)
+	assert.Error(t, err)
+
+	assert.True(t, errors.As(err, &uErr))
+	assert.Equal(t, shortName, uErr.ShortKey)
 }
 
 func TestRemoveURLDBSuccess(t *testing.T) {
@@ -437,6 +446,7 @@ func TestAddURLAndGetURLBatchDBUniqueError(t *testing.T) {
 
 	err = r.AddBatch(list)
 	assert.Error(t, err)
+	assert.Equal(t, err.Error(), ErrValueAlreadyExist)
 }
 
 func prepareDB() error {

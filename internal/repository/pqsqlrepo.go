@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/randomname"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,17 +46,42 @@ func (pg *Postgres) Add(id string, value string) error {
 	defer cancel()
 
 	_, err := pg.Conn.Exec(ctx,
-		"INSERT INTO "+tableName+" (correlation_id, original_url) VALUES (@correlationID, @originalURL)",
-		pgx.NamedArgs{"correlationID": id, "originalURL": value},
+		"INSERT INTO "+tableName+" (short_key, original_url) VALUES (@shortKey, @originalURL)",
+		pgx.NamedArgs{"shortKey": id, "originalURL": value},
 	)
 
 	if err != nil {
-		pgError := err.(*pgconn.PgError)
-		if pgError.Code == "23505" {
-			return errors.New(ErrValueAlreadyExist)
+		var myErr *pgconn.PgError
+		if errors.As(err, &myErr) && myErr.Code == pgerrcode.UniqueViolation {
+
+			uniqByOriginalUrl := strings.Contains(myErr.Detail, `original_url`)
+			uniqByShortKey := strings.Contains(myErr.Detail, `short_key`)
+
+			if !uniqByShortKey && !uniqByOriginalUrl {
+				return myErr
+			}
+
+			if uniqByShortKey {
+				return NewUniqueError(id, myErr)
+			}
+
+			if uniqByOriginalUrl {
+				row := pg.Conn.QueryRow(ctx,
+					"SELECT short_key FROM "+tableName+" WHERE original_url=@originalUrl",
+					pgx.NamedArgs{"originalUrl": value},
+				)
+
+				var shortKey string
+				err := row.Scan(&shortKey)
+				if err != nil {
+					return myErr
+				}
+
+				return NewUniqueError(shortKey, myErr)
+			}
 		}
 
-		panic(err)
+		return err
 	}
 
 	return nil
@@ -68,8 +94,8 @@ func (pg *Postgres) Get(id string) (value string, error error) {
 	var originalURL string
 
 	row := pg.Conn.QueryRow(ctx,
-		"SELECT original_url FROM "+tableName+" WHERE correlation_id=@correlationID",
-		pgx.NamedArgs{"correlationID": id},
+		"SELECT original_url FROM "+tableName+" WHERE short_key=@shortKey",
+		pgx.NamedArgs{"shortKey": id},
 	)
 
 	err := row.Scan(&originalURL)
@@ -89,8 +115,8 @@ func (pg *Postgres) Remove(id string) {
 	defer cancel()
 
 	_, err := pg.Conn.Exec(ctx,
-		"DELETE FROM "+tableName+" WHERE correlation_id=@correlationID",
-		pgx.NamedArgs{"correlationID": id},
+		"DELETE FROM "+tableName+" WHERE short_key=@shortKey",
+		pgx.NamedArgs{"shortKey": id},
 	)
 
 	if err != nil {
@@ -118,8 +144,8 @@ func (pg *Postgres) AddBatch(in []BatchEl) error {
 	batch := &pgx.Batch{}
 
 	for _, v := range in {
-		batch.Queue("INSERT INTO "+tableName+" (correlation_id, original_url) VALUES (@correlationID, @originalURL)",
-			pgx.NamedArgs{"correlationID": v.ShortURL, "originalURL": v.OriginalURL},
+		batch.Queue("INSERT INTO "+tableName+" (short_key, original_url) VALUES (@shortKey, @originalURL)",
+			pgx.NamedArgs{"shortKey": v.ShortURL, "originalURL": v.OriginalURL},
 		)
 	}
 
@@ -127,13 +153,12 @@ func (pg *Postgres) AddBatch(in []BatchEl) error {
 	if err != nil {
 		tx.Rollback(ctx)
 
-		pgError := err.(*pgconn.PgError)
-
-		if pgError.Code == "23505" {
+		var myErr *pgconn.PgError
+		if errors.As(err, &myErr) && myErr.Code == pgerrcode.UniqueViolation {
 			return errors.New(ErrValueAlreadyExist)
 		}
 
-		panic(err)
+		return err
 	}
 
 	return tx.Commit(ctx)
@@ -162,7 +187,7 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 	_, err = conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS `+tableName+` (
 		    id SERIAL NOT NULL PRIMARY KEY,
-		    correlation_id varchar(`+strconv.Itoa(randomname.ShortNameLength)+`) NOT NULL UNIQUE,
+		    short_key varchar(`+strconv.Itoa(randomname.ShortNameLength)+`) NOT NULL UNIQUE,
 		    original_url text NOT NULL UNIQUE
 		);
 	`)
