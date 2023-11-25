@@ -284,7 +284,7 @@ func TestAddBatchFileSuccess(t *testing.T) {
 func TestCreateDBSchemaSuccess(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -313,7 +313,7 @@ func TestCreateDBSchemaSuccess(t *testing.T) {
 func TestAddURLAndGetURLDBSuccess(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -340,7 +340,7 @@ func TestAddURLAndGetURLDBSuccess(t *testing.T) {
 func TestGetURLNotExistDBSuccess(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -363,7 +363,7 @@ func TestGetURLNotExistDBSuccess(t *testing.T) {
 func TestAddURLAndGetURLDBUniqueError(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -398,7 +398,7 @@ func TestAddURLAndGetURLDBUniqueError(t *testing.T) {
 func TestRemoveURLDBSuccess(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -426,7 +426,7 @@ func TestRemoveURLDBSuccess(t *testing.T) {
 func TestIsReadyDBSuccess(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -446,7 +446,7 @@ func TestIsReadyDBSuccess(t *testing.T) {
 func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
@@ -480,7 +480,7 @@ func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
 func TestAddURLAndGetURLBatchDBUniqueError(t *testing.T) {
 	config.Load()
 
-	config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
 	if config.Options.DatabaseDsn == `` {
 		t.Skip(`Run with database only`)
