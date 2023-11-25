@@ -21,7 +21,7 @@ import (
 
 const (
 	//ErrInvalidURL error message
-	ErrInvalidURL = `Only valid url allowed`
+	ErrInvalidURL = `only valid url allowed`
 
 	//ErrOnlyJSONDataAllowed error message
 	ErrOnlyJSONDataAllowed = `Only valid json data allowed`

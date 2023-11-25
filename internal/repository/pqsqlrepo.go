@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const tableName = `short_URL`
+const tableName = `short_url`
 
 // Postgres connection structure
 type Postgres struct {
@@ -124,15 +124,18 @@ func (pg *Postgres) AddBatch(ctx context.Context, in []BatchEl) error {
 		return err
 	}
 
-	batch := &pgx.Batch{}
-
+	var entries [][]any
 	for _, v := range in {
-		batch.Queue("INSERT INTO "+tableName+" (short_key, original_url) VALUES (@shortKey, @originalURL)",
-			pgx.NamedArgs{"shortKey": v.ShortURL, "originalURL": v.OriginalURL},
-		)
+		entries = append(entries, []any{v.ShortURL, v.OriginalURL})
 	}
 
-	err = tx.SendBatch(ctx, batch).Close()
+	_, err = pg.Conn.CopyFrom(
+		ctx,
+		pgx.Identifier{tableName},
+		[]string{"short_key", "original_url"},
+		pgx.CopyFromRows(entries),
+	)
+
 	if err != nil {
 		tx.Rollback(ctx)
 
