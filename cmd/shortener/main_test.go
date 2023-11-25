@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -13,6 +15,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type want struct {
@@ -36,16 +39,22 @@ const targetURL = `https://practicum.yandex.ru/`
 type mockShortName struct{}
 
 func (rg mockShortName) Generate() string {
-	return `mockString`
+	return `mockStr`
 }
 
 func init() {
 	randomShortName = new(mockShortName)
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	shortNameRepository = repository.Init()
 }
 
 func TestAddURLSuccess(t *testing.T) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -67,8 +76,14 @@ func TestAddURLSuccess(t *testing.T) {
 }
 
 func TestGetURLSuccess(t *testing.T) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
 	shortName := randomShortName.Generate()
-	_ = shortNameRepository.Add(shortName, targetURL)
+	_ = shortNameRepository.Add(ctx, shortName, targetURL)
 
 	tests := []test{
 		{
@@ -89,6 +104,11 @@ func TestGetURLSuccess(t *testing.T) {
 
 func TestAddURLError(t *testing.T) {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
 	tests := []test{
 		{
 			name:           `negative test: send POST without body`,
@@ -97,7 +117,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrEmptyRequestBody + "\n",
+				responseBody: ErrEmptyURL + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -109,7 +129,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrEmptyRequestBody + "\n",
+				responseBody: ErrEmptyURL + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -121,7 +141,7 @@ func TestAddURLError(t *testing.T) {
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
-				responseBody: ErrEmptyRequestBody + "\n",
+				responseBody: ErrEmptyURL + "\n",
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -143,7 +163,7 @@ func TestAddURLError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists url
-	_ = shortNameRepository.Add(`otherShortName`, targetURL)
+	_ = shortNameRepository.Add(ctx, `newName`, targetURL)
 
 	tests = []test{
 		{
@@ -153,8 +173,8 @@ func TestAddURLError(t *testing.T) {
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
 			method:         http.MethodPost,
 			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: repository.ErrValueAlreadyExist + "\n",
+				code:         http.StatusConflict,
+				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -165,6 +185,11 @@ func TestAddURLError(t *testing.T) {
 }
 
 func TestGetURLError(t *testing.T) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	tests := []test{
 		{
@@ -202,8 +227,13 @@ func TestGetURLError(t *testing.T) {
 
 func TestAiShortenSuccess(t *testing.T) {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -226,9 +256,14 @@ func TestAiShortenSuccess(t *testing.T) {
 
 func TestAiShortenError(t *testing.T) {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
-	_ = shortNameRepository.Add(shortName, targetURL)
+	shortNameRepository.Remove(ctx, shortName)
+	_ = shortNameRepository.Add(ctx, shortName, targetURL)
 
 	tests := []test{
 		{
@@ -238,8 +273,8 @@ func TestAiShortenError(t *testing.T) {
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
 			method:         http.MethodPost,
 			want: want{
-				code:         http.StatusBadRequest,
-				responseBody: `{"error":"` + repository.ErrValueAlreadyExist + `"}`,
+				code:         http.StatusConflict,
+				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -323,8 +358,13 @@ func TestAiShortenError(t *testing.T) {
 
 func TestGzip(t *testing.T) {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -361,7 +401,7 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests = []test{
 		{
@@ -384,7 +424,7 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests = []test{
 		{
@@ -399,6 +439,220 @@ func TestGzip(t *testing.T) {
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestPingSuccess(t *testing.T) {
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
+	tests := []test{
+		{
+			name:       `positive test: db connection /ping`,
+			requestURL: `/ping`,
+			method:     http.MethodGet,
+			want: want{
+				code: http.StatusOK,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestPingError(t *testing.T) {
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	instance := new(repository.Postgres)
+
+	conn, err := pgxpool.New(context.Background(), config.Options.DatabaseDsn)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	conn.Close()
+
+	instance.Conn = conn
+	shortNameRepository = instance
+
+	tests := []test{
+		{
+			name:       `negative test: db connection /ping`,
+			requestURL: `/ping`,
+			method:     http.MethodGet,
+			want: want{
+				code: http.StatusInternalServerError,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestAiShortenBatchSuccess(t *testing.T) {
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(ctx, shortName)
+
+	requestBody := []byte(`[{"correlation_id":"1","original_url":"` + targetURL + `"}]`)
+	responseBody := `[{"correlation_id":"1","short_url":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}]`
+
+	tests := []test{
+		{
+			name:           `positive api batch test: send POST with valid body`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    requestBody,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusCreated,
+				responseBody: responseBody,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestAiShortenBatchError(t *testing.T) {
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(ctx, shortName)
+	_ = shortNameRepository.AddBatch(ctx, []repository.BatchEl{{CorrelationID: "1", OriginalURL: targetURL, ShortURL: shortName}})
+
+	tests := []test{
+		{
+			name:           `negative api batch test: with existed url`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`[{"correlation_id":"1","original_url":"` + targetURL + `"}]`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + repository.ErrValueAlreadyExist + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api batch test: invalid url`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`[{"correlation_id":"1","original_url":"invalid_url"}]`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrInvalidURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api batch test: empty data 1`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`[{}]`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api batch test: empty data 2`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`[]`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api batch test: empty data 3`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(``),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api batch test: data is null`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`null`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: url is null`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`[{"correlation_id":"1","original_url":null}]`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: invalid json`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`{"url":null`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `negative api test: invalid header`,
+			requestURL:     `/api/shorten/batch`,
+			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			method:         http.MethodPost,
+			want: want{
+				code:         http.StatusBadRequest,
+				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},

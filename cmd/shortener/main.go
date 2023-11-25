@@ -2,7 +2,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/loghandler"
@@ -14,17 +16,15 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 const (
-	//ErrEmptyRequestBody error message
-	ErrEmptyRequestBody = `Request body is empty`
-
 	//ErrInvalidURL error message
-	ErrInvalidURL = `Only valid url allowed`
+	ErrInvalidURL = `only valid url allowed`
 
 	//ErrOnlyJSONDataAllowed error message
-	ErrOnlyJSONDataAllowed = `Only json data allowed`
+	ErrOnlyJSONDataAllowed = `Only valid json data allowed`
 
 	//ErrEmptyURL error message
 	ErrEmptyURL = `URL is empty`
@@ -73,6 +73,11 @@ type APIRequest struct {
 	URL string `json:"url"`
 }
 
+type APIBatchRequestEl struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
 type HTTPMiddleware func(f http.HandlerFunc) http.HandlerFunc
 
 func addURL(w http.ResponseWriter, r *http.Request) {
@@ -83,25 +88,32 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqURL := strings.TrimSpace(string(reqBody))
-	if reqURL == "" {
-		http.Error(w, ErrEmptyRequestBody, http.StatusBadRequest)
-		return
-	}
+	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+	defer cancel()
 
-	_, err = url.ParseRequestURI(reqURL)
-	if err != nil {
-		http.Error(w, ErrInvalidURL, http.StatusBadRequest)
-		return
-	}
+	w.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
 
-	shortName, err := appendURL(reqURL)
+	shortName, err := appendURL(ctx, string(reqBody))
 	if err != nil {
+
+		var uErr *repository.UniqueError
+		if errors.As(err, &uErr) {
+
+			w.WriteHeader(http.StatusConflict)
+
+			_, err = w.Write([]byte(strings.TrimRight(config.Options.BaseHost, `/`) + `/` + uErr.ShortKey))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
 	w.WriteHeader(http.StatusCreated)
 
 	_, err = w.Write([]byte(strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName))
@@ -118,7 +130,10 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location, err := shortNameRepository.Get(shortName)
+	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+	defer cancel()
+
+	location, err := shortNameRepository.Get(ctx, shortName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -158,23 +173,62 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqURL := strings.TrimSpace(request.URL)
-	if reqURL == "" {
-		response = APIResponse{Error: ErrEmptyURL}
-		sendAPIResponse(w, &response, http.StatusBadRequest)
+	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+	defer cancel()
 
-		return
-	}
-
-	_, err = url.ParseRequestURI(reqURL)
+	shortName, err := appendURL(ctx, request.URL)
 	if err != nil {
-		response = APIResponse{Error: ErrInvalidURL}
+
+		var uErr *repository.UniqueError
+		if errors.As(err, &uErr) {
+			response = APIResponse{Result: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + uErr.ShortKey}
+			sendAPIResponse(w, &response, http.StatusConflict)
+			return
+		}
+
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
+		return
+	}
+
+	response = APIResponse{Result: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName}
+	sendAPIResponse(w, &response, http.StatusCreated)
+}
+
+func apiShortenBatch(w http.ResponseWriter, r *http.Request) {
+
+	var response APIResponse
+
+	contentType := r.Header.Get(HeaderContentTypeName)
+	if contentType != HeaderContentTypeJSONValue && contentType != HeaderContentTypeXgzipValue {
+		response = APIResponse{Error: ErrOnlyJSONDataAllowed}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
 
 		return
 	}
 
-	shortName, err := appendURL(reqURL)
+	reqBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusInternalServerError)
+
+		return
+	}
+
+	var request []APIBatchRequestEl
+
+	err = json.Unmarshal(reqBody, &request)
+	if err != nil {
+		response = APIResponse{Error: ErrOnlyJSONDataAllowed}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
+
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	batchAsJSON, err := appendBatchURL(ctx, request)
 	if err != nil {
 		response = APIResponse{Error: err.Error()}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
@@ -182,8 +236,27 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response = APIResponse{Result: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + shortName}
-	sendAPIResponse(w, &response, http.StatusCreated)
+	w.Header().Set(HeaderContentTypeName, HeaderContentTypeJSONValue)
+	w.WriteHeader(http.StatusCreated)
+
+	_, err = w.Write(batchAsJSON)
+	if err != nil {
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusInternalServerError)
+	}
+}
+
+func ping(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	if !shortNameRepository.IsReady(ctx) {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode int) {
@@ -213,10 +286,53 @@ func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode
 	}
 }
 
-func appendURL(reqURL string) (string, error) {
+func appendBatchURL(ctx context.Context, batch []APIBatchRequestEl) ([]byte, error) {
+
+	if len(batch) == 0 {
+		return nil, errors.New(ErrEmptyURL)
+	}
+
+	list := make([]repository.BatchEl, 0, len(batch))
+	for _, v := range batch {
+		err := checkURL(v.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, repository.BatchEl{
+			CorrelationID: v.CorrelationID,
+			OriginalURL:   v.OriginalURL,
+			ShortURL:      randomShortName.Generate(),
+		})
+	}
+
+	err := shortNameRepository.AddBatch(ctx, list)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, v := range list {
+		list[i].ShortURL = strings.TrimRight(config.Options.BaseHost, `/`) + `/` + v.ShortURL
+	}
+
+	rawByte, err := json.Marshal(list)
+	if err != nil {
+		return nil, err
+	}
+
+	return rawByte, nil
+}
+
+func appendURL(ctx context.Context, reqURL string) (string, error) {
+
+	err := checkURL(reqURL)
+	if err != nil {
+		return ``, err
+	}
+
 	shortName := randomShortName.Generate()
 
-	err := shortNameRepository.Add(shortName, reqURL)
+	err = shortNameRepository.Add(ctx, shortName, reqURL)
 	if err != nil {
 		return ``, err
 	}
@@ -224,11 +340,28 @@ func appendURL(reqURL string) (string, error) {
 	return shortName, nil
 }
 
+func checkURL(reqURL string) error {
+	reqURL = strings.TrimSpace(reqURL)
+	if reqURL == `` {
+		return errors.New(ErrEmptyURL)
+	}
+
+	_, err := url.ParseRequestURI(reqURL)
+	if err != nil {
+		return errors.New(ErrInvalidURL)
+	}
+
+	return nil
+}
+
 func main() {
 	config.Load()
 
 	randomShortName = randomname.Init()
-	shortNameRepository = repository.Init()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	shortNameRepository = repository.Init(ctx)
 
 	logger.Log.Info("Starting server", zap.String("addr", config.Options.Addr))
 
@@ -243,7 +376,9 @@ func getRouter() chi.Router {
 
 	r.Post("/", middlewareConveyor(addURL, gziphandler.WithGzip, logger.WithLogging))
 	r.Post("/api/shorten", middlewareConveyor(apiShorten, gziphandler.WithGzip, logger.WithLogging))
+	r.Post("/api/shorten/batch", middlewareConveyor(apiShortenBatch, gziphandler.WithGzip, logger.WithLogging))
 	r.Get("/{id}", middlewareConveyor(getURL, gziphandler.WithGzip, logger.WithLogging))
+	r.Get("/ping", middlewareConveyor(ping, logger.WithLogging))
 
 	return r
 }

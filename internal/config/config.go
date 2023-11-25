@@ -15,6 +15,7 @@ const envAddr = `SHORT_URL_ADDR`
 const envBaseHost = `SHORT_URL_BASE_HOST`
 const envFileStoragePath = `FILE_STORAGE_PATH`
 const envLogLevel = `LOG_LEVEl`
+const envDatabaseDsn = `DATABASE_DSN`
 
 // Options Server options
 var Options struct {
@@ -22,6 +23,7 @@ var Options struct {
 	BaseHost        string
 	LogLevel        string
 	FileStoragePath string
+	DatabaseDsn     string
 }
 
 func init() {
@@ -29,6 +31,7 @@ func init() {
 	flag.StringVar(&Options.BaseHost, `b`, defaultBaseHost, "base host of url")
 	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "log handler level")
 	flag.StringVar(&Options.FileStoragePath, `f`, defaultLFileStoragePath, "Path to storage file")
+	flag.StringVar(&Options.DatabaseDsn, `d`, ``, "Path to storage file")
 }
 
 // Load loading config
@@ -53,5 +56,10 @@ func Load() {
 	fileStoragePath, exist := os.LookupEnv(envFileStoragePath)
 	if exist {
 		Options.FileStoragePath = fileStoragePath
+	}
+
+	databaseDsn, exist := os.LookupEnv(envDatabaseDsn)
+	if exist {
+		Options.DatabaseDsn = databaseDsn
 	}
 }

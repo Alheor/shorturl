@@ -4,6 +4,7 @@ package repository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/Alheor/shorturl/internal/config"
@@ -23,10 +24,17 @@ type ShortNameFile struct {
 	file *os.File
 }
 
-func (sn *ShortNameFile) Init() error {
+func (sn *ShortNameFile) Init(ctx context.Context) error {
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	sn.URLMap = make(map[string]string)
 
-	err := load(sn, config.Options.FileStoragePath)
+	err := load(ctx, sn, config.Options.FileStoragePath)
 	if err != nil {
 		return err
 	}
@@ -41,7 +49,13 @@ func (sn *ShortNameFile) Init() error {
 	return nil
 }
 
-func (sn *ShortNameFile) Add(id string, value string) error {
+func (sn *ShortNameFile) Add(ctx context.Context, id string, value string) error {
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	_, err := os.Stat(sn.file.Name())
 	if err != nil {
@@ -49,23 +63,21 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 	}
 
 	sn.Lock()
+	defer sn.Unlock()
 
 	_, exists := sn.URLMap[id]
 	if exists {
-		sn.Unlock()
-		return errors.New(ErrValueAlreadyExist)
+		return NewUniqueError(id, nil)
 	}
 
 	for _, mapValue := range sn.URLMap {
 		if mapValue == value {
-			sn.Unlock()
-			return errors.New(ErrValueAlreadyExist)
+			return NewUniqueError(id, nil)
 		}
 	}
 
 	data, err := json.Marshal(&shortURL{ID: id, URL: value})
 	if err != nil {
-		sn.Unlock()
 		return err
 	}
 
@@ -74,8 +86,6 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 
 	_, err = sn.file.Write(data)
 
-	sn.Unlock()
-
 	if err != nil {
 		return err
 	}
@@ -83,7 +93,13 @@ func (sn *ShortNameFile) Add(id string, value string) error {
 	return nil
 }
 
-func (sn *ShortNameFile) Get(id string) (value string, error error) {
+func (sn *ShortNameFile) Get(ctx context.Context, id string) (value string, error error) {
+
+	select {
+	case <-ctx.Done():
+		return ``, errors.New(ErrIDNotFound)
+	default:
+	}
 
 	sn.RLock()
 	defer sn.RUnlock()
@@ -96,17 +112,83 @@ func (sn *ShortNameFile) Get(id string) (value string, error error) {
 	return url, nil
 }
 
-func (sn *ShortNameFile) Remove(id string) {
+func (sn *ShortNameFile) Remove(ctx context.Context, id string) {
 	panic(errors.New(`method "Remove" from file repository is restricted`))
 }
 
-func load(sn *ShortNameFile, path string) error {
+func (sn *ShortNameFile) IsReady(ctx context.Context) bool {
+
+	select {
+	case <-ctx.Done():
+		return false
+	default:
+	}
+
+	return sn.file != nil
+}
+
+func (sn *ShortNameFile) AddBatch(ctx context.Context, in []BatchEl) error {
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	_, err := os.Stat(sn.file.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	sn.Lock()
+	defer sn.Unlock()
+
+	var res []byte
+	for _, v := range in {
+
+		data, err := json.Marshal(&shortURL{ID: v.ShortURL, URL: v.OriginalURL})
+		if err != nil {
+			return err
+		}
+
+		_, exists := sn.URLMap[v.ShortURL]
+		if exists {
+			return errors.New(ErrValueAlreadyExist)
+		}
+
+		for _, mapValue := range sn.URLMap {
+			if mapValue == v.OriginalURL {
+				return errors.New(ErrValueAlreadyExist)
+			}
+		}
+
+		res = append(res, append(data, '\n')...)
+	}
+
+	_, err = sn.file.Write(res)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func load(ctx context.Context, sn *ShortNameFile, path string) error {
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
 
 	sn.Lock()
+	defer sn.Unlock()
 
 	scanner := bufio.NewScanner(file)
 
@@ -121,8 +203,6 @@ func load(sn *ShortNameFile, path string) error {
 
 		sn.URLMap[el.ID] = el.URL
 	}
-
-	sn.Unlock()
 
 	err = file.Close()
 	if err != nil {
