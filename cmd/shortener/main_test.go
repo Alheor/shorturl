@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type want struct {
@@ -48,9 +49,12 @@ func init() {
 
 func TestAddURLSuccess(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -73,10 +77,13 @@ func TestAddURLSuccess(t *testing.T) {
 
 func TestGetURLSuccess(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	_ = shortNameRepository.Add(shortName, targetURL)
+	_ = shortNameRepository.Add(ctx, shortName, targetURL)
 
 	tests := []test{
 		{
@@ -97,7 +104,10 @@ func TestGetURLSuccess(t *testing.T) {
 
 func TestAddURLError(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	tests := []test{
 		{
@@ -153,7 +163,7 @@ func TestAddURLError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists url
-	_ = shortNameRepository.Add(`newName`, targetURL)
+	_ = shortNameRepository.Add(ctx, `newName`, targetURL)
 
 	tests = []test{
 		{
@@ -176,7 +186,10 @@ func TestAddURLError(t *testing.T) {
 
 func TestGetURLError(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	tests := []test{
 		{
@@ -214,10 +227,13 @@ func TestGetURLError(t *testing.T) {
 
 func TestAiShortenSuccess(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -240,11 +256,14 @@ func TestAiShortenSuccess(t *testing.T) {
 
 func TestAiShortenError(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
-	_ = shortNameRepository.Add(shortName, targetURL)
+	shortNameRepository.Remove(ctx, shortName)
+	_ = shortNameRepository.Add(ctx, shortName, targetURL)
 
 	tests := []test{
 		{
@@ -339,10 +358,13 @@ func TestAiShortenError(t *testing.T) {
 
 func TestGzip(t *testing.T) {
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -379,7 +401,7 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests = []test{
 		{
@@ -402,7 +424,7 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	tests = []test{
 		{
@@ -430,7 +452,10 @@ func TestPingSuccess(t *testing.T) {
 
 	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	tests := []test{
 		{
@@ -479,10 +504,13 @@ func TestAiShortenBatchSuccess(t *testing.T) {
 
 	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
+	shortNameRepository.Remove(ctx, shortName)
 
 	requestBody := []byte(`[{"correlation_id":"1","original_url":"` + targetURL + `"}]`)
 	responseBody := `[{"correlation_id":"1","short_url":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}]`
@@ -510,11 +538,14 @@ func TestAiShortenBatchError(t *testing.T) {
 
 	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
 
-	shortNameRepository = repository.Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(shortName)
-	_ = shortNameRepository.AddBatch([]repository.BatchEl{{CorrelationID: "1", OriginalURL: targetURL, ShortURL: shortName}})
+	shortNameRepository.Remove(ctx, shortName)
+	_ = shortNameRepository.AddBatch(ctx, []repository.BatchEl{{CorrelationID: "1", OriginalURL: targetURL, ShortURL: shortName}})
 
 	tests := []test{
 		{

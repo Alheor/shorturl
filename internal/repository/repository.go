@@ -3,6 +3,7 @@
 package repository
 
 import (
+	"context"
 	"github.com/Alheor/shorturl/internal/config"
 )
 
@@ -38,16 +39,16 @@ func NewUniqueError(shortKey string, err error) error {
 
 // Repository interface
 type Repository interface {
-	Add(id string, value string) error
-	AddBatch(in []BatchEl) error
-	Get(id string) (value string, error error)
-	Remove(id string)
-	Init() error
-	StorageIsReady() bool
+	Add(ctx context.Context, id string, value string) error
+	AddBatch(ctx context.Context, in []BatchEl) error
+	Get(ctx context.Context, id string) (value string, error error)
+	Remove(ctx context.Context, id string)
+	Init(ctx context.Context) error
+	IsReady(ctx context.Context) bool
 }
 
 // Init repository constructor
-func Init() Repository {
+func Init(ctx context.Context) Repository {
 
 	var instance Repository
 
@@ -63,7 +64,7 @@ func Init() Repository {
 		}
 	}
 
-	err := instance.Init()
+	err := instance.Init(ctx)
 	if err != nil {
 		panic(err)
 	}

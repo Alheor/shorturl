@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const tableName = `short_URL`
@@ -21,13 +20,11 @@ type Postgres struct {
 	Conn *pgxpool.Pool
 }
 
-func (pg *Postgres) Init() error {
+func (pg *Postgres) Init(ctx context.Context) error {
 
 	if pg.Conn != nil {
 		return nil
 	}
-
-	ctx := context.Background()
 
 	db, err := pgxpool.New(ctx, config.Options.DatabaseDsn)
 	if err != nil {
@@ -41,55 +38,51 @@ func (pg *Postgres) Init() error {
 	return nil
 }
 
-func (pg *Postgres) Add(id string, value string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
+func (pg *Postgres) Add(ctx context.Context, id string, value string) error {
 
 	_, err := pg.Conn.Exec(ctx,
 		"INSERT INTO "+tableName+" (short_key, original_url) VALUES (@shortKey, @originalURL)",
 		pgx.NamedArgs{"shortKey": id, "originalURL": value},
 	)
 
-	if err != nil {
-		var myErr *pgconn.PgError
-		if errors.As(err, &myErr) && myErr.Code == pgerrcode.UniqueViolation {
+	if err == nil {
+		return nil
+	}
 
-			uniqByOriginalURL := strings.Contains(myErr.Detail, `original_url`)
-			uniqByShortKey := strings.Contains(myErr.Detail, `short_key`)
+	var myErr *pgconn.PgError
+	if errors.As(err, &myErr) && myErr.Code == pgerrcode.UniqueViolation {
 
-			if !uniqByShortKey && !uniqByOriginalURL {
+		uniqByOriginalURL := strings.Contains(myErr.Detail, `original_url`)
+		uniqByShortKey := strings.Contains(myErr.Detail, `short_key`)
+
+		if !uniqByShortKey && !uniqByOriginalURL {
+			return myErr
+		}
+
+		if uniqByShortKey {
+			return NewUniqueError(id, myErr)
+		}
+
+		if uniqByOriginalURL {
+			row := pg.Conn.QueryRow(ctx,
+				"SELECT short_key FROM "+tableName+" WHERE original_url=@originalUrl",
+				pgx.NamedArgs{"originalUrl": value},
+			)
+
+			var shortKey string
+			err := row.Scan(&shortKey)
+			if err != nil {
 				return myErr
 			}
 
-			if uniqByShortKey {
-				return NewUniqueError(id, myErr)
-			}
-
-			if uniqByOriginalURL {
-				row := pg.Conn.QueryRow(ctx,
-					"SELECT short_key FROM "+tableName+" WHERE original_url=@originalUrl",
-					pgx.NamedArgs{"originalUrl": value},
-				)
-
-				var shortKey string
-				err := row.Scan(&shortKey)
-				if err != nil {
-					return myErr
-				}
-
-				return NewUniqueError(shortKey, myErr)
-			}
+			return NewUniqueError(shortKey, myErr)
 		}
-
-		return err
 	}
 
-	return nil
+	return err
 }
 
-func (pg *Postgres) Get(id string) (value string, error error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
+func (pg *Postgres) Get(ctx context.Context, id string) (value string, error error) {
 
 	var originalURL string
 
@@ -100,19 +93,13 @@ func (pg *Postgres) Get(id string) (value string, error error) {
 
 	err := row.Scan(&originalURL)
 	if err != nil {
-		if err != pgx.ErrNoRows {
-			panic(err)
-		}
-
 		return ``, errors.New(ErrIDNotFound)
 	}
 
 	return originalURL, nil
 }
 
-func (pg *Postgres) Remove(id string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
+func (pg *Postgres) Remove(ctx context.Context, id string) {
 
 	_, err := pg.Conn.Exec(ctx,
 		"DELETE FROM "+tableName+" WHERE short_key=@shortKey",
@@ -124,17 +111,13 @@ func (pg *Postgres) Remove(id string) {
 	}
 }
 
-func (pg *Postgres) StorageIsReady() bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
+func (pg *Postgres) IsReady(ctx context.Context) bool {
 
 	err := pg.Conn.Ping(ctx)
 	return err == nil
 }
 
-func (pg *Postgres) AddBatch(in []BatchEl) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+func (pg *Postgres) AddBatch(ctx context.Context, in []BatchEl) error {
 
 	tx, err := pg.Conn.Begin(ctx)
 	if err != nil {
@@ -165,26 +148,8 @@ func (pg *Postgres) AddBatch(in []BatchEl) error {
 }
 
 func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
-	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-	defer cancel()
 
-	var tableExists bool
-
-	row := conn.QueryRow(ctx, `SELECT true FROM pg_tables WHERE tablename = $1`, strings.ToLower(tableName))
-	err := row.Scan(&tableExists)
-	if err != nil {
-		if err != pgx.ErrNoRows {
-			panic(err)
-		}
-
-		tableExists = false
-	}
-
-	if tableExists {
-		return
-	}
-
-	_, err = conn.Exec(ctx, `
+	_, err := conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS `+tableName+` (
 		    id SERIAL NOT NULL PRIMARY KEY,
 		    short_key varchar(`+strconv.Itoa(randomname.ShortNameLength)+`) NOT NULL UNIQUE,

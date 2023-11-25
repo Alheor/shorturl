@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/Alheor/shorturl/internal/config"
@@ -15,11 +16,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 const (
 	//ErrInvalidURL error message
-	ErrInvalidURL = `only valid url allowed`
+	ErrInvalidURL = `Only valid url allowed`
 
 	//ErrOnlyJSONDataAllowed error message
 	ErrOnlyJSONDataAllowed = `Only valid json data allowed`
@@ -86,9 +88,12 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+	defer cancel()
+
 	w.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
 
-	shortName, err := appendURL(string(reqBody))
+	shortName, err := appendURL(ctx, string(reqBody))
 	if err != nil {
 
 		var uErr *repository.UniqueError
@@ -98,7 +103,8 @@ func addURL(w http.ResponseWriter, r *http.Request) {
 
 			_, err = w.Write([]byte(strings.TrimRight(config.Options.BaseHost, `/`) + `/` + uErr.ShortKey))
 			if err != nil {
-				panic(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 
 			return
@@ -124,7 +130,10 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location, err := shortNameRepository.Get(shortName)
+	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+	defer cancel()
+
+	location, err := shortNameRepository.Get(ctx, shortName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -164,7 +173,10 @@ func apiShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortName, err := appendURL(request.URL)
+	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+	defer cancel()
+
+	shortName, err := appendURL(ctx, request.URL)
 	if err != nil {
 
 		var uErr *repository.UniqueError
@@ -213,7 +225,10 @@ func apiShortenBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batchAsJSON, err := appendBatchURL(request)
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	batchAsJSON, err := appendBatchURL(ctx, request)
 	if err != nil {
 		response = APIResponse{Error: err.Error()}
 		sendAPIResponse(w, &response, http.StatusBadRequest)
@@ -233,7 +248,10 @@ func apiShortenBatch(w http.ResponseWriter, r *http.Request) {
 
 func ping(w http.ResponseWriter, r *http.Request) {
 
-	if !shortNameRepository.StorageIsReady() {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	if !shortNameRepository.IsReady(ctx) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -268,10 +286,9 @@ func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode
 	}
 }
 
-func appendBatchURL(batch []APIBatchRequestEl) ([]byte, error) {
+func appendBatchURL(ctx context.Context, batch []APIBatchRequestEl) ([]byte, error) {
 
-	batchLen := len(batch)
-	if batchLen == 0 {
+	if len(batch) == 0 {
 		return nil, errors.New(ErrEmptyURL)
 	}
 
@@ -289,7 +306,7 @@ func appendBatchURL(batch []APIBatchRequestEl) ([]byte, error) {
 		})
 	}
 
-	err := shortNameRepository.AddBatch(list)
+	err := shortNameRepository.AddBatch(ctx, list)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +323,7 @@ func appendBatchURL(batch []APIBatchRequestEl) ([]byte, error) {
 	return rawByte, nil
 }
 
-func appendURL(reqURL string) (string, error) {
+func appendURL(ctx context.Context, reqURL string) (string, error) {
 
 	err := checkURL(reqURL)
 	if err != nil {
@@ -315,7 +332,7 @@ func appendURL(reqURL string) (string, error) {
 
 	shortName := randomShortName.Generate()
 
-	err = shortNameRepository.Add(shortName, reqURL)
+	err = shortNameRepository.Add(ctx, shortName, reqURL)
 	if err != nil {
 		return ``, err
 	}
@@ -325,7 +342,7 @@ func appendURL(reqURL string) (string, error) {
 
 func checkURL(reqURL string) error {
 	reqURL = strings.TrimSpace(reqURL)
-	if reqURL == "" {
+	if reqURL == `` {
 		return errors.New(ErrEmptyURL)
 	}
 
@@ -341,7 +358,10 @@ func main() {
 	config.Load()
 
 	randomShortName = randomname.Init()
-	shortNameRepository = repository.Init()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	shortNameRepository = repository.Init(ctx)
 
 	logger.Log.Info("Starting server", zap.String("addr", config.Options.Addr))
 

@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 const targetURL = `https://practicum.yandex.ru/`
@@ -18,12 +19,15 @@ const shortName = `tstName`
 func TestAddURLAndGetURLMapSuccess(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	r := Init()
 
-	err := r.Add(shortName, targetURL)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
+
+	err := r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	url, err := r.Get(shortName)
+	url, err := r.Get(ctx, shortName)
 	require.NoError(t, err)
 
 	assert.Equal(t, targetURL, url)
@@ -32,49 +36,64 @@ func TestAddURLAndGetURLMapSuccess(t *testing.T) {
 func TestAddURLShortNameExistsMapError(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	r := Init()
 
-	err := r.Add(shortName, targetURL)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
+
+	err := r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	err = r.Add(shortName, targetURL)
+	err = r.Add(ctx, shortName, targetURL)
 	require.Error(t, err)
 }
 
 func TestAddURLURLExistsMapError(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	r := Init()
 
-	err := r.Add(shortName, targetURL)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
+
+	err := r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	err = r.Add(`otherShortName`, targetURL)
+	err = r.Add(ctx, `otherShortName`, targetURL)
 	require.Error(t, err)
 }
 
 func TestGetURLMapError(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	r := Init()
 
-	_, err := r.Get(shortName)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
+
+	_, err := r.Get(ctx, shortName)
 	require.Error(t, err)
 }
 
-func TestStorageIsReadyMapSuccess(t *testing.T) {
+func TestIsReadyMapSuccess(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `` //режим без записи в файл
-	r := Init()
 
-	assert.True(t, r.StorageIsReady())
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
+
+	assert.True(t, r.IsReady(ctx))
 }
 
 func TestAddBatchMapSuccess(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `` //режим без записи в файл
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	r := Init(ctx)
 
 	testData := getTestData()
 
@@ -83,11 +102,11 @@ func TestAddBatchMapSuccess(t *testing.T) {
 		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
 	}
 
-	err := r.AddBatch(list)
+	err := r.AddBatch(ctx, list)
 	require.NoError(t, err)
 
 	for index, val := range testData {
-		URL, err := r.Get(index)
+		URL, err := r.Get(ctx, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -96,18 +115,21 @@ func TestAddBatchMapSuccess(t *testing.T) {
 func TestAddURLAndGetURLFileSuccess(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 	removeFile(config.Options.FileStoragePath)
 
-	r := Init()
+	r := Init(ctx)
 	testData := getTestData()
 
 	for index, val := range testData {
-		err := r.Add(index, val)
+		err := r.Add(ctx, index, val)
 		require.NoError(t, err)
 	}
 
 	for index, val := range testData {
-		URL, err := r.Get(index)
+		URL, err := r.Get(ctx, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -118,14 +140,17 @@ func TestAddURLAndGetURLFileSuccess(t *testing.T) {
 func TestAddURLShortNameExistsFileError(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 	removeFile(config.Options.FileStoragePath)
 
-	r := Init()
+	r := Init(ctx)
 
-	err := r.Add(shortName, targetURL)
+	err := r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	err = r.Add(shortName, targetURL)
+	err = r.Add(ctx, shortName, targetURL)
 	require.Error(t, err)
 
 	removeFile(config.Options.FileStoragePath)
@@ -134,14 +159,17 @@ func TestAddURLShortNameExistsFileError(t *testing.T) {
 func TestAddURLURLExistsFileError(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 	removeFile(config.Options.FileStoragePath)
 
-	r := Init()
+	r := Init(ctx)
 
-	err := r.Add(shortName, targetURL)
+	err := r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	err = r.Add(`otherShortName`, targetURL)
+	err = r.Add(ctx, `otherShortName`, targetURL)
 	require.Error(t, err)
 
 	removeFile(config.Options.FileStoragePath)
@@ -151,9 +179,12 @@ func TestGetURLFileError(t *testing.T) {
 	config.Load()
 	removeFile(config.Options.FileStoragePath)
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 
-	_, err := r.Get(shortName)
+	r := Init(ctx)
+
+	_, err := r.Get(ctx, shortName)
 	require.Error(t, err)
 }
 
@@ -161,13 +192,16 @@ func TestCreatedFileSuccess(t *testing.T) {
 
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 	removeFile(config.Options.FileStoragePath)
 
-	r := Init()
+	r := Init(ctx)
 	testData := getTestData()
 
 	for index, val := range testData {
-		err := r.Add(index, val)
+		err := r.Add(ctx, index, val)
 		require.NoError(t, err)
 	}
 
@@ -180,21 +214,24 @@ func TestLoadFromFileSuccess(t *testing.T) {
 
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 	removeFile(config.Options.FileStoragePath)
 
-	r := Init()
+	r := Init(ctx)
 	testData := getTestData()
 
 	for index, val := range testData {
-		err := r.Add(index, val)
+		err := r.Add(ctx, index, val)
 		require.NoError(t, err)
 	}
 
 	r = nil
-	r = Init()
+	r = Init(ctx)
 
 	for index, val := range testData {
-		URL, err := r.Get(index)
+		URL, err := r.Get(ctx, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -202,20 +239,26 @@ func TestLoadFromFileSuccess(t *testing.T) {
 	removeFile(config.Options.FileStoragePath)
 }
 
-func TestStorageIsReadyFileSuccess(t *testing.T) {
+func TestIsReadyFileSuccess(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
-	removeFile(config.Options.FileStoragePath)
-	r := Init()
 
-	assert.True(t, r.StorageIsReady())
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	removeFile(config.Options.FileStoragePath)
+	r := Init(ctx)
+
+	assert.True(t, r.IsReady(ctx))
 }
 
 func TestAddBatchFileSuccess(t *testing.T) {
 	config.Load()
 	config.Options.FileStoragePath = `/tmp/test.json`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 	removeFile(config.Options.FileStoragePath)
-	r := Init()
+	r := Init(ctx)
 
 	testData := getTestData()
 
@@ -224,14 +267,14 @@ func TestAddBatchFileSuccess(t *testing.T) {
 		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
 	}
 
-	err := r.AddBatch(list)
+	err := r.AddBatch(ctx, list)
 	require.NoError(t, err)
 
 	r = nil
-	r = Init()
+	r = Init(ctx)
 
 	for index, val := range testData {
-		URL, err := r.Get(index)
+		URL, err := r.Get(ctx, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -249,7 +292,8 @@ func TestCreateDBSchemaSuccess(t *testing.T) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 
 	conn, err := pgxpool.New(ctx, config.Options.DatabaseDsn)
 	require.NoError(t, err)
@@ -277,15 +321,18 @@ func TestAddURLAndGetURLDBSuccess(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
 
-	err = r.Add(shortName, targetURL)
+	err = r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	url, err := r.Get(shortName)
+	url, err := r.Get(ctx, shortName)
 	require.NoError(t, err)
 
 	assert.Equal(t, targetURL, url)
@@ -301,12 +348,14 @@ func TestGetURLNotExistDBSuccess(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
 
-	url, err := r.Get(shortName)
+	url, err := r.Get(ctx, shortName)
 	require.Error(t, err)
 
 	assert.Equal(t, ``, url)
@@ -322,15 +371,17 @@ func TestAddURLAndGetURLDBUniqueError(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
 
-	err = r.Add(shortName, targetURL)
+	err = r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	err = r.Add(shortName+`1`, targetURL)
+	err = r.Add(ctx, shortName+`1`, targetURL)
 	assert.Error(t, err)
 
 	var uErr *UniqueError
@@ -338,7 +389,7 @@ func TestAddURLAndGetURLDBUniqueError(t *testing.T) {
 	assert.True(t, errors.As(err, &uErr))
 	assert.Equal(t, shortName, uErr.ShortKey)
 
-	err = r.Add(shortName, targetURL+`1`)
+	err = r.Add(ctx, shortName, targetURL+`1`)
 	assert.Error(t, err)
 
 	assert.True(t, errors.As(err, &uErr))
@@ -355,23 +406,25 @@ func TestRemoveURLDBSuccess(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
 
-	err = r.Add(shortName, targetURL)
+	err = r.Add(ctx, shortName, targetURL)
 	require.NoError(t, err)
 
-	r.Remove(shortName)
+	r.Remove(ctx, shortName)
 
-	url, err := r.Get(shortName)
+	url, err := r.Get(ctx, shortName)
 	require.Error(t, err)
 
 	assert.Equal(t, ``, url)
 }
 
-func TestStorageIsReadyDBSuccess(t *testing.T) {
+func TestIsReadyDBSuccess(t *testing.T) {
 	config.Load()
 
 	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
@@ -381,12 +434,14 @@ func TestStorageIsReadyDBSuccess(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
 
-	assert.True(t, r.StorageIsReady())
+	assert.True(t, r.IsReady(ctx))
 }
 
 func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
@@ -399,7 +454,9 @@ func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
@@ -411,11 +468,11 @@ func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
 		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
 	}
 
-	err = r.AddBatch(list)
+	err = r.AddBatch(ctx, list)
 	require.NoError(t, err)
 
 	for index, val := range testData {
-		URL, err := r.Get(index)
+		URL, err := r.Get(ctx, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -431,7 +488,9 @@ func TestAddURLAndGetURLBatchDBUniqueError(t *testing.T) {
 		return
 	}
 
-	r := Init()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
 
 	err := prepareDB()
 	require.NoError(t, err)
@@ -444,7 +503,7 @@ func TestAddURLAndGetURLBatchDBUniqueError(t *testing.T) {
 		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
 	}
 
-	err = r.AddBatch(list)
+	err = r.AddBatch(ctx, list)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), ErrValueAlreadyExist)
 }
