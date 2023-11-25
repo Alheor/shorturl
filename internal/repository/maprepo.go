@@ -5,16 +5,17 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/Alheor/shorturl/internal/userauth"
 	"sync"
 )
 
 // ShortNameMap struct
 type ShortNameMap struct {
-	URLMap map[string]string
+	URLMap map[string]map[string]string
 	sync.RWMutex
 }
 
-func (sn *ShortNameMap) Init(ctx context.Context) error {
+func (snm *ShortNameMap) Init(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
@@ -22,11 +23,11 @@ func (sn *ShortNameMap) Init(ctx context.Context) error {
 	default:
 	}
 
-	sn.URLMap = make(map[string]string)
+	snm.URLMap = make(map[string]map[string]string)
 	return nil
 }
 
-func (sn *ShortNameMap) Add(ctx context.Context, id string, value string) error {
+func (snm *ShortNameMap) Add(ctx context.Context, user *userauth.User, id string, value string) error {
 
 	select {
 	case <-ctx.Done():
@@ -34,26 +35,32 @@ func (sn *ShortNameMap) Add(ctx context.Context, id string, value string) error 
 	default:
 	}
 
-	sn.Lock()
-	defer sn.Unlock()
+	snm.Lock()
+	defer snm.Unlock()
 
-	_, exists := sn.URLMap[id]
+	if snm.URLMap[user.ID] == nil {
+		snm.URLMap[user.ID] = make(map[string]string)
+	}
+
+	urlList := snm.URLMap[user.ID]
+
+	_, exists := urlList[id]
 	if exists {
 		return NewUniqueError(id, nil)
 	}
 
-	for _, mapValue := range sn.URLMap {
+	for _, mapValue := range urlList {
 		if mapValue == value {
 			return NewUniqueError(id, nil)
 		}
 	}
 
-	sn.URLMap[id] = value
+	urlList[id] = value
 
 	return nil
 }
 
-func (sn *ShortNameMap) Get(ctx context.Context, id string) (value string, error error) {
+func (snm *ShortNameMap) Get(ctx context.Context, user *userauth.User, id string) (value string, error error) {
 
 	select {
 	case <-ctx.Done():
@@ -61,10 +68,15 @@ func (sn *ShortNameMap) Get(ctx context.Context, id string) (value string, error
 	default:
 	}
 
-	sn.RLock()
-	defer sn.RUnlock()
+	snm.RLock()
+	defer snm.RUnlock()
 
-	url, exists := sn.URLMap[id]
+	urlList, exists := snm.URLMap[user.ID]
+	if !exists {
+		return ``, errors.New(ErrIDNotFound)
+	}
+
+	url, exists := urlList[id]
 	if !exists {
 		return ``, errors.New(ErrIDNotFound)
 	}
@@ -72,7 +84,7 @@ func (sn *ShortNameMap) Get(ctx context.Context, id string) (value string, error
 	return url, nil
 }
 
-func (sn *ShortNameMap) Remove(ctx context.Context, id string) {
+func (snm *ShortNameMap) Remove(ctx context.Context, user *userauth.User, id string) {
 
 	select {
 	case <-ctx.Done():
@@ -80,13 +92,13 @@ func (sn *ShortNameMap) Remove(ctx context.Context, id string) {
 	default:
 	}
 
-	sn.Lock()
-	defer sn.Unlock()
+	snm.Lock()
+	defer snm.Unlock()
 
-	delete(sn.URLMap, id)
+	delete(snm.URLMap[user.ID], id)
 }
 
-func (sn *ShortNameMap) IsReady(ctx context.Context) bool {
+func (snm *ShortNameMap) IsReady(ctx context.Context) bool {
 
 	select {
 	case <-ctx.Done():
@@ -94,10 +106,10 @@ func (sn *ShortNameMap) IsReady(ctx context.Context) bool {
 	default:
 	}
 
-	return sn.URLMap != nil
+	return snm.URLMap != nil
 }
 
-func (sn *ShortNameMap) AddBatch(ctx context.Context, in []BatchEl) error {
+func (snm *ShortNameMap) AddBatch(ctx context.Context, user *userauth.User, in []BatchEl) error {
 
 	select {
 	case <-ctx.Done():
@@ -105,24 +117,54 @@ func (sn *ShortNameMap) AddBatch(ctx context.Context, in []BatchEl) error {
 	default:
 	}
 
-	sn.Lock()
-	defer sn.Unlock()
+	snm.Lock()
+	defer snm.Unlock()
+
+	if snm.URLMap[user.ID] == nil {
+		snm.URLMap[user.ID] = make(map[string]string)
+	}
+
+	urlList := snm.URLMap[user.ID]
 
 	for _, v := range in {
 
-		_, exists := sn.URLMap[v.ShortURL]
+		_, exists := urlList[v.ShortURL]
 		if exists {
 			return errors.New(ErrValueAlreadyExist)
 		}
 
-		for _, mapValue := range sn.URLMap {
+		for _, mapValue := range urlList {
 			if mapValue == v.OriginalURL {
 				return errors.New(ErrValueAlreadyExist)
 			}
 		}
 
-		sn.URLMap[v.ShortURL] = v.OriginalURL
+		urlList[v.ShortURL] = v.OriginalURL
 	}
 
 	return nil
+}
+
+func (snm *ShortNameMap) GetAll(ctx context.Context, user *userauth.User) (list []HistoryEl, error error) {
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	snm.RLock()
+	defer snm.RUnlock()
+
+	userUrlList, exists := snm.URLMap[user.ID]
+	if !exists {
+		return nil, errors.New(ErrIDNotFound)
+	}
+
+	historyList := make([]HistoryEl, 0, len(userUrlList))
+	for shortUrl, originValue := range userUrlList {
+		historyList = append(historyList, HistoryEl{OriginalURL: originValue, ShortURL: shortUrl})
+	}
+
+	return historyList, nil
 }

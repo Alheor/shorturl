@@ -8,23 +8,25 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/userauth"
 	"os"
 	"sync"
 )
 
 type shortURL struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	UserID string `json:"user_id"`
+	ID     string `json:"id"`
+	URL    string `json:"url"`
 }
 
 // ShortNameFile struct
 type ShortNameFile struct {
-	URLMap map[string]string
+	URLMap map[string]map[string]string
 	sync.RWMutex
 	file *os.File
 }
 
-func (sn *ShortNameFile) Init(ctx context.Context) error {
+func (snf *ShortNameFile) Init(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
@@ -32,9 +34,9 @@ func (sn *ShortNameFile) Init(ctx context.Context) error {
 	default:
 	}
 
-	sn.URLMap = make(map[string]string)
+	snf.URLMap = make(map[string]map[string]string)
 
-	err := load(ctx, sn, config.Options.FileStoragePath)
+	err := load(ctx, snf, config.Options.FileStoragePath)
 	if err != nil {
 		return err
 	}
@@ -44,12 +46,12 @@ func (sn *ShortNameFile) Init(ctx context.Context) error {
 		return err
 	}
 
-	sn.file = file
+	snf.file = file
 
 	return nil
 }
 
-func (sn *ShortNameFile) Add(ctx context.Context, id string, value string) error {
+func (snf *ShortNameFile) Add(ctx context.Context, user *userauth.User, id string, value string) error {
 
 	select {
 	case <-ctx.Done():
@@ -57,34 +59,40 @@ func (sn *ShortNameFile) Add(ctx context.Context, id string, value string) error
 	default:
 	}
 
-	_, err := os.Stat(sn.file.Name())
+	_, err := os.Stat(snf.file.Name())
 	if err != nil {
 		panic(err)
 	}
 
-	sn.Lock()
-	defer sn.Unlock()
+	snf.Lock()
+	defer snf.Unlock()
 
-	_, exists := sn.URLMap[id]
+	if snf.URLMap[user.ID] == nil {
+		snf.URLMap[user.ID] = make(map[string]string)
+	}
+
+	urlList := snf.URLMap[user.ID]
+
+	_, exists := urlList[id]
 	if exists {
 		return NewUniqueError(id, nil)
 	}
 
-	for _, mapValue := range sn.URLMap {
+	for _, mapValue := range urlList {
 		if mapValue == value {
 			return NewUniqueError(id, nil)
 		}
 	}
 
-	data, err := json.Marshal(&shortURL{ID: id, URL: value})
+	data, err := json.Marshal(&shortURL{UserID: user.ID, ID: id, URL: value})
 	if err != nil {
 		return err
 	}
 
-	sn.URLMap[id] = value
+	urlList[id] = value
 	data = append(data, '\n')
 
-	_, err = sn.file.Write(data)
+	_, err = snf.file.Write(data)
 
 	if err != nil {
 		return err
@@ -93,7 +101,7 @@ func (sn *ShortNameFile) Add(ctx context.Context, id string, value string) error
 	return nil
 }
 
-func (sn *ShortNameFile) Get(ctx context.Context, id string) (value string, error error) {
+func (snf *ShortNameFile) Get(ctx context.Context, user *userauth.User, id string) (value string, error error) {
 
 	select {
 	case <-ctx.Done():
@@ -101,10 +109,15 @@ func (sn *ShortNameFile) Get(ctx context.Context, id string) (value string, erro
 	default:
 	}
 
-	sn.RLock()
-	defer sn.RUnlock()
+	snf.RLock()
+	defer snf.RUnlock()
 
-	url, exists := sn.URLMap[id]
+	urlList, exists := snf.URLMap[user.ID]
+	if !exists {
+		return ``, errors.New(ErrIDNotFound)
+	}
+
+	url, exists := urlList[id]
 	if !exists {
 		return ``, errors.New(ErrIDNotFound)
 	}
@@ -112,11 +125,11 @@ func (sn *ShortNameFile) Get(ctx context.Context, id string) (value string, erro
 	return url, nil
 }
 
-func (sn *ShortNameFile) Remove(ctx context.Context, id string) {
+func (snf *ShortNameFile) Remove(ctx context.Context, user *userauth.User, id string) {
 	panic(errors.New(`method "Remove" from file repository is restricted`))
 }
 
-func (sn *ShortNameFile) IsReady(ctx context.Context) bool {
+func (snf *ShortNameFile) IsReady(ctx context.Context) bool {
 
 	select {
 	case <-ctx.Done():
@@ -124,10 +137,10 @@ func (sn *ShortNameFile) IsReady(ctx context.Context) bool {
 	default:
 	}
 
-	return sn.file != nil
+	return snf.file != nil
 }
 
-func (sn *ShortNameFile) AddBatch(ctx context.Context, in []BatchEl) error {
+func (snf *ShortNameFile) AddBatch(ctx context.Context, user *userauth.User, in []BatchEl) error {
 
 	select {
 	case <-ctx.Done():
@@ -135,37 +148,44 @@ func (sn *ShortNameFile) AddBatch(ctx context.Context, in []BatchEl) error {
 	default:
 	}
 
-	_, err := os.Stat(sn.file.Name())
+	_, err := os.Stat(snf.file.Name())
 	if err != nil {
 		panic(err)
 	}
 
-	sn.Lock()
-	defer sn.Unlock()
+	snf.Lock()
+	defer snf.Unlock()
+
+	if snf.URLMap[user.ID] == nil {
+		snf.URLMap[user.ID] = make(map[string]string)
+	}
+
+	urlList := snf.URLMap[user.ID]
 
 	var res []byte
 	for _, v := range in {
 
-		data, err := json.Marshal(&shortURL{ID: v.ShortURL, URL: v.OriginalURL})
+		data, err := json.Marshal(&shortURL{UserID: user.ID, ID: v.ShortURL, URL: v.OriginalURL})
 		if err != nil {
 			return err
 		}
 
-		_, exists := sn.URLMap[v.ShortURL]
+		_, exists := urlList[v.ShortURL]
 		if exists {
 			return errors.New(ErrValueAlreadyExist)
 		}
 
-		for _, mapValue := range sn.URLMap {
+		for _, mapValue := range urlList {
 			if mapValue == v.OriginalURL {
 				return errors.New(ErrValueAlreadyExist)
 			}
 		}
 
+		urlList[v.ShortURL] = v.OriginalURL
 		res = append(res, append(data, '\n')...)
 	}
 
-	_, err = sn.file.Write(res)
+	_, err = snf.file.Write(res)
 
 	if err != nil {
 		return err
@@ -174,7 +194,31 @@ func (sn *ShortNameFile) AddBatch(ctx context.Context, in []BatchEl) error {
 	return nil
 }
 
-func load(ctx context.Context, sn *ShortNameFile, path string) error {
+func (snf *ShortNameFile) GetAll(ctx context.Context, user *userauth.User) (list []HistoryEl, error error) {
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	snf.RLock()
+	defer snf.RUnlock()
+
+	userUrlList, exists := snf.URLMap[user.ID]
+	if !exists {
+		return nil, errors.New(ErrIDNotFound)
+	}
+
+	historyList := make([]HistoryEl, 0, len(userUrlList))
+	for shortUrl, originValue := range userUrlList {
+		historyList = append(historyList, HistoryEl{OriginalURL: originValue, ShortURL: shortUrl})
+	}
+
+	return historyList, nil
+}
+
+func load(ctx context.Context, snf *ShortNameFile, path string) error {
 
 	select {
 	case <-ctx.Done():
@@ -187,8 +231,8 @@ func load(ctx context.Context, sn *ShortNameFile, path string) error {
 		return err
 	}
 
-	sn.Lock()
-	defer sn.Unlock()
+	snf.Lock()
+	defer snf.Unlock()
 
 	scanner := bufio.NewScanner(file)
 
@@ -201,7 +245,11 @@ func load(ctx context.Context, sn *ShortNameFile, path string) error {
 			continue
 		}
 
-		sn.URLMap[el.ID] = el.URL
+		if snf.URLMap[el.UserID] == nil {
+			snf.URLMap[el.UserID] = make(map[string]string)
+		}
+
+		snf.URLMap[el.UserID][el.ID] = el.URL
 	}
 
 	err = file.Close()

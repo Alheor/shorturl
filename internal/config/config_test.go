@@ -15,6 +15,7 @@ func TestLoadConfigFromDefaultValuesSuccess(t *testing.T) {
 	assert.Equal(t, defaultLogLevel, Options.LogLevel)
 	assert.Equal(t, defaultLFileStoragePath, Options.FileStoragePath)
 	assert.Equal(t, ``, Options.DatabaseDsn)
+	assert.Equal(t, DefaultLSignatureKey, Options.SignatureKey)
 }
 
 func TestLoadConfigFromFlagsSuccess(t *testing.T) {
@@ -24,6 +25,7 @@ func TestLoadConfigFromFlagsSuccess(t *testing.T) {
 	os.Args = append(os.Args, `-l=log_level_test_value`)
 	os.Args = append(os.Args, `-f=file_storage_path_test_value`)
 	os.Args = append(os.Args, `-d=database_dsn_test_value`)
+	os.Args = append(os.Args, `-k=signature_key_test_value`)
 
 	Load()
 
@@ -32,6 +34,7 @@ func TestLoadConfigFromFlagsSuccess(t *testing.T) {
 	assert.Equal(t, `log_level_test_value`, Options.LogLevel)
 	assert.Equal(t, `file_storage_path_test_value`, Options.FileStoragePath)
 	assert.Equal(t, `database_dsn_test_value`, Options.DatabaseDsn)
+	assert.Equal(t, `signature_key_test_value`, Options.SignatureKey)
 }
 
 func TestLoadConfigFromEnvSuccess(t *testing.T) {
@@ -51,6 +54,9 @@ func TestLoadConfigFromEnvSuccess(t *testing.T) {
 	err = os.Setenv(envDatabaseDsn, `database_dsn_test_value`)
 	assert.NoError(t, err)
 
+	err = os.Setenv(envSignatureKey, `signature_key_test_value`)
+	assert.NoError(t, err)
+
 	Load()
 
 	assert.Equal(t, `addr_test_value`, Options.Addr)
@@ -58,6 +64,7 @@ func TestLoadConfigFromEnvSuccess(t *testing.T) {
 	assert.Equal(t, `log_level_test_value`, Options.LogLevel)
 	assert.Equal(t, `file_storage_path_test_value`, Options.FileStoragePath)
 	assert.Equal(t, `database_dsn_test_value`, Options.DatabaseDsn)
+	assert.Equal(t, `signature_key_test_value`, Options.SignatureKey)
 }
 
 func TestLoadConfigPrioritySuccess(t *testing.T) {
@@ -67,6 +74,7 @@ func TestLoadConfigPrioritySuccess(t *testing.T) {
 	os.Args = append(os.Args, `-l=log_level_test_value_from_flags`)
 	os.Args = append(os.Args, `-f=file_storage_path_test_value_from_flags`)
 	os.Args = append(os.Args, `-d=database_dsn_test_value_from_flags`)
+	os.Args = append(os.Args, `-k=signature_key_test_value_from_flags`)
 
 	err := os.Setenv(envAddr, `addr_test_value`)
 	assert.NoError(t, err)
@@ -83,6 +91,9 @@ func TestLoadConfigPrioritySuccess(t *testing.T) {
 	err = os.Setenv(envDatabaseDsn, `database_dsn_test_value`)
 	assert.NoError(t, err)
 
+	err = os.Setenv(envSignatureKey, `signature_key_test_value`)
+	assert.NoError(t, err)
+
 	Load()
 
 	assert.Equal(t, `addr_test_value`, Options.Addr)
@@ -90,4 +101,5 @@ func TestLoadConfigPrioritySuccess(t *testing.T) {
 	assert.Equal(t, `log_level_test_value`, Options.LogLevel)
 	assert.Equal(t, `file_storage_path_test_value`, Options.FileStoragePath)
 	assert.Equal(t, `database_dsn_test_value`, Options.DatabaseDsn)
+	assert.Equal(t, `signature_key_test_value`, Options.SignatureKey)
 }
