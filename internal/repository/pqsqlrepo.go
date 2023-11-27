@@ -177,6 +177,7 @@ func (pg *Postgres) GetAll(ctx context.Context, user *userauth.User) (list []His
 	historyList := make([]HistoryEl, 0)
 	for rows.Next() {
 		var el HistoryEl
+
 		err = rows.Scan(&el.ShortURL, &el.OriginalURL)
 		if err != nil {
 			return nil, errors.New(ErrNotFound)
