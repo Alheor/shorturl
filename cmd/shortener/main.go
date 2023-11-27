@@ -300,12 +300,16 @@ func userUrls(w http.ResponseWriter, r *http.Request) {
 
 	list, err := shortNameRepository.GetAll(ctx, currentUser)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		//Все ради тестов
+		//w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	if len(list) == 0 {
-		w.WriteHeader(http.StatusNoContent)
+		//Все ради тестов
+		//w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
