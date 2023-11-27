@@ -5,7 +5,9 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/userauth"
+	"strings"
 	"sync"
 )
 
@@ -176,8 +178,10 @@ func (snm *ShortNameMap) GetAll(ctx context.Context, user *userauth.User) (list 
 	}
 
 	historyList := make([]HistoryEl, 0, len(userURLList))
-	for shortUrl, originValue := range userURLList {
-		historyList = append(historyList, HistoryEl{OriginalURL: originValue, ShortURL: shortUrl})
+	for short, originValue := range userURLList {
+
+		short = strings.TrimRight(config.Options.BaseHost, `/`) + `/` + short
+		historyList = append(historyList, HistoryEl{OriginalURL: originValue, ShortURL: short})
 	}
 
 	return historyList, nil

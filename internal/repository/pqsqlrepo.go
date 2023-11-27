@@ -182,6 +182,7 @@ func (pg *Postgres) GetAll(ctx context.Context, user *userauth.User) (list []His
 			return nil, errors.New(ErrNotFound)
 		}
 
+		el.ShortURL = strings.TrimRight(config.Options.BaseHost, `/`) + `/` + el.ShortURL
 		historyList = append(historyList, el)
 	}
 

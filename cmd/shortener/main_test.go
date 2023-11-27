@@ -706,8 +706,9 @@ func TestAddAndGetURLForUserSuccess(t *testing.T) {
 
 	shortName := randomShortName.Generate()
 	_ = shortNameRepository.Add(ctx, user, shortName, targetURL)
+	short := strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate()
 
-	result := `[{"original_url":"https://practicum.yandex.ru/","short_url":"mockStr"}]`
+	result := `[{"original_url":"https://practicum.yandex.ru/","short_url":"` + short + `"}]`
 
 	tests := []test{
 		{

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -137,8 +138,10 @@ func TestGetAllMapSuccess(t *testing.T) {
 
 	for i, testEl := range testData {
 		exists := false
+		short := strings.TrimRight(config.Options.BaseHost, `/`) + `/` + i
+
 		for _, historyEl := range historyList {
-			if i == historyEl.ShortURL && testEl == historyEl.OriginalURL {
+			if short == historyEl.ShortURL && testEl == historyEl.OriginalURL {
 				exists = true
 			}
 		}
@@ -340,8 +343,10 @@ func TestGetAllFileSuccess(t *testing.T) {
 
 	for i, testEl := range testData {
 		exists := false
+		short := strings.TrimRight(config.Options.BaseHost, `/`) + `/` + i
+
 		for _, historyEl := range historyList {
-			if i == historyEl.ShortURL && testEl == historyEl.OriginalURL {
+			if short == historyEl.ShortURL && testEl == historyEl.OriginalURL {
 				exists = true
 			}
 		}
