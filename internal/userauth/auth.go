@@ -11,8 +11,10 @@ import (
 	"net/http"
 )
 
+type contextKey string
+
 const CookiesName = `authKey`
-const ContextValueName = `xAuthUser`
+const ContextValueName contextKey = `xAuthUser`
 
 type User struct {
 	ID string
@@ -35,13 +37,11 @@ func (e *EmptyUserIDErr) Error() string {
 func GetUserFromContext(ctx context.Context) *User {
 
 	authUser := ctx.Value(ContextValueName)
-
-	switch authUser.(type) {
-	default:
-		return nil
-	case *User:
+	if authUser != nil {
 		return authUser.(*User)
 	}
+
+	return nil
 }
 
 func WithUserAuth(f http.HandlerFunc) http.HandlerFunc {
@@ -108,7 +108,7 @@ func parseCookie(cookie *http.Cookie) (userCookie *UserCookie, error error) {
 }
 
 func getUserCookie() *UserCookie {
-	userID := generateUserUuid()
+	userID := generateUserUUID()
 	return &UserCookie{user: User{userID}, sign: GetSignature(userID)}
 }
 
@@ -120,6 +120,6 @@ func GetSignature(uuid string) []byte {
 	return h.Sum(nil)
 }
 
-func generateUserUuid() string {
+func generateUserUUID() string {
 	return uuid.New().String()
 }
