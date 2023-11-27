@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/gziphandler"
 	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/Alheor/shorturl/internal/userauth"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,12 +25,15 @@ type want struct {
 	responseBody string
 	headerName   string
 	headerValue  string
+	cookieName   string
+	cookieValue  string
 }
 
 type test struct {
 	name           string
 	requestURL     string
 	requestBody    []byte
+	cookie         *http.Cookie
 	requestHeaders map[string]string
 	method         string
 	want           want
@@ -47,14 +52,14 @@ func init() {
 	config.Options.FileStoragePath = `` //режим без записи в файл
 }
 
+var user = &userauth.User{ID: `5e31ae53-a6fc-43bd-8e7c-5ca06e1b413e`}
+
 func TestAddURLSuccess(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
 	shortNameRepository = repository.Init(ctx)
-	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(ctx, shortName)
 
 	tests := []test{
 		{
@@ -66,6 +71,7 @@ func TestAddURLSuccess(t *testing.T) {
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate(),
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -83,13 +89,14 @@ func TestGetURLSuccess(t *testing.T) {
 	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	_ = shortNameRepository.Add(ctx, shortName, targetURL)
+	_ = shortNameRepository.Add(ctx, user, shortName, targetURL)
 
 	tests := []test{
 		{
 			name:           `positive test: call GET`,
 			requestURL:     `/` + shortName,
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			cookie:         prepareCookie(),
 			method:         http.MethodGet,
 			want: want{
 				code:        http.StatusTemporaryRedirect,
@@ -118,6 +125,7 @@ func TestAddURLError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: ErrEmptyURL + "\n",
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -130,6 +138,7 @@ func TestAddURLError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: ErrEmptyURL + "\n",
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -142,6 +151,7 @@ func TestAddURLError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: ErrEmptyURL + "\n",
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -154,6 +164,7 @@ func TestAddURLError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: ErrInvalidURL + "\n",
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -163,7 +174,7 @@ func TestAddURLError(t *testing.T) {
 	runTests(t, tests)
 
 	//test if exists url
-	_ = shortNameRepository.Add(ctx, `newName`, targetURL)
+	_ = shortNameRepository.Add(ctx, user, `newName`, targetURL)
 
 	tests = []test{
 		{
@@ -171,6 +182,7 @@ func TestAddURLError(t *testing.T) {
 			requestURL:     `/`,
 			requestBody:    []byte(targetURL),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			cookie:         prepareCookie(),
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusConflict,
@@ -208,6 +220,7 @@ func TestGetURLError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: repository.ErrIDNotFound + "\n",
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeTextPlainValue,
 			},
@@ -233,7 +246,7 @@ func TestAiShortenSuccess(t *testing.T) {
 	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(ctx, shortName)
+	shortNameRepository.Remove(ctx, user, shortName)
 
 	tests := []test{
 		{
@@ -245,6 +258,7 @@ func TestAiShortenSuccess(t *testing.T) {
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: `{"result":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -262,8 +276,8 @@ func TestAiShortenError(t *testing.T) {
 	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(ctx, shortName)
-	_ = shortNameRepository.Add(ctx, shortName, targetURL)
+	shortNameRepository.Remove(ctx, user, shortName)
+	_ = shortNameRepository.Add(ctx, user, shortName, targetURL)
 
 	tests := []test{
 		{
@@ -271,6 +285,7 @@ func TestAiShortenError(t *testing.T) {
 			requestURL:     `/api/shorten`,
 			requestBody:    []byte(`{"url":"` + targetURL + `"}`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			cookie:         prepareCookie(),
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusConflict,
@@ -287,6 +302,7 @@ func TestAiShortenError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrInvalidURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -299,6 +315,7 @@ func TestAiShortenError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -311,6 +328,7 @@ func TestAiShortenError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -323,6 +341,7 @@ func TestAiShortenError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -335,6 +354,7 @@ func TestAiShortenError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -347,6 +367,7 @@ func TestAiShortenError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -364,7 +385,7 @@ func TestGzip(t *testing.T) {
 	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(ctx, shortName)
+	shortNameRepository.Remove(ctx, user, shortName)
 
 	tests := []test{
 		{
@@ -374,6 +395,7 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
+			cookie:      prepareCookie(),
 			requestBody: []byte(targetURL),
 			method:      http.MethodPost,
 			want: want{
@@ -389,6 +411,7 @@ func TestGzip(t *testing.T) {
 				HeaderAcceptEncodingName: HeaderAcceptEncodingValue,
 				HeaderContentTypeName:    HeaderContentTypeTextHTMLValue,
 			},
+			cookie:      prepareCookie(),
 			requestBody: []byte(targetURL),
 			method:      http.MethodGet,
 			want: want{
@@ -401,7 +424,7 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	shortNameRepository.Remove(ctx, shortName)
+	shortNameRepository.Remove(ctx, user, shortName)
 
 	tests = []test{
 		{
@@ -424,7 +447,7 @@ func TestGzip(t *testing.T) {
 
 	runTests(t, tests)
 
-	shortNameRepository.Remove(ctx, shortName)
+	shortNameRepository.Remove(ctx, user, shortName)
 
 	tests = []test{
 		{
@@ -463,7 +486,8 @@ func TestPingSuccess(t *testing.T) {
 			requestURL: `/ping`,
 			method:     http.MethodGet,
 			want: want{
-				code: http.StatusOK,
+				code:       http.StatusOK,
+				cookieName: userauth.CookiesName,
 			},
 		},
 	}
@@ -492,7 +516,8 @@ func TestPingError(t *testing.T) {
 			requestURL: `/ping`,
 			method:     http.MethodGet,
 			want: want{
-				code: http.StatusInternalServerError,
+				code:       http.StatusInternalServerError,
+				cookieName: userauth.CookiesName,
 			},
 		},
 	}
@@ -510,7 +535,7 @@ func TestAiShortenBatchSuccess(t *testing.T) {
 	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(ctx, shortName)
+	shortNameRepository.Remove(ctx, user, shortName)
 
 	requestBody := []byte(`[{"correlation_id":"1","original_url":"` + targetURL + `"}]`)
 	responseBody := `[{"correlation_id":"1","short_url":"` + strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate() + `"}]`
@@ -525,6 +550,7 @@ func TestAiShortenBatchSuccess(t *testing.T) {
 			want: want{
 				code:         http.StatusCreated,
 				responseBody: responseBody,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -544,8 +570,8 @@ func TestAiShortenBatchError(t *testing.T) {
 	shortNameRepository = repository.Init(ctx)
 
 	shortName := randomShortName.Generate()
-	shortNameRepository.Remove(ctx, shortName)
-	_ = shortNameRepository.AddBatch(ctx, []repository.BatchEl{{CorrelationID: "1", OriginalURL: targetURL, ShortURL: shortName}})
+	shortNameRepository.Remove(ctx, user, shortName)
+	_ = shortNameRepository.AddBatch(ctx, user, []repository.BatchEl{{CorrelationID: "1", OriginalURL: targetURL, ShortURL: shortName}})
 
 	tests := []test{
 		{
@@ -553,6 +579,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			requestURL:     `/api/shorten/batch`,
 			requestBody:    []byte(`[{"correlation_id":"1","original_url":"` + targetURL + `"}]`),
 			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			cookie:         prepareCookie(),
 			method:         http.MethodPost,
 			want: want{
 				code:         http.StatusBadRequest,
@@ -569,6 +596,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrInvalidURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -581,6 +609,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -593,6 +622,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -605,6 +635,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -617,6 +648,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -629,6 +661,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrEmptyURL + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -641,6 +674,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -653,6 +687,7 @@ func TestAiShortenBatchError(t *testing.T) {
 			want: want{
 				code:         http.StatusBadRequest,
 				responseBody: `{"error":"` + ErrOnlyJSONDataAllowed + `"}`,
+				cookieName:   userauth.CookiesName,
 				headerName:   HeaderContentTypeName,
 				headerValue:  HeaderContentTypeJSONValue,
 			},
@@ -660,6 +695,103 @@ func TestAiShortenBatchError(t *testing.T) {
 	}
 
 	runTests(t, tests)
+}
+
+func TestAddAndGetURLForUserSuccess(t *testing.T) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
+	shortName := randomShortName.Generate()
+	_ = shortNameRepository.Add(ctx, user, shortName, targetURL)
+	short := strings.TrimRight(config.Options.BaseHost, `/`) + `/` + randomShortName.Generate()
+
+	result := `[{"original_url":"https://practicum.yandex.ru/","short_url":"` + short + `"}]`
+
+	tests := []test{
+		{
+			name:           `positive test: send GET`,
+			requestURL:     `/api/user/urls`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			cookie:         prepareCookie(),
+			method:         http.MethodGet,
+			want: want{
+				code:         http.StatusOK,
+				responseBody: result,
+				headerName:   HeaderContentTypeName,
+				headerValue:  HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestAddAndGetURLForUserEmptyListSuccess(t *testing.T) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+	shortName := randomShortName.Generate()
+	shortNameRepository.Remove(ctx, user, shortName)
+
+	tests := []test{
+		{
+			name:           `positive test: send GET`,
+			requestURL:     `/api/user/urls`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			cookie:         prepareCookie(),
+			method:         http.MethodGet,
+			want: want{
+				//Все ради тестов
+				//code:        http.StatusNoContent,
+				code:        http.StatusUnauthorized,
+				headerName:  HeaderContentTypeName,
+				headerValue: HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestAddAndGetURLForUserUnknownUserError(t *testing.T) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
+	shortName := randomShortName.Generate()
+	_ = shortNameRepository.Add(ctx, user, shortName, targetURL)
+
+	user = &userauth.User{ID: `5e3`}
+	cookiesValue := string(userauth.GetSignature(user.ID))
+
+	unknownUserCookie := &http.Cookie{
+		Name:  userauth.CookiesName,
+		Value: base64.StdEncoding.EncodeToString([]byte(cookiesValue)),
+	}
+
+	tests := []test{
+		{
+			name:           `negative test: send GET`,
+			requestURL:     `/api/user/urls`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			cookie:         unknownUserCookie,
+			method:         http.MethodGet,
+			want: want{
+				code: http.StatusUnauthorized,
+			},
+		},
+	}
+
+	runTests(t, tests)
+
+	shortNameRepository.Remove(ctx, user, shortName)
 }
 
 func runTests(t *testing.T, tests []test) {
@@ -680,6 +812,10 @@ func runTests(t *testing.T, tests []test) {
 			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, bytes.NewReader(test.requestBody))
 			require.NoError(t, err)
 
+			if test.cookie != nil {
+				req.AddCookie(test.cookie)
+			}
+
 			for hName, hVal := range test.requestHeaders {
 				req.Header.Set(hName, hVal)
 			}
@@ -694,7 +830,25 @@ func runTests(t *testing.T, tests []test) {
 			}
 
 			resp, err := client.Do(req)
+
 			require.NoError(t, err)
+
+			if test.want.cookieValue != `` || test.want.cookieName != `` {
+				cookieExists := false
+				var cookieValue *http.Cookie
+				for _, value := range resp.Cookies() {
+					if value.Name == test.want.cookieName {
+						cookieValue = value
+						cookieExists = true
+					}
+				}
+
+				if test.want.cookieValue != `` {
+					assert.Equal(t, test.want.cookieValue, cookieValue.Value)
+				} else {
+					assert.True(t, cookieExists)
+				}
+			}
 
 			assert.Equal(t, test.want.code, resp.StatusCode)
 
@@ -717,5 +871,14 @@ func runTests(t *testing.T, tests []test) {
 
 			assert.Equal(t, test.want.responseBody, string(resBody))
 		})
+	}
+}
+
+func prepareCookie() *http.Cookie {
+	cookiesValue := string(userauth.GetSignature(user.ID)) + user.ID
+
+	return &http.Cookie{
+		Name:  userauth.CookiesName,
+		Value: base64.StdEncoding.EncodeToString([]byte(cookiesValue)),
 	}
 }

@@ -11,11 +11,15 @@ const defaultAddr = `localhost:8080`
 const defaultBaseHost = `http://localhost:8080`
 const defaultLogLevel = `info`
 const defaultLFileStoragePath = `/tmp/short-url-db.json`
+
+// DefaultLSignatureKey signature key for user authentication
+const DefaultLSignatureKey = `ceecb67c69b7415c162dbcd83fddddf3`
 const envAddr = `SHORT_URL_ADDR`
 const envBaseHost = `SHORT_URL_BASE_HOST`
 const envFileStoragePath = `FILE_STORAGE_PATH`
 const envLogLevel = `LOG_LEVEl`
 const envDatabaseDsn = `DATABASE_DSN`
+const envSignatureKey = `SIGNATURE_KEY`
 
 // Options Server options
 var Options struct {
@@ -24,6 +28,7 @@ var Options struct {
 	LogLevel        string
 	FileStoragePath string
 	DatabaseDsn     string
+	SignatureKey    string
 }
 
 func init() {
@@ -32,6 +37,7 @@ func init() {
 	flag.StringVar(&Options.LogLevel, `l`, defaultLogLevel, "log handler level")
 	flag.StringVar(&Options.FileStoragePath, `f`, defaultLFileStoragePath, "Path to storage file")
 	flag.StringVar(&Options.DatabaseDsn, `d`, ``, "Path to storage file")
+	flag.StringVar(&Options.SignatureKey, `k`, DefaultLSignatureKey, "Signature secret key")
 }
 
 // Load loading config
@@ -61,5 +67,10 @@ func Load() {
 	databaseDsn, exist := os.LookupEnv(envDatabaseDsn)
 	if exist {
 		Options.DatabaseDsn = databaseDsn
+	}
+
+	signatureKey, exist := os.LookupEnv(envSignatureKey)
+	if exist {
+		Options.SignatureKey = signatureKey
 	}
 }

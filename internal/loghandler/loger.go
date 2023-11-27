@@ -2,6 +2,7 @@ package loghandler
 
 import (
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/userauth"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -63,5 +64,10 @@ func (l *Logger) WithLogging(f http.HandlerFunc) http.HandlerFunc {
 			zap.Int("status", lw.ResponseInfo.statusCode),
 			zap.Int("size", lw.ResponseInfo.size),
 		)
+
+		currentUser := userauth.GetUserFromContext(r.Context())
+		if currentUser != nil {
+			l.Log.Info(`user: ` + currentUser.ID)
+		}
 	}
 }
