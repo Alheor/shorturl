@@ -91,14 +91,14 @@ func (pg *Postgres) Get(ctx context.Context, user *userauth.User, id string) (va
 	//Костыль для прохождения тестов
 	if user == nil {
 		row = pg.Conn.QueryRow(ctx,
-			"SELECT original_url FROM "+tableName+" WHERE user_id = @userId AND short_key=@shortKey",
-			pgx.NamedArgs{"userId": user.ID, "shortKey": id},
+			"SELECT original_url FROM "+tableName+" WHERE short_key=@shortKey",
+			pgx.NamedArgs{"shortKey": id},
 		)
 
 	} else {
 		row = pg.Conn.QueryRow(ctx,
-			"SELECT original_url FROM "+tableName+" WHERE short_key=@shortKey",
-			pgx.NamedArgs{"shortKey": id},
+			"SELECT original_url FROM "+tableName+" WHERE user_id = @userId AND short_key=@shortKey",
+			pgx.NamedArgs{"userId": user.ID, "shortKey": id},
 		)
 	}
 
