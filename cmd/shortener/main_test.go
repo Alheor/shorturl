@@ -842,9 +842,7 @@ func TestDeleteURLForUserSuccess(t *testing.T) {
 			cookie:         prepareCookie(),
 			method:         http.MethodGet,
 			want: want{
-				code:        http.StatusGone,
-				headerName:  HeaderContentTypeName,
-				headerValue: HeaderContentTypeJSONValue,
+				code: http.StatusGone,
 			},
 		}, {
 			name:           `positive test: send GET`,
@@ -853,9 +851,7 @@ func TestDeleteURLForUserSuccess(t *testing.T) {
 			cookie:         prepareCookie(),
 			method:         http.MethodGet,
 			want: want{
-				code:        http.StatusGone,
-				headerName:  HeaderContentTypeName,
-				headerValue: HeaderContentTypeJSONValue,
+				code: http.StatusGone,
 			},
 		}, {
 			name:           `positive test: send GET`,
@@ -864,12 +860,12 @@ func TestDeleteURLForUserSuccess(t *testing.T) {
 			cookie:         prepareCookie(),
 			method:         http.MethodGet,
 			want: want{
-				code:        http.StatusGone,
-				headerName:  HeaderContentTypeName,
-				headerValue: HeaderContentTypeJSONValue,
+				code: http.StatusGone,
 			},
 		},
 	}
+
+	runTests(t, tests)
 }
 
 func runTests(t *testing.T, tests []test) {

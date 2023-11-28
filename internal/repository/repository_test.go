@@ -652,7 +652,7 @@ func TestDeleteElDBSuccess(t *testing.T) {
 
 	var deletingElems []string
 
-	for id, _ := range testData {
+	for id := range testData {
 		deletingElems = append(deletingElems, id)
 	}
 
