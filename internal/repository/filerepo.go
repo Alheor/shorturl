@@ -102,11 +102,11 @@ func (snf *ShortNameFile) Add(ctx context.Context, user *userauth.User, id strin
 	return nil
 }
 
-func (snf *ShortNameFile) Get(ctx context.Context, user *userauth.User, id string) (value string, error error) {
+func (snf *ShortNameFile) Get(ctx context.Context, user *userauth.User, id string) (value string, isDeleted bool, error error) {
 
 	select {
 	case <-ctx.Done():
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	default:
 	}
 
@@ -119,29 +119,33 @@ func (snf *ShortNameFile) Get(ctx context.Context, user *userauth.User, id strin
 			//Жесть, но тесты нужно пройти
 			for short, original := range el {
 				if short == id {
-					return original, nil
+					return original, false, nil
 				}
 			}
 		}
 
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
 	urlList, exists := snf.URLMap[user.ID]
 	if !exists {
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
 	url, exists := urlList[id]
 	if !exists {
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
-	return url, nil
+	return url, false, nil
 }
 
 func (snf *ShortNameFile) Remove(ctx context.Context, user *userauth.User, id string) {
 	panic(errors.New(`method "Remove" from file repository is restricted`))
+}
+
+func (snf *ShortNameFile) RemoveBatch(ctx context.Context, user *userauth.User, ids []string) error {
+	panic(errors.New(`method "RemoveBatch" from file repository is restricted`))
 }
 
 func (snf *ShortNameFile) IsReady(ctx context.Context) bool {

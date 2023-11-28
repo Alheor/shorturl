@@ -147,9 +147,14 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
 	defer cancel()
 
-	location, err := shortNameRepository.Get(ctx, nil, shortName)
+	location, isDeleted, err := shortNameRepository.Get(ctx, nil, shortName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if isDeleted {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
 
@@ -325,6 +330,55 @@ func userUrls(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func userDeleteUrls(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set(HeaderContentTypeName, HeaderContentTypeJSONValue)
+
+	currentUser := userauth.GetUserFromContext(r.Context())
+	if currentUser == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var response APIResponse
+
+	contentType := r.Header.Get(HeaderContentTypeName)
+	if contentType != HeaderContentTypeJSONValue && contentType != HeaderContentTypeXgzipValue {
+		response = APIResponse{Error: ErrOnlyJSONDataAllowed}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
+
+		return
+	}
+
+	reqBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusInternalServerError)
+
+		return
+	}
+
+	var deletingElems []string
+
+	err = json.Unmarshal(reqBody, &deletingElems)
+	if err != nil {
+		response = APIResponse{Error: ErrOnlyJSONDataAllowed}
+		sendAPIResponse(w, &response, http.StatusBadRequest)
+
+		return
+	}
+
+	err = shortNameRepository.RemoveBatch(r.Context(), currentUser, deletingElems)
+	if err != nil {
+		response = APIResponse{Error: err.Error()}
+		sendAPIResponse(w, &response, http.StatusInternalServerError)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func sendAPIResponse(w http.ResponseWriter, apiResponse *APIResponse, statusCode int) {
 
 	if statusCode == http.StatusInternalServerError {
@@ -450,6 +504,7 @@ func getRouter() chi.Router {
 	r.Get("/{id}", middlewareConveyor(getURL, gziphandler.WithGzip, logger.WithLogging, userauth.WithUserAuth))
 	r.Get("/ping", middlewareConveyor(ping, logger.WithLogging, userauth.WithUserAuth))
 	r.Get("/api/user/urls", middlewareConveyor(userUrls, gziphandler.WithGzip, logger.WithLogging, userauth.WithUserAuth))
+	r.Delete("/api/user/urls", middlewareConveyor(userDeleteUrls, gziphandler.WithGzip, logger.WithLogging, userauth.WithUserAuth))
 
 	return r
 }

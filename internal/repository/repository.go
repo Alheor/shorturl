@@ -50,9 +50,10 @@ func NewUniqueError(shortKey string, err error) error {
 type Repository interface {
 	Add(ctx context.Context, ser *userauth.User, id string, value string) error
 	AddBatch(ctx context.Context, user *userauth.User, in []BatchEl) error
-	Get(ctx context.Context, user *userauth.User, id string) (value string, error error)
+	Get(ctx context.Context, user *userauth.User, id string) (value string, isDeleted bool, error error)
 	GetAll(ctx context.Context, user *userauth.User) (list []HistoryEl, error error)
 	Remove(ctx context.Context, user *userauth.User, id string)
+	RemoveBatch(ctx context.Context, user *userauth.User, ids []string) error
 	Init(ctx context.Context) error
 	IsReady(ctx context.Context) bool
 }

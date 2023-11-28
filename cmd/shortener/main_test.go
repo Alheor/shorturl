@@ -794,6 +794,84 @@ func TestAddAndGetURLForUserUnknownUserError(t *testing.T) {
 	shortNameRepository.Remove(ctx, user, shortName)
 }
 
+func TestDeleteURLForUserSuccess(t *testing.T) {
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	shortNameRepository = repository.Init(ctx)
+
+	shortNameRepository.Remove(ctx, user, `6qxTVvsy`)
+	shortNameRepository.Remove(ctx, user, `RTfd56hn`)
+	shortNameRepository.Remove(ctx, user, `Jlfd67ds`)
+
+	_ = shortNameRepository.Add(ctx, user, `6qxTVvsy`, targetURL+`1`)
+	_ = shortNameRepository.Add(ctx, user, `RTfd56hn`, targetURL+`2`)
+	_ = shortNameRepository.Add(ctx, user, `Jlfd67ds`, targetURL+`3`)
+
+	requestBody := []byte(`["6qxTVvsy", "RTfd56hn", "Jlfd67ds"] `)
+
+	tests := []test{
+		{
+			name:           `positive test: send DELETE`,
+			requestURL:     `/api/user/urls`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeJSONValue},
+			requestBody:    requestBody,
+			cookie:         prepareCookie(),
+			method:         http.MethodDelete,
+			want: want{
+				code:        http.StatusAccepted,
+				headerName:  HeaderContentTypeName,
+				headerValue: HeaderContentTypeJSONValue,
+			},
+		},
+	}
+
+	runTests(t, tests)
+
+	tests = []test{
+		{
+			name:           `positive test: send GET`,
+			requestURL:     `/6qxTVvsy`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			cookie:         prepareCookie(),
+			method:         http.MethodGet,
+			want: want{
+				code:        http.StatusGone,
+				headerName:  HeaderContentTypeName,
+				headerValue: HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `positive test: send GET`,
+			requestURL:     `/RTfd56hn`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			cookie:         prepareCookie(),
+			method:         http.MethodGet,
+			want: want{
+				code:        http.StatusGone,
+				headerName:  HeaderContentTypeName,
+				headerValue: HeaderContentTypeJSONValue,
+			},
+		}, {
+			name:           `positive test: send GET`,
+			requestURL:     `/Jlfd67ds`,
+			requestHeaders: map[string]string{HeaderContentTypeName: HeaderContentTypeTextPlainValue},
+			cookie:         prepareCookie(),
+			method:         http.MethodGet,
+			want: want{
+				code:        http.StatusGone,
+				headerName:  HeaderContentTypeName,
+				headerValue: HeaderContentTypeJSONValue,
+			},
+		},
+	}
+}
+
 func runTests(t *testing.T, tests []test) {
 
 	ts := httptest.NewServer(getRouter())

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -83,31 +84,32 @@ func (pg *Postgres) Add(ctx context.Context, user *userauth.User, id string, val
 	return err
 }
 
-func (pg *Postgres) Get(ctx context.Context, user *userauth.User, id string) (value string, error error) {
+func (pg *Postgres) Get(ctx context.Context, user *userauth.User, id string) (value string, isDeleted bool, error error) {
 
 	var originalURL string
+	var isDeletedURL bool
 	var row pgx.Row
 
 	//Костыль для прохождения тестов
 	if user == nil {
 		row = pg.Conn.QueryRow(ctx,
-			"SELECT original_url FROM "+tableName+" WHERE short_key=@shortKey",
+			"SELECT original_url, is_deleted FROM "+tableName+" WHERE short_key=@shortKey",
 			pgx.NamedArgs{"shortKey": id},
 		)
 
 	} else {
 		row = pg.Conn.QueryRow(ctx,
-			"SELECT original_url FROM "+tableName+" WHERE user_id = @userId AND short_key=@shortKey",
+			"SELECT original_url, is_deleted FROM "+tableName+" WHERE user_id = @userId AND short_key=@shortKey",
 			pgx.NamedArgs{"userId": user.ID, "shortKey": id},
 		)
 	}
 
-	err := row.Scan(&originalURL)
+	err := row.Scan(&originalURL, &isDeletedURL)
 	if err != nil {
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
-	return originalURL, nil
+	return originalURL, isDeletedURL, nil
 }
 
 func (pg *Postgres) Remove(ctx context.Context, user *userauth.User, id string) {
@@ -120,6 +122,27 @@ func (pg *Postgres) Remove(ctx context.Context, user *userauth.User, id string) 
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (pg *Postgres) RemoveBatch(ctx context.Context, user *userauth.User, ids []string) error {
+
+	regex := regexp.MustCompile(`\W`)
+	stringIds := ``
+
+	for _, id := range ids {
+		stringIds += `'` + regex.ReplaceAllString(id, ``) + `',`
+	}
+
+	_, err := pg.Conn.Exec(ctx,
+		"UPDATE "+tableName+" SET is_deleted = true WHERE user_id = @userId AND short_key IN ("+strings.TrimSuffix(stringIds, ",")+")",
+		pgx.NamedArgs{"userId": user.ID},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pg *Postgres) IsReady(ctx context.Context) bool {
@@ -202,11 +225,12 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 		    id SERIAL NOT NULL PRIMARY KEY,
 		    user_id varchar(36) NOT NULL,
 		    short_key varchar(`+strconv.Itoa(randomname.ShortNameLength)+`) NOT NULL,
-		    original_url text NOT NULL
+		    original_url text NOT NULL,
+			is_deleted boolean NOT NULL DEFAULT false
 		);
 
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_short_key_unique_idx ON `+tableName+` (user_id, short_key);
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_original_url_unique_idx ON `+tableName+` (user_id, original_url);
+		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_short_key_is_deleted_unique_idx ON `+tableName+` (user_id, short_key, is_deleted);
+		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_original_url_is_deleted_unique_idx ON `+tableName+` (user_id, original_url, is_deleted);
 	`)
 
 	if err != nil {

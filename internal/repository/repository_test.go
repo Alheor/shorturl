@@ -30,7 +30,7 @@ func TestAddURLAndGetURLMapSuccess(t *testing.T) {
 	err := r.Add(ctx, user, shortName, targetURL)
 	require.NoError(t, err)
 
-	url, err := r.Get(ctx, user, shortName)
+	url, _, err := r.Get(ctx, user, shortName)
 	require.NoError(t, err)
 
 	assert.Equal(t, targetURL, url)
@@ -74,7 +74,7 @@ func TestGetURLMapError(t *testing.T) {
 	defer cancel()
 	r := Init(ctx)
 
-	_, err := r.Get(ctx, user, shortName)
+	_, _, err := r.Get(ctx, user, shortName)
 	require.Error(t, err)
 }
 
@@ -109,7 +109,7 @@ func TestAddBatchMapSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	for index, val := range testData {
-		URL, err := r.Get(ctx, user, index)
+		URL, _, err := r.Get(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -167,7 +167,7 @@ func TestAddURLAndGetURLFileSuccess(t *testing.T) {
 	}
 
 	for index, val := range testData {
-		URL, err := r.Get(ctx, user, index)
+		URL, _, err := r.Get(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -222,7 +222,7 @@ func TestGetURLFileError(t *testing.T) {
 
 	r := Init(ctx)
 
-	_, err := r.Get(ctx, user, shortName)
+	_, _, err := r.Get(ctx, user, shortName)
 	require.Error(t, err)
 }
 
@@ -269,7 +269,7 @@ func TestLoadFromFileSuccess(t *testing.T) {
 	r = Init(ctx)
 
 	for index, val := range testData {
-		URL, err := r.Get(ctx, user, index)
+		URL, _, err := r.Get(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -312,7 +312,7 @@ func TestAddBatchFileSuccess(t *testing.T) {
 	r = Init(ctx)
 
 	for index, val := range testData {
-		URL, err := r.Get(ctx, user, index)
+		URL, _, err := r.Get(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -405,7 +405,7 @@ func TestAddURLAndGetURLDBSuccess(t *testing.T) {
 	err = r.Add(ctx, user, shortName, targetURL)
 	require.NoError(t, err)
 
-	url, err := r.Get(ctx, user, shortName)
+	url, _, err := r.Get(ctx, user, shortName)
 	require.NoError(t, err)
 
 	assert.Equal(t, targetURL, url)
@@ -428,7 +428,7 @@ func TestGetURLNotExistDBSuccess(t *testing.T) {
 	err := prepareDB()
 	require.NoError(t, err)
 
-	url, err := r.Get(ctx, user, shortName)
+	url, _, err := r.Get(ctx, user, shortName)
 	require.Error(t, err)
 
 	assert.Equal(t, ``, url)
@@ -491,7 +491,7 @@ func TestRemoveURLDBSuccess(t *testing.T) {
 
 	r.Remove(ctx, user, shortName)
 
-	url, err := r.Get(ctx, user, shortName)
+	url, _, err := r.Get(ctx, user, shortName)
 	require.Error(t, err)
 
 	assert.Equal(t, ``, url)
@@ -545,7 +545,7 @@ func TestAddURLAndGetURLBatchDBSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	for index, val := range testData {
-		URL, err := r.Get(ctx, user, index)
+		URL, _, err := r.Get(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, URL)
 	}
@@ -620,6 +620,50 @@ func TestGetAllDBSuccess(t *testing.T) {
 		}
 
 		assert.True(t, exists)
+	}
+}
+
+func TestDeleteElDBSuccess(t *testing.T) {
+	config.Load()
+
+	//config.Options.DatabaseDsn = "host=localhost port=5432 user=app password=pass dbname=shortener_test sslmode=disable"
+
+	if config.Options.DatabaseDsn == `` {
+		t.Skip(`Run with database only`)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	r := Init(ctx)
+
+	err := prepareDB()
+	require.NoError(t, err)
+
+	testData := getTestData()
+
+	list := make([]BatchEl, 0, len(testData))
+	for i, v := range testData {
+		list = append(list, BatchEl{OriginalURL: v, ShortURL: i})
+	}
+
+	err = r.AddBatch(ctx, user, list)
+	require.NoError(t, err)
+
+	var deletingElems []string
+
+	for id, _ := range testData {
+		deletingElems = append(deletingElems, id)
+	}
+
+	err = r.RemoveBatch(ctx, user, deletingElems)
+	require.NoError(t, err)
+
+	for id, v := range testData {
+		url, isDeleted, err := r.Get(ctx, user, id)
+		require.NoError(t, err)
+		require.Equal(t, v, url)
+		require.True(t, isDeleted)
 	}
 }
 

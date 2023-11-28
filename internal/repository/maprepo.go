@@ -62,11 +62,11 @@ func (snm *ShortNameMap) Add(ctx context.Context, user *userauth.User, id string
 	return nil
 }
 
-func (snm *ShortNameMap) Get(ctx context.Context, user *userauth.User, id string) (value string, error error) {
+func (snm *ShortNameMap) Get(ctx context.Context, user *userauth.User, id string) (value string, isDeleted bool, error error) {
 
 	select {
 	case <-ctx.Done():
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	default:
 	}
 
@@ -79,25 +79,25 @@ func (snm *ShortNameMap) Get(ctx context.Context, user *userauth.User, id string
 			//Жесть, но тесты нужно пройти
 			for short, original := range el {
 				if short == id {
-					return original, nil
+					return original, false, nil
 				}
 			}
 		}
 
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
 	urlList, exists := snm.URLMap[user.ID]
 	if !exists {
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
 	url, exists := urlList[id]
 	if !exists {
-		return ``, errors.New(ErrIDNotFound)
+		return ``, false, errors.New(ErrIDNotFound)
 	}
 
-	return url, nil
+	return url, false, nil
 }
 
 func (snm *ShortNameMap) Remove(ctx context.Context, user *userauth.User, id string) {
@@ -112,6 +112,24 @@ func (snm *ShortNameMap) Remove(ctx context.Context, user *userauth.User, id str
 	defer snm.Unlock()
 
 	delete(snm.URLMap[user.ID], id)
+}
+
+func (snm *ShortNameMap) RemoveBatch(ctx context.Context, user *userauth.User, ids []string) error {
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+	}
+
+	snm.Lock()
+	defer snm.Unlock()
+
+	for _, id := range ids {
+		delete(snm.URLMap[user.ID], id)
+	}
+
+	return nil
 }
 
 func (snm *ShortNameMap) IsReady(ctx context.Context) bool {
