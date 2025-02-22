@@ -21,9 +21,9 @@ func Add(URL string) string {
 	}
 
 	//Уменьшит вероятность коллизии хэша
-	hash := urlhasher.Generate()
+	hash := urlhasher.ShortNameGenerator.Generate()
 	if _, exists := urlMap[hash]; !exists {
-		hash = urlhasher.Generate()
+		hash = urlhasher.ShortNameGenerator.Generate()
 	}
 
 	urlMap[hash] = URL

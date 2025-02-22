@@ -5,6 +5,7 @@ import (
 )
 
 const Addr = `localhost:8080`
+const Schema = `http://`
 
 // GetRouter Загрузка маршрутизации
 func GetRouter() *http.ServeMux {
