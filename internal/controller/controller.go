@@ -6,11 +6,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/repository"
 )
-
-const Addr = `localhost:8080`
-const Schema = `http://`
 
 // AddURL контроллер добавления URL
 func AddURL(resp http.ResponseWriter, req *http.Request) {
@@ -40,7 +38,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Add(`Content-Type`, `text/plain; charset=utf-8`)
 	resp.WriteHeader(http.StatusCreated)
 
-	_, err = resp.Write([]byte(Schema + Addr + `/` + shortName))
+	_, err = resp.Write([]byte(config.Options.BaseHost + `/` + shortName))
 	if err != nil {
 		panic(err)
 	}
@@ -61,6 +59,6 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resp.Header().Add(`Location`, *URL)
+	resp.Header().Set(`Location`, *URL)
 	resp.WriteHeader(http.StatusTemporaryRedirect)
 }

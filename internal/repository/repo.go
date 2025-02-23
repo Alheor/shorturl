@@ -22,7 +22,7 @@ func Add(URL string) string {
 
 	//Уменьшит вероятность коллизии хэша
 	hash := urlhasher.ShortNameGenerator.Generate()
-	if _, exists := urlMap[hash]; !exists {
+	if _, exists := urlMap[hash]; exists {
 		hash = urlhasher.ShortNameGenerator.Generate()
 	}
 

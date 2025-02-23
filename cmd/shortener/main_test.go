@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/controller"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
@@ -29,6 +30,7 @@ func (rg mockShortNameGenerator) Generate() string {
 
 func TestAddUrlSuccess(t *testing.T) {
 
+	config.Load()
 	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
@@ -40,7 +42,7 @@ func TestAddUrlSuccess(t *testing.T) {
 			name: "generate short url success",
 			want: want{
 				code:        201,
-				response:    controller.Schema + controller.Addr + `/` + urlhasher.ShortNameGenerator.Generate(),
+				response:    config.Options.BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
