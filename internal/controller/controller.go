@@ -9,6 +9,9 @@ import (
 	"github.com/Alheor/shorturl/internal/repository"
 )
 
+const Addr = `localhost:8080`
+const Schema = `http://`
+
 // AddURL контроллер добавления URL
 func AddURL(resp http.ResponseWriter, req *http.Request) {
 
