@@ -10,7 +10,7 @@ import (
 func GetRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get(`/`, controller.GetURL)
+	r.Get(`/*`, controller.GetURL)
 	r.Post(`/`, controller.AddURL)
 
 	return r
