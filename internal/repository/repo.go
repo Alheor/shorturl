@@ -6,24 +6,24 @@ import (
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
-type UrlMap struct {
+type URLMap struct {
 	list map[string]string
 	sync.RWMutex
 }
 
-var urlMap *UrlMap
+var urlMap *URLMap
 
-func GetRepository() *UrlMap {
+func GetRepository() *URLMap {
 
 	if urlMap == nil {
-		urlMap = &UrlMap{list: make(map[string]string)}
+		urlMap = &URLMap{list: make(map[string]string)}
 	}
 
 	return urlMap
 }
 
 // Add Добавить URL
-func (sn *UrlMap) Add(URL string) string {
+func (sn *URLMap) Add(URL string) string {
 
 	sn.Lock()
 	defer sn.Unlock()
@@ -47,7 +47,7 @@ func (sn *UrlMap) Add(URL string) string {
 }
 
 // GetByShortName получить URL по короткому имени
-func (sn *UrlMap) GetByShortName(name string) *string {
+func (sn *URLMap) GetByShortName(name string) *string {
 
 	sn.RLock()
 	defer sn.RUnlock()
