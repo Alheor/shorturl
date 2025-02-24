@@ -31,7 +31,6 @@ func (rg mockShortNameGenerator) Generate() string {
 func TestAddUrlSuccess(t *testing.T) {
 
 	config.Load()
-	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
 	tests := []struct {
@@ -70,7 +69,6 @@ func TestAddUrlSuccess(t *testing.T) {
 
 func TestAddUrlWithEmptyBody(t *testing.T) {
 
-	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
 	tests := []struct {
@@ -109,7 +107,6 @@ func TestAddUrlWithEmptyBody(t *testing.T) {
 
 func TestAddUrlWithEmptyUrl(t *testing.T) {
 
-	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
 	tests := []struct {
@@ -148,10 +145,9 @@ func TestAddUrlWithEmptyUrl(t *testing.T) {
 
 func TestGetUrlSuccess(t *testing.T) {
 
-	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
-	repository.Add(`https://practicum.yandex.ru/test`)
+	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
 
 	tests := []struct {
 		name string
@@ -191,10 +187,9 @@ func TestGetUrlSuccess(t *testing.T) {
 
 func TestGetUrlUnknownIdentifier(t *testing.T) {
 
-	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
-	repository.Add(`https://practicum.yandex.ru/test`)
+	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
 
 	tests := []struct {
 		name string
@@ -234,10 +229,9 @@ func TestGetUrlUnknownIdentifier(t *testing.T) {
 
 func TestGetUrlEmptyIdentifier(t *testing.T) {
 
-	repository.Init()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
-	repository.Add(`https://practicum.yandex.ru/test`)
+	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
 
 	tests := []struct {
 		name string

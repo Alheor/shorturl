@@ -10,32 +10,36 @@ import (
 
 func TestAddUrlWithNewEl(t *testing.T) {
 	urlhasher.Init()
-	Init()
 
-	hash := Add(`new_url`)
+	hash := GetRepository().Add(`new_url`)
 	assert.NotEmpty(t, hash)
 }
 
 func TestAddUrlWithExistedEl(t *testing.T) {
 	urlhasher.Init()
-	Init()
 
-	hash := Add(`new_url`)
+	hash := GetRepository().Add(`new_url`)
 	assert.NotEmpty(t, hash)
 
-	hashExists := Add(`new_url`)
+	hashExists := GetRepository().Add(`new_url`)
 	assert.NotEmpty(t, hashExists)
 	assert.Equal(t, hash, hashExists)
 }
 
-func TestGetUrl(t *testing.T) {
+func TestGetUrlExists(t *testing.T) {
 	urlhasher.Init()
-	Init()
 
-	hash := Add(`new_url`)
+	hash := GetRepository().Add(`new_url`)
 	assert.NotEmpty(t, hash)
 
-	url := GetByShortName(hash)
+	url := GetRepository().GetByShortName(hash)
 	assert.NotEmpty(t, url)
 	assert.Equal(t, `new_url`, *url)
+}
+
+func TestGetUrlNotExists(t *testing.T) {
+	urlhasher.Init()
+
+	url := GetRepository().GetByShortName(`any_url`)
+	assert.Nil(t, url)
 }

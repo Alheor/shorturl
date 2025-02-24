@@ -1,39 +1,58 @@
 package repository
 
 import (
+	"sync"
+
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
-var urlMap map[string]string
+type UrlMap struct {
+	list map[string]string
+	sync.RWMutex
+}
 
-func Init() {
-	urlMap = make(map[string]string)
+var urlMap *UrlMap
+
+func GetRepository() *UrlMap {
+
+	if urlMap == nil {
+		urlMap = &UrlMap{list: make(map[string]string)}
+	}
+
+	return urlMap
 }
 
 // Add Добавить URL
-func Add(URL string) string {
+func (sn *UrlMap) Add(URL string) string {
+
+	sn.Lock()
+	defer sn.Unlock()
 
 	//Обработка существующих URL
-	for hash, el := range urlMap {
+	for hash, el := range urlMap.list {
 		if el == URL {
 			return hash
 		}
 	}
 
-	//Уменьшит вероятность коллизии хэша
+	//Уменьшить вероятность коллизии хэша
 	hash := urlhasher.ShortNameGenerator.Generate()
-	if _, exists := urlMap[hash]; exists {
+	if _, exists := urlMap.list[hash]; exists {
 		hash = urlhasher.ShortNameGenerator.Generate()
 	}
 
-	urlMap[hash] = URL
+	urlMap.list[hash] = URL
 
 	return hash
 }
 
 // GetByShortName получить URL по короткому имени
-func GetByShortName(name string) *string {
-	URL, exists := urlMap[name]
+func (sn *UrlMap) GetByShortName(name string) *string {
+
+	sn.RLock()
+	defer sn.RUnlock()
+
+	URL, exists := urlMap.list[name]
 	if !exists {
 		return nil
 	}

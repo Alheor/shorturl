@@ -33,7 +33,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortName := repository.Add(URL)
+	shortName := repository.GetRepository().Add(URL)
 
 	resp.Header().Add(`Content-Type`, `text/plain; charset=utf-8`)
 	resp.WriteHeader(http.StatusCreated)
@@ -53,7 +53,7 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	URL := repository.GetByShortName(shortName)
+	URL := repository.GetRepository().GetByShortName(shortName)
 	if URL == nil {
 		http.Error(resp, `Unknown identifier`, http.StatusBadRequest)
 		return
