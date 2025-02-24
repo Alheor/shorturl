@@ -38,7 +38,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Add(`Content-Type`, `text/plain; charset=utf-8`)
 	resp.WriteHeader(http.StatusCreated)
 
-	_, err = resp.Write([]byte(config.Options.BaseHost + `/` + shortName))
+	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + shortName))
 	if err != nil {
 		panic(err)
 	}

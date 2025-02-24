@@ -42,7 +42,7 @@ func TestAddUrlSuccess(t *testing.T) {
 			name: "generate short url success",
 			want: want{
 				code:        201,
-				response:    config.Options.BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
+				response:    config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},

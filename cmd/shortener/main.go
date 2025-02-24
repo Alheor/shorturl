@@ -14,7 +14,7 @@ func main() {
 	repository.Init()
 	urlhasher.Init()
 
-	err := http.ListenAndServe(config.Options.Addr, router.GetRoutes())
+	err := http.ListenAndServe(config.GetOptions().Addr, router.GetRoutes())
 	if err != nil {
 		panic(err)
 	}
