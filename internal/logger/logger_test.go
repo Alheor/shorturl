@@ -3,6 +3,7 @@ package logger
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -86,7 +87,11 @@ func runTests(t *testing.T, tests []test) {
 			req, err := http.NewRequest(test.method, ts.URL+test.requestURL, nil)
 			require.NoError(t, err)
 
-			_, err = client.Do(req)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+
+			_, err = io.ReadAll(resp.Body)
+			defer resp.Body.Close()
 			require.NoError(t, err)
 
 			result := new(logResult)
