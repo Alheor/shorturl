@@ -8,9 +8,10 @@ import (
 	"testing"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/controller"
+	"github.com/Alheor/shorturl/internal/handler"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +52,7 @@ func TestAddUrlSuccess(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(`https://practicum.yandex.ru/test`)))
 			// создаём новый Recorder
 			resp := httptest.NewRecorder()
-			controller.AddURL(resp, req)
+			handler.AddURL(resp, req)
 
 			res := resp.Result()
 			// проверяем код ответа
@@ -89,7 +90,7 @@ func TestAddUrlWithEmptyBody(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", nil)
 			// создаём новый Recorder
 			resp := httptest.NewRecorder()
-			controller.AddURL(resp, req)
+			handler.AddURL(resp, req)
 
 			res := resp.Result()
 			// проверяем код ответа
@@ -127,7 +128,7 @@ func TestAddUrlWithEmptyUrl(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(``)))
 			// создаём новый Recorder
 			resp := httptest.NewRecorder()
-			controller.AddURL(resp, req)
+			handler.AddURL(resp, req)
 
 			res := resp.Result()
 			// проверяем код ответа
@@ -167,7 +168,7 @@ func TestGetUrlSuccess(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/"+urlhasher.ShortNameGenerator.Generate(), nil)
 			// создаём новый Recorder
 			resp := httptest.NewRecorder()
-			controller.GetURL(resp, request)
+			handler.GetURL(resp, request)
 
 			res := resp.Result()
 
@@ -209,7 +210,7 @@ func TestGetUrlUnknownIdentifier(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/UnknownIdentifier", nil)
 			// создаём новый Recorder
 			resp := httptest.NewRecorder()
-			controller.GetURL(resp, request)
+			handler.GetURL(resp, request)
 
 			res := resp.Result()
 
@@ -251,7 +252,7 @@ func TestGetUrlEmptyIdentifier(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			// создаём новый Recorder
 			resp := httptest.NewRecorder()
-			controller.GetURL(resp, request)
+			handler.GetURL(resp, request)
 
 			res := resp.Result()
 
