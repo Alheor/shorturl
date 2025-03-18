@@ -21,25 +21,25 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	if body, err = io.ReadAll(req.Body); err != nil || len(body) == 0 {
 		response = APIResponse{Error: `url required`, StatusCode: http.StatusBadRequest}
-		sendApiResponse(resp, &response)
+		sendAPIResponse(resp, &response)
 		return
 	}
 
 	if err = json.Unmarshal(body, &request); err != nil {
 		response = APIResponse{Error: `url required`, StatusCode: http.StatusBadRequest}
-		sendApiResponse(resp, &response)
+		sendAPIResponse(resp, &response)
 		return
 	}
 
 	if request.URL == `` {
 		response = APIResponse{Error: `url required`, StatusCode: http.StatusBadRequest}
-		sendApiResponse(resp, &response)
+		sendAPIResponse(resp, &response)
 		return
 	}
 
 	if _, err = url.ParseRequestURI(request.URL); err != nil {
 		response = APIResponse{Error: `Url invalid`, StatusCode: http.StatusBadRequest}
-		sendApiResponse(resp, &response)
+		sendAPIResponse(resp, &response)
 		return
 	}
 
@@ -48,10 +48,10 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 		StatusCode: http.StatusOK,
 	}
 
-	sendApiResponse(resp, &response)
+	sendAPIResponse(resp, &response)
 }
 
-func sendApiResponse(respWr http.ResponseWriter, resp *APIResponse) {
+func sendAPIResponse(respWr http.ResponseWriter, resp *APIResponse) {
 	rawByte, err := json.Marshal(resp)
 	if err != nil {
 		logger.Error(`response marshal error`, err)
