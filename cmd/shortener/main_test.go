@@ -17,10 +17,17 @@ import (
 )
 
 type want struct {
-	code        int
-	response    string
-	Location    string
-	contentType string
+	code     int
+	response string
+	headers  map[string]string
+}
+type testData struct {
+	name        string
+	requestBody string
+	headers     map[string]string
+	method      string
+	URL         string
+	want        want
 }
 
 type mockShortNameGenerator struct{}
@@ -29,146 +36,112 @@ func (rg mockShortNameGenerator) Generate() string {
 	return `mockStr`
 }
 
-func TestAddUrlSuccess(t *testing.T) {
+func TestAddUrl(t *testing.T) {
 
-	config.Load()
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
-	tests := []struct {
-		name string
-		want want
-	}{
+	tests := []testData{
 		{
-			name: "generate short url success",
+			name:        "generate short url success",
+			requestBody: `https://practicum.yandex.ru/test`,
+			URL:         `/`,
+			method:      http.MethodPost,
+			headers:     map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeJSONValue},
 			want: want{
-				code:        201,
-				response:    config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
-				contentType: "text/plain; charset=utf-8",
+				code:     http.StatusCreated,
+				response: config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
+				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			},
+		},
+		{
+			name:        "generate short url with empty body",
+			requestBody: ``,
+			URL:         `/`,
+			method:      http.MethodPost,
+			headers:     map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			want: want{
+				code:     http.StatusBadRequest,
+				response: "URL required\n",
+				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
 			},
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(`https://practicum.yandex.ru/test`)))
-			// создаём новый Recorder
+			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader([]byte(test.requestBody)))
+
+			for hName, hVal := range test.headers {
+				req.Header.Set(hName, hVal)
+			}
+
 			resp := httptest.NewRecorder()
 			handler.AddURL(resp, req)
 
 			res := resp.Result()
-			// проверяем код ответа
+
 			assert.Equal(t, test.want.code, res.StatusCode)
-			// получаем и проверяем тело запроса
+
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
 			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			assert.Equal(t, test.want.headers[handler.HeaderContentTypeName], res.Header.Get(handler.HeaderContentTypeName))
 		})
 	}
 }
 
-func TestAddUrlWithEmptyBody(t *testing.T) {
-
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
-
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "generate short url with empty body",
-			want: want{
-				code:        400,
-				response:    "URL required\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
-			// создаём новый Recorder
-			resp := httptest.NewRecorder()
-			handler.AddURL(resp, req)
-
-			res := resp.Result()
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
-		})
-	}
-}
-
-func TestAddUrlWithEmptyUrl(t *testing.T) {
-
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
-
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "generate short url with empty url",
-			want: want{
-				code:        400,
-				response:    "URL required\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte(``)))
-			// создаём новый Recorder
-			resp := httptest.NewRecorder()
-			handler.AddURL(resp, req)
-
-			res := resp.Result()
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
-		})
-	}
-}
-
-func TestGetUrlSuccess(t *testing.T) {
+func TestGetUrl(t *testing.T) {
 
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
 	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
 
-	tests := []struct {
-		name string
-		want want
-	}{
+	tests := []testData{
 		{
-			name: "get url by short name success",
+			name:    "get url by short name success",
+			URL:     `/` + urlhasher.ShortNameGenerator.Generate(),
+			method:  http.MethodGet,
+			headers: map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
 			want: want{
-				code:        307,
-				Location:    `https://practicum.yandex.ru/test`,
-				contentType: "text/plain; charset=utf-8",
+				code:    http.StatusTemporaryRedirect,
+				headers: map[string]string{handler.HeaderLocation: `https://practicum.yandex.ru/test`},
+			},
+		},
+		{
+			name:    "get url unknown identifier error",
+			URL:     `/UnknownIdentifier`,
+			method:  http.MethodGet,
+			headers: map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			want: want{
+				code:     http.StatusBadRequest,
+				response: "Unknown identifier\n",
+				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			},
+		}, {
+			name:    "get url empty identifier error",
+			URL:     `/`,
+			method:  http.MethodGet,
+			headers: map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			want: want{
+				code:     http.StatusBadRequest,
+				response: "Identifier required\n",
+				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
 			},
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, "/"+urlhasher.ShortNameGenerator.Generate(), nil)
-			// создаём новый Recorder
+			req := httptest.NewRequest(test.method, test.URL, nil)
+
+			for hName, hVal := range test.headers {
+				req.Header.Set(hName, hVal)
+			}
+
 			resp := httptest.NewRecorder()
-			handler.GetURL(resp, request)
+			handler.GetURL(resp, req)
 
 			res := resp.Result()
 
@@ -177,95 +150,12 @@ func TestGetUrlSuccess(t *testing.T) {
 
 			// получаем и проверяем тело запроса
 			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
+			respBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.Location, res.Header.Get(`Location`))
-		})
-	}
-}
 
-func TestGetUrlUnknownIdentifier(t *testing.T) {
-
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
-
-	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
-
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "generate short url success",
-			want: want{
-				code:        400,
-				response:    "Unknown identifier\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, "/UnknownIdentifier", nil)
-			// создаём новый Recorder
-			resp := httptest.NewRecorder()
-			handler.GetURL(resp, request)
-
-			res := resp.Result()
-
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.Location, res.Header.Get(`Location`))
-		})
-	}
-}
-
-func TestGetUrlEmptyIdentifier(t *testing.T) {
-
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
-
-	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
-
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "generate short url success",
-			want: want{
-				code:        400,
-				response:    "Identifier required\n",
-				contentType: "text/plain; charset=utf-8",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, "/", nil)
-			// создаём новый Recorder
-			resp := httptest.NewRecorder()
-			handler.GetURL(resp, request)
-
-			res := resp.Result()
-
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.Location, res.Header.Get(`Location`))
+			assert.Equal(t, test.want.response, string(respBody))
+			assert.Equal(t, test.want.headers[handler.HeaderContentTypeName], res.Header.Get(handler.HeaderContentTypeName))
 		})
 	}
 }

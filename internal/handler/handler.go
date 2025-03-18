@@ -10,6 +10,20 @@ import (
 	"github.com/Alheor/shorturl/internal/repository"
 )
 
+const (
+	//HeaderContentTypeName header "Content-Type" name
+	HeaderContentTypeName = `Content-Type`
+
+	//HeaderLocation header "Location" name
+	HeaderLocation = `Location`
+
+	//HeaderContentTypeJSONValue header "Content-Type" application/json
+	HeaderContentTypeJSONValue = `application/json; charset=utf-8`
+
+	//HeaderContentTypeTextPlainValue header "Content-Type" text/plain
+	HeaderContentTypeTextPlainValue = `text/plain; charset=utf-8`
+)
+
 // AddURL контроллер добавления URL
 func AddURL(resp http.ResponseWriter, req *http.Request) {
 
@@ -35,7 +49,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	shortName := repository.GetRepository().Add(URL)
 
-	resp.Header().Add(`Content-Type`, `text/plain; charset=utf-8`)
+	resp.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
 	resp.WriteHeader(http.StatusCreated)
 
 	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + shortName))
@@ -59,6 +73,6 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resp.Header().Set(`Location`, *URL)
+	resp.Header().Set(HeaderLocation, *URL)
 	resp.WriteHeader(http.StatusTemporaryRedirect)
 }

@@ -17,6 +17,7 @@ func GetRoutes() chi.Router {
 
 	r.Get(`/*`, middlewareConveyor(handler.GetURL, logger.LoggingHTTPHandler))
 	r.Post(`/`, middlewareConveyor(handler.AddURL, logger.LoggingHTTPHandler))
+	r.Post(`/api/shorten`, middlewareConveyor(handler.AddShorten, logger.LoggingHTTPHandler))
 
 	return r
 }

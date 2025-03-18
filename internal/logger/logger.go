@@ -89,3 +89,8 @@ func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 func Info(msg string, fields ...zapcore.Field) {
 	logger.Info(msg, fields...)
 }
+
+// Error error level
+func Error(msg string, err error) {
+	logger.Error(msg + `: ` + err.Error())
+}

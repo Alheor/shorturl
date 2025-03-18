@@ -3,6 +3,7 @@ package logger
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,11 +11,9 @@ import (
 	"testing"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/handler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -47,15 +46,15 @@ func TestLogging(t *testing.T) {
 			name:         `test 1`,
 			requestURL:   `/test-request`,
 			method:       http.MethodGet,
-			responseCode: http.StatusBadRequest,
-			responseSize: 19,
+			responseCode: http.StatusOK,
+			responseSize: 3,
 		},
 		{
 			name:         `test 2`,
 			requestURL:   `/`,
 			method:       http.MethodPost,
 			responseCode: http.StatusBadRequest,
-			responseSize: 13,
+			responseSize: 12,
 		},
 	}
 
@@ -110,8 +109,16 @@ func runTests(t *testing.T, tests []test) {
 func getRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get(`/*`, LoggingHTTPHandler(handler.GetURL))
-	r.Post(`/`, LoggingHTTPHandler(handler.AddURL))
+	testGetHandler := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `ok`, http.StatusOK)
+	}
+
+	testPostHandler := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `bad request`, http.StatusBadRequest)
+	}
+
+	r.Get(`/*`, LoggingHTTPHandler(testGetHandler))
+	r.Post(`/`, LoggingHTTPHandler(testPostHandler))
 
 	return r
 }
