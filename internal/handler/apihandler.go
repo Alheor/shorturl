@@ -45,7 +45,7 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
 	response = APIResponse{
 		Result:     config.GetOptions().BaseHost + `/` + repository.GetRepository().Add(request.URL),
-		StatusCode: http.StatusOK,
+		StatusCode: http.StatusCreated,
 	}
 
 	sendAPIResponse(resp, &response)

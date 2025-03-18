@@ -27,7 +27,7 @@ func TestApiAddUrlSuccess(t *testing.T) {
 			method:      http.MethodPost,
 			URL:         `/api/shorten`,
 			want: want{
-				code:     http.StatusOK,
+				code:     http.StatusCreated,
 				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate() + `"}`,
 				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeJSONValue},
 			},
