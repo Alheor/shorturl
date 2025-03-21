@@ -58,8 +58,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	if _, err = url.ParseRequestURI(URL); err != nil {
-		println(`---` + URL)
-		http.Error(resp, `Only valid url allowed`, http.StatusBadRequest)
+		http.Error(resp, `Only valid url allowed`+URL, http.StatusBadRequest)
 		return
 	}
 
