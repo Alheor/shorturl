@@ -1,4 +1,4 @@
-package handler
+package httphandler
 
 type APIResponse struct {
 	Result     string `json:"result,omitempty"`

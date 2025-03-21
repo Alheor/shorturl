@@ -1,4 +1,4 @@
-package handler
+package httphandler
 
 import (
 	"io"
@@ -11,17 +11,35 @@ import (
 )
 
 const (
-	//HeaderContentTypeName header "Content-Type" name
-	HeaderContentTypeName = `Content-Type`
+	//HeaderContentType header "Content-Type" name
+	HeaderContentType = `Content-Type`
+
+	//HeaderContentEncoding header "Content-Encoding" name
+	HeaderContentEncoding = `Content-Encoding`
+
+	//HeaderAcceptEncoding header "Accept-Encoding" name
+	HeaderAcceptEncoding = `Accept-Encoding`
 
 	//HeaderLocation header "Location" name
 	HeaderLocation = `Location`
 
-	//HeaderContentTypeJSONValue header "Content-Type" application/json
-	HeaderContentTypeJSONValue = `application/json; charset=utf-8`
+	//HeaderContentTypeJSON header Content-Type value application/json
+	HeaderContentTypeJSON = `application/json`
 
-	//HeaderContentTypeTextPlainValue header "Content-Type" text/plain
-	HeaderContentTypeTextPlainValue = `text/plain; charset=utf-8`
+	//HeaderContentTypeXGzip header Content-Type value application/x-gzip
+	HeaderContentTypeXGzip = `application/x-gzip`
+
+	//HeaderContentTypeTextPlain header Content-Type value text/plain
+	HeaderContentTypeTextPlain = `text/plain; charset=utf-8`
+
+	//HeaderContentTypeTextHTML header Content-Type value text/html
+	HeaderContentTypeTextHTML = `text/html`
+
+	//HeaderContentEncodingGzip header Content-Encoding value gzip
+	HeaderContentEncodingGzip = `gzip`
+
+	//HeaderContentEncodingXGzip header Content-Encoding value gzip
+	HeaderContentEncodingXGzip = `x-gzip`
 )
 
 // AddURL контроллер добавления URL
@@ -49,7 +67,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	shortName := repository.GetRepository().Add(URL)
 
-	resp.Header().Add(HeaderContentTypeName, HeaderContentTypeTextPlainValue)
+	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 	resp.WriteHeader(http.StatusCreated)
 
 	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + shortName))

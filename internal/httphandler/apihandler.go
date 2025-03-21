@@ -1,4 +1,4 @@
-package handler
+package httphandler
 
 import (
 	"encoding/json"
@@ -59,7 +59,7 @@ func sendAPIResponse(respWr http.ResponseWriter, resp *APIResponse) {
 		return
 	}
 
-	respWr.Header().Add(HeaderContentTypeName, HeaderContentTypeJSONValue)
+	respWr.Header().Add(HeaderContentType, HeaderContentTypeJSON)
 	respWr.WriteHeader(resp.StatusCode)
 
 	_, err = respWr.Write(rawByte)

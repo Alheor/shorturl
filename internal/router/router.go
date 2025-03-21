@@ -3,7 +3,8 @@ package router
 import (
 	"net/http"
 
-	"github.com/Alheor/shorturl/internal/handler"
+	"github.com/Alheor/shorturl/internal/compress"
+	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -15,9 +16,9 @@ type HTTPMiddleware func(f http.HandlerFunc) http.HandlerFunc
 func GetRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get(`/*`, middlewareConveyor(handler.GetURL, logger.LoggingHTTPHandler))
-	r.Post(`/`, middlewareConveyor(handler.AddURL, logger.LoggingHTTPHandler))
-	r.Post(`/api/shorten`, middlewareConveyor(handler.AddShorten, logger.LoggingHTTPHandler))
+	r.Get(`/*`, middlewareConveyor(httphandler.GetURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
+	r.Post(`/`, middlewareConveyor(httphandler.AddURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
+	r.Post(`/api/shorten`, middlewareConveyor(httphandler.AddShorten, logger.LoggingHTTPHandler))
 
 	return r
 }

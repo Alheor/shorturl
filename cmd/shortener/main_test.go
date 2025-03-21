@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/handler"
+	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
@@ -23,7 +23,7 @@ type want struct {
 }
 type testData struct {
 	name        string
-	requestBody string
+	requestBody []byte
 	headers     map[string]string
 	method      string
 	URL         string
@@ -43,40 +43,58 @@ func TestAddUrl(t *testing.T) {
 	tests := []testData{
 		{
 			name:        "generate short url success",
-			requestBody: `https://practicum.yandex.ru/test`,
+			requestBody: []byte(`https://practicum.yandex.ru/test`),
 			URL:         `/`,
 			method:      http.MethodPost,
-			headers:     map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeJSONValue},
+			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusCreated,
 				response: config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
-				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			},
+		},
+		{
+			name:        "generate short url success with gzip compression",
+			requestBody: []byte(`https://practicum.yandex.ru/test`),
+			URL:         `/`,
+			method:      http.MethodPost,
+			headers: map[string]string{
+				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
+				httphandler.HeaderContentType:    httphandler.HeaderContentTypeTextPlain,
+			},
+			want: want{
+				code:     http.StatusCreated,
+				response: config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
+				headers: map[string]string{
+					httphandler.HeaderContentType:     httphandler.HeaderContentTypeTextPlain,
+					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
+				},
 			},
 		},
 		{
 			name:        "generate short url with empty body",
-			requestBody: ``,
+			requestBody: []byte(``),
 			URL:         `/`,
 			method:      http.MethodPost,
-			headers:     map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusBadRequest,
 				response: "URL required\n",
-				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader([]byte(test.requestBody)))
+			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
 
 			for hName, hVal := range test.headers {
 				req.Header.Set(hName, hVal)
 			}
 
 			resp := httptest.NewRecorder()
-			handler.AddURL(resp, req)
+			httphandler.AddURL(resp, req)
 
 			res := resp.Result()
 
@@ -87,7 +105,7 @@ func TestAddUrl(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.headers[handler.HeaderContentTypeName], res.Header.Get(handler.HeaderContentTypeName))
+			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
 		})
 	}
 }
@@ -103,31 +121,44 @@ func TestGetUrl(t *testing.T) {
 			name:    "get url by short name success",
 			URL:     `/` + urlhasher.ShortNameGenerator.Generate(),
 			method:  http.MethodGet,
-			headers: map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:    http.StatusTemporaryRedirect,
-				headers: map[string]string{handler.HeaderLocation: `https://practicum.yandex.ru/test`},
+				headers: map[string]string{httphandler.HeaderLocation: `https://practicum.yandex.ru/test`},
+			},
+		},
+		{
+			name:   "get url by short name success with gzip compression",
+			URL:    `/` + urlhasher.ShortNameGenerator.Generate(),
+			method: http.MethodGet,
+			headers: map[string]string{
+				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
+				httphandler.HeaderContentType:    httphandler.HeaderContentTypeTextPlain,
+			},
+			want: want{
+				code:    http.StatusTemporaryRedirect,
+				headers: map[string]string{httphandler.HeaderLocation: `https://practicum.yandex.ru/test`},
 			},
 		},
 		{
 			name:    "get url unknown identifier error",
 			URL:     `/UnknownIdentifier`,
 			method:  http.MethodGet,
-			headers: map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusBadRequest,
 				response: "Unknown identifier\n",
-				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			},
 		}, {
 			name:    "get url empty identifier error",
 			URL:     `/`,
 			method:  http.MethodGet,
-			headers: map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusBadRequest,
 				response: "Identifier required\n",
-				headers:  map[string]string{handler.HeaderContentTypeName: handler.HeaderContentTypeTextPlainValue},
+				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			},
 		},
 	}
@@ -141,7 +172,7 @@ func TestGetUrl(t *testing.T) {
 			}
 
 			resp := httptest.NewRecorder()
-			handler.GetURL(resp, req)
+			httphandler.GetURL(resp, req)
 
 			res := resp.Result()
 
@@ -155,7 +186,7 @@ func TestGetUrl(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, test.want.response, string(respBody))
-			assert.Equal(t, test.want.headers[handler.HeaderContentTypeName], res.Header.Get(handler.HeaderContentTypeName))
+			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
 		})
 	}
 }
