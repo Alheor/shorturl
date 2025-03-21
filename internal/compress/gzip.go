@@ -30,14 +30,12 @@ func GzipHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 		}
 
 		ct := req.Header.Get(httphandler.HeaderContentType)
-		if !strings.Contains(ct, httphandler.HeaderContentTypeJSON) &&
-			!strings.Contains(ct, httphandler.HeaderContentTypeTextHTML) {
+		if ct != httphandler.HeaderContentTypeJSON && ct != httphandler.HeaderContentTypeTextHTML && ct != httphandler.HeaderContentTypeXGzip {
 			f(resp, req)
 			return
 		}
 
-		ce := req.Header.Get(httphandler.HeaderContentEncoding)
-		if ce == httphandler.HeaderContentEncodingGzip || ce == httphandler.HeaderContentTypeXGzip {
+		if ct == httphandler.HeaderContentTypeXGzip {
 			var data []byte
 
 			data, err := io.ReadAll(req.Body)
