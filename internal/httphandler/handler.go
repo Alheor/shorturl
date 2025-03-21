@@ -37,9 +37,6 @@ const (
 
 	//HeaderContentEncodingGzip header Content-Encoding value gzip
 	HeaderContentEncodingGzip = `gzip`
-
-	//HeaderContentEncodingXGzip header Content-Encoding value gzip
-	HeaderContentEncodingXGzip = `x-gzip`
 )
 
 // AddURL контроллер добавления URL
@@ -61,6 +58,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	if _, err = url.ParseRequestURI(URL); err != nil {
+		println(`---` + URL)
 		http.Error(resp, `Only valid url allowed`, http.StatusBadRequest)
 		return
 	}

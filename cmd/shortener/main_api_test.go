@@ -44,7 +44,7 @@ func TestApiAddUrlSuccess(t *testing.T) {
 			requestBody: []byte(`{"url":"https://practicum.yandex.ru/test"}`),
 			headers: map[string]string{
 				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
-				httphandler.HeaderContentType:    httphandler.HeaderContentEncodingXGzip,
+				httphandler.HeaderContentType:    httphandler.HeaderContentTypeXGzip,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten`,
@@ -111,7 +111,7 @@ func TestApiAddUrlSuccess(t *testing.T) {
 			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
 
 			var err error
-			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentEncodingXGzip {
+			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentTypeXGzip {
 				test.requestBody, err = compress.Compress(test.requestBody)
 
 				require.NoError(t, err)

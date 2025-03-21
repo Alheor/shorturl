@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Alheor/shorturl/internal/compress"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -59,8 +60,9 @@ func TestAddUrl(t *testing.T) {
 			URL:         `/`,
 			method:      http.MethodPost,
 			headers: map[string]string{
-				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
-				httphandler.HeaderContentType:    httphandler.HeaderContentTypeTextPlain,
+				httphandler.HeaderAcceptEncoding:  httphandler.HeaderContentEncodingGzip,
+				httphandler.HeaderContentType:     httphandler.HeaderContentTypeXGzip,
+				httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
 			},
 			want: want{
 				code:     http.StatusCreated,
@@ -88,6 +90,13 @@ func TestAddUrl(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
+
+			var err error
+			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentTypeXGzip {
+				test.requestBody, err = compress.Compress(test.requestBody)
+
+				require.NoError(t, err)
+			}
 
 			for hName, hVal := range test.headers {
 				req.Header.Set(hName, hVal)
