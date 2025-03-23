@@ -43,8 +43,15 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var shortUrl *string
+	if shortUrl, err = repository.GetRepository().Add(request.URL); err != nil {
+		response = APIResponse{Error: `Internal error`, StatusCode: http.StatusInternalServerError}
+		sendAPIResponse(resp, &response)
+		return
+	}
+
 	response = APIResponse{
-		Result:     config.GetOptions().BaseHost + `/` + repository.GetRepository().Add(request.URL),
+		Result:     config.GetOptions().BaseHost + `/` + *shortUrl,
 		StatusCode: http.StatusCreated,
 	}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/Alheor/shorturl/internal/compress"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +18,9 @@ import (
 )
 
 func TestApiAddUrlSuccess(t *testing.T) {
+
+	err := repository.Init()
+	require.NoError(t, err)
 
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 

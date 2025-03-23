@@ -5,6 +5,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/router"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
@@ -12,12 +13,22 @@ import (
 )
 
 func main() {
+	var err error
 	config.Load()
 	urlhasher.Init()
-	logger.Init(nil)
+
+	err = logger.Init(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	err = repository.Init()
+	if err != nil {
+		panic(err)
+	}
 
 	logger.Info("Starting server", zap.String("addr", config.GetOptions().Addr))
-	err := http.ListenAndServe(config.GetOptions().Addr, router.GetRoutes())
+	err = http.ListenAndServe(config.GetOptions().Addr, router.GetRoutes())
 	if err != nil {
 		panic(err)
 	}

@@ -8,8 +8,9 @@ import (
 )
 
 type Options struct {
-	Addr     string `env:"SERVER_ADDRESS"`
-	BaseHost string `env:"BASE_URL"`
+	Addr            string `env:"SERVER_ADDRESS"`
+	BaseHost        string `env:"BASE_URL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 var opts Options
@@ -17,6 +18,7 @@ var opts Options
 func init() {
 	flag.StringVar(&opts.Addr, `a`, `localhost:8080`, "listen host/ip:port")
 	flag.StringVar(&opts.BaseHost, `b`, `http://localhost:8080`, "base host")
+	flag.StringVar(&opts.FileStoragePath, `f`, `/tmp/short-url.json`, "Path to storage file")
 }
 
 func GetOptions() Options {
@@ -32,6 +34,8 @@ func Load() {
 	}
 
 	println(`--- Loaded configuration ---`)
+
 	println(`listen: ` + opts.Addr)
 	println(`base host: ` + opts.BaseHost)
+	println(`file storage path: ` + opts.FileStoragePath)
 }

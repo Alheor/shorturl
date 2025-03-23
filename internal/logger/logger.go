@@ -35,9 +35,9 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 var logger *zap.Logger
 
 // Init Инициализация логгера
-func Init(cfg *zap.Config) {
+func Init(cfg *zap.Config) error {
 	if logger != nil {
-		return
+		return nil
 	}
 
 	var config zap.Config
@@ -52,10 +52,12 @@ func Init(cfg *zap.Config) {
 	var err error
 	logger, err = config.Build()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	defer logger.Sync()
+
+	return nil
 }
 
 // LoggingHTTPHandler логирование http запросов
@@ -92,5 +94,20 @@ func Info(msg string, fields ...zapcore.Field) {
 
 // Error error level
 func Error(msg string, err error) {
-	logger.Error(msg + `: ` + err.Error())
+	if err != nil {
+		logger.Error(msg + `: ` + err.Error())
+		return
+	}
+
+	logger.Error(msg)
+}
+
+// Fatal error level
+func Fatal(msg string, err error) {
+	if err != nil {
+		logger.Fatal(msg + `: ` + err.Error())
+		return
+	}
+
+	logger.Fatal(msg)
 }

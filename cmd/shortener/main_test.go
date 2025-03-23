@@ -39,6 +39,9 @@ func (rg mockShortNameGenerator) Generate() string {
 
 func TestAddUrl(t *testing.T) {
 
+	err := repository.Init()
+	require.NoError(t, err)
+
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
 	tests := []testData{
@@ -120,6 +123,9 @@ func TestAddUrl(t *testing.T) {
 }
 
 func TestGetUrl(t *testing.T) {
+
+	err := repository.Init()
+	require.NoError(t, err)
 
 	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
 
