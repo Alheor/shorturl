@@ -70,6 +70,7 @@ func TestAddExistsURLFileSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	hash1, err := GetRepository().Add(targetURL)
+	require.NoError(t, err)
 	require.Equal(t, hash, hash1)
 
 	err = os.Remove(config.GetOptions().FileStoragePath)
@@ -107,6 +108,7 @@ func TestLoadFromFileSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	err = Init()
+	require.NoError(t, err)
 
 	url := GetRepository().GetByShortName(*hash)
 	assert.Equal(t, targetURL, *url)

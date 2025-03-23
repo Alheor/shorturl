@@ -62,8 +62,8 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var shortUrl *string
-	if shortUrl, err = repository.GetRepository().Add(URL); err != nil {
+	var shortURL *string
+	if shortURL, err = repository.GetRepository().Add(URL); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -71,7 +71,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 	resp.WriteHeader(http.StatusCreated)
 
-	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + *shortUrl))
+	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + *shortURL))
 	if err != nil {
 		panic(err)
 	}
