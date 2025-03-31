@@ -24,12 +24,12 @@ func main() {
 
 	err = repository.Init()
 	if err != nil {
-		panic(err)
+		logger.Fatal(`error while initialize repository`, err)
 	}
 
 	logger.Info("Starting server", zap.String("addr", config.GetOptions().Addr))
 	err = http.ListenAndServe(config.GetOptions().Addr, router.GetRoutes())
 	if err != nil {
-		panic(err)
+		logger.Fatal(`error while starting http server`, err)
 	}
 }

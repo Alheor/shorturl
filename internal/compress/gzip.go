@@ -51,7 +51,7 @@ func GzipHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
-			req.Body = io.NopCloser(strings.NewReader(string(data)))
+			req.Body = io.NopCloser(bytes.NewReader(data))
 		}
 
 		gz, err := gzip.NewWriterLevel(resp, gzip.BestSpeed)

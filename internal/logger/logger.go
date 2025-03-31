@@ -90,24 +90,29 @@ func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 // Info info level
 func Info(msg string, fields ...zapcore.Field) {
 	logger.Info(msg, fields...)
+	defer logger.Sync()
 }
 
 // Error error level
 func Error(msg string, err error) {
 	if err != nil {
 		logger.Error(msg + `: ` + err.Error())
-		return
+	} else {
+		logger.Error(msg)
 	}
 
-	logger.Error(msg)
+	defer logger.Sync()
 }
 
 // Fatal error level
 func Fatal(msg string, err error) {
 	if err != nil {
-		logger.Fatal(msg + `: ` + err.Error())
-		return
+		logger.Error(msg + `: ` + err.Error())
+	} else {
+		logger.Error(msg)
 	}
 
-	logger.Fatal(msg)
+	defer logger.Sync()
+
+	logger.Fatal(`End`)
 }

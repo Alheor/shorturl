@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
 )
 
@@ -73,7 +74,8 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + *shortURL))
 	if err != nil {
-		panic(err)
+		logger.Error(`error while response write`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
