@@ -112,7 +112,7 @@ func Fatal(msg string, err error) {
 		logger.Error(msg)
 	}
 
-	defer logger.Sync()
+	logger.Sync()
 
 	logger.Fatal(`End`)
 }
