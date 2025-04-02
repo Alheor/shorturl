@@ -116,3 +116,12 @@ func Fatal(msg string, err error) {
 
 	logger.Fatal(`End`)
 }
+
+func Sync() error {
+
+	if logger == nil {
+		return nil
+	}
+
+	return logger.Sync()
+}
