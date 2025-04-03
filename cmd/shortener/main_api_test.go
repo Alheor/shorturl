@@ -2,27 +2,34 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Alheor/shorturl/internal/compress"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
+	"github.com/Alheor/shorturl/internal/urlhasher/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestApiAddUrlSuccess(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	err := repository.Init()
+	err := repository.Init(ctx, nil)
 	require.NoError(t, err)
 
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
+	mockRepo := new(mocks.MockShortName)
+	mockRepo.On("Generate").Return(`mockStr`)
+	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -36,7 +43,7 @@ func TestApiAddUrlSuccess(t *testing.T) {
 			URL:    `/api/shorten`,
 			want: want{
 				code:     http.StatusCreated,
-				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate() + `"}`,
+				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
@@ -54,7 +61,7 @@ func TestApiAddUrlSuccess(t *testing.T) {
 			URL:    `/api/shorten`,
 			want: want{
 				code:     http.StatusCreated,
-				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate() + `"}`,
+				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,

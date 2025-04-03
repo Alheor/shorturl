@@ -6,9 +6,9 @@ import (
 )
 
 // ShortNameLength string length
-const shortNameLength = 8
+const ShortNameLength = 8
 
-var ShortNameGenerator RandomStringGenerator
+var generator RandomStringGenerator
 
 type RandomStringGenerator interface {
 	Generate() string
@@ -17,8 +17,14 @@ type RandomStringGenerator interface {
 // ShortName short name structure
 type ShortName struct{}
 
-func Init() {
-	ShortNameGenerator = new(ShortName)
+func Init(g RandomStringGenerator) {
+
+	if g != nil {
+		generator = g
+		return
+	}
+
+	generator = new(ShortName)
 }
 
 // Generate создание хэша для URL
@@ -26,10 +32,14 @@ func (sh *ShortName) Generate() string {
 	randSource := rand.New(rand.NewSource(time.Now().UnixNano()))
 	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-	b := make([]byte, shortNameLength)
+	b := make([]byte, ShortNameLength)
 	for i := range b {
 		b[i] = charset[randSource.Intn(len(charset))]
 	}
 
 	return string(b)
+}
+
+func GetShortNameGenerator() RandomStringGenerator {
+	return generator
 }
