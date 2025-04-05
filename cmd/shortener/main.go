@@ -32,8 +32,8 @@ func main() {
 	defer stop()
 
 	shutdown.Init()
-	config.Load()
-	urlhasher.Init()
+	config.Load(nil)
+	urlhasher.Init(nil)
 
 	var err error
 
@@ -47,7 +47,7 @@ func main() {
 		return nil
 	})
 
-	err = repository.Init()
+	err = repository.Init(ctx, nil)
 	if err != nil {
 		logger.Fatal(`error while initialize repository`, err)
 	}
