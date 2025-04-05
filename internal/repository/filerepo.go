@@ -11,8 +11,6 @@ import (
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
-var fileRepo *FileRepo
-
 type URL struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
@@ -38,7 +36,7 @@ func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
 	defer fr.Unlock()
 
 	//Обработка существующих URL
-	for hash, el := range fileRepo.list {
+	for hash, el := range fr.list {
 		if el == name {
 			return hash, nil
 		}
@@ -46,11 +44,11 @@ func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
 
 	//Уменьшить вероятность коллизии хэша
 	hash := urlhasher.GetShortNameGenerator().Generate()
-	if _, exists := fileRepo.list[hash]; exists {
+	if _, exists := fr.list[hash]; exists {
 		hash = urlhasher.GetShortNameGenerator().Generate()
 	}
 
-	fileRepo.list[hash] = name
+	fr.list[hash] = name
 
 	data, err := json.Marshal(&URL{ID: hash, URL: name})
 	if err != nil {
@@ -81,7 +79,7 @@ func (fr *FileRepo) GetByShortName(ctx context.Context, name string) (string, er
 	fr.RLock()
 	defer fr.RUnlock()
 
-	el, exists := fileRepo.list[name]
+	el, exists := fr.list[name]
 	if !exists {
 		return ``, nil
 	}
@@ -100,7 +98,7 @@ func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	return fr.file != nil
 }
 
-func load(ctx context.Context, path string) error {
+func (fr *FileRepo) Load(ctx context.Context, path string) error {
 
 	select {
 	case <-ctx.Done():
@@ -108,15 +106,17 @@ func load(ctx context.Context, path string) error {
 	default:
 	}
 
-	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
+	var err error
+
+	fr.file, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}
 
-	fileRepo.Lock()
-	defer fileRepo.Unlock()
+	fr.Lock()
+	defer fr.Unlock()
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(fr.file)
 
 	for scanner.Scan() {
 		data := scanner.Bytes()
@@ -127,12 +127,7 @@ func load(ctx context.Context, path string) error {
 			continue
 		}
 
-		fileRepo.list[el.ID] = el.URL
-	}
-
-	err = file.Close()
-	if err != nil {
-		return err
+		fr.list[el.ID] = el.URL
 	}
 
 	return nil

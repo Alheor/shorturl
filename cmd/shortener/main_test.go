@@ -12,6 +12,7 @@ import (
 	"github.com/Alheor/shorturl/internal/compress"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 	"github.com/Alheor/shorturl/internal/urlhasher/mocks"
@@ -35,10 +36,13 @@ type testData struct {
 }
 
 func TestAddUrl(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err := repository.Init(ctx, nil)
+	err = repository.Init(ctx, nil)
 	require.NoError(t, err)
 
 	mockRepo := new(mocks.MockShortName)
@@ -124,10 +128,13 @@ func TestAddUrl(t *testing.T) {
 }
 
 func TestGetUrl(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	err := repository.Init(ctx, nil)
+	err = repository.Init(ctx, nil)
 	require.NoError(t, err)
 
 	mockRepo := new(mocks.MockShortName)

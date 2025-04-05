@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/logger"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -26,36 +26,37 @@ func Init(ctx context.Context, repository Repository) error {
 	}
 
 	if config.GetOptions().DatabaseDsn != `` {
+		logger.Info(`Repository starting in database mode`)
 
 		db, err := pgxpool.New(ctx, config.GetOptions().DatabaseDsn)
+
 		if err != nil {
 			return err
 		}
 
-		pgRepo = &Postgres{Conn: db}
+		repo = &PostgresRepo{Conn: db}
 
 		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
 		defer cancel()
 
 		createDBSchema(schemaCtx, db)
 
-		repo = pgRepo
+	} else if config.GetOptions().FileStoragePath != `` {
+		logger.Info(`Repository starting in file mode`)
+
+		fRepo := &FileRepo{list: make(map[string]string)}
+
+		err := fRepo.Load(ctx, config.GetOptions().FileStoragePath)
+		if err != nil {
+			return err
+		}
+
+		repo = fRepo
 
 	} else {
-		fileRepo = &FileRepo{list: make(map[string]string)}
+		logger.Info(`Repository starting in memory mode`)
 
-		err := load(ctx, config.GetOptions().FileStoragePath)
-		if err != nil {
-			return err
-		}
-
-		file, err := os.OpenFile(config.GetOptions().FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			return err
-		}
-
-		fileRepo.file = file
-		repo = fileRepo
+		repo = &MemoryRepo{list: make(map[string]string)}
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -14,11 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDBGetUrlNotExists(t *testing.T) {
+func TestMemoryGetUrlNotExists(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
+	cfg := config.Options{FileStoragePath: ``}
 	config.Load(&cfg)
 
 	urlhasher.Init(nil)
@@ -34,11 +35,11 @@ func TestDBGetUrlNotExists(t *testing.T) {
 	assert.Empty(t, url)
 }
 
-func TestDBAddURLAndGetURLSuccess(t *testing.T) {
+func TestMemoryAddURLAndGetURLSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
+	cfg := config.Options{FileStoragePath: ``}
 	config.Load(&cfg)
 
 	urlhasher.Init(nil)
@@ -66,13 +67,40 @@ func TestDBAddURLAndGetURLSuccess(t *testing.T) {
 	}
 }
 
-func TestDBIsReadySuccess(t *testing.T) {
+func TestMemoryAddExistsURLSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	cfg := config.Options{FileStoragePath: ``}
+	config.Load(&cfg)
+
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	mockRepo := new(mocks.MockPostgres)
+	_ = os.Remove(config.GetOptions().FileStoragePath)
+
+	err = Init(ctx, nil)
+	require.NoError(t, err)
+
+	hash, err := GetRepository().Add(ctx, targetURL)
+	require.NoError(t, err)
+
+	hash1, err := GetRepository().Add(ctx, targetURL)
+	require.NoError(t, err)
+	require.Equal(t, hash, hash1)
+}
+
+func TestMemoryIsReadySuccess(t *testing.T) {
+	urlhasher.Init(nil)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(config.GetOptions().FileStoragePath)
+
+	mockRepo := new(mocks.MockMemoryRepo)
 	mockRepo.On("IsReady", ctx).Return(true)
 
 	err := Init(ctx, mockRepo)
@@ -81,13 +109,15 @@ func TestDBIsReadySuccess(t *testing.T) {
 	assert.True(t, GetRepository().IsReady(ctx))
 }
 
-func TestDBIsReadyFail(t *testing.T) {
+func TestMemoryIsReadyFileFalse(t *testing.T) {
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	mockRepo := new(mocks.MockPostgres)
+	_ = os.Remove(config.GetOptions().FileStoragePath)
+
+	mockRepo := new(mocks.MockMemoryRepo)
 	mockRepo.On("IsReady", ctx).Return(false)
 
 	err := Init(ctx, mockRepo)

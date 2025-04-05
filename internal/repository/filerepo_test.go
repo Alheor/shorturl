@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
@@ -16,8 +17,11 @@ import (
 
 const targetURL = `https://practicum.yandex.ru/`
 
-func TestGetUrlNotExists(t *testing.T) {
-	config.Load()
+func TestFileGetUrlNotExists(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	config.Load(nil)
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -25,7 +29,7 @@ func TestGetUrlNotExists(t *testing.T) {
 
 	_ = os.Remove(config.GetOptions().FileStoragePath)
 
-	err := Init(ctx, nil)
+	err = Init(ctx, nil)
 	require.NoError(t, err)
 
 	url, err := GetRepository().GetByShortName(ctx, `any_url`)
@@ -36,8 +40,10 @@ func TestGetUrlNotExists(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAddURLAndGetURLSuccess(t *testing.T) {
-	config.Load()
+func TestFileAddURLAndGetURLSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -45,7 +51,7 @@ func TestAddURLAndGetURLSuccess(t *testing.T) {
 
 	_ = os.Remove(config.GetOptions().FileStoragePath)
 
-	err := Init(ctx, nil)
+	err = Init(ctx, nil)
 	require.NoError(t, err)
 
 	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
@@ -68,8 +74,10 @@ func TestAddURLAndGetURLSuccess(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAddExistsURLFileSuccess(t *testing.T) {
-	config.Load()
+func TestFileAddExistsURLFileSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -77,7 +85,7 @@ func TestAddExistsURLFileSuccess(t *testing.T) {
 
 	_ = os.Remove(config.GetOptions().FileStoragePath)
 
-	err := Init(ctx, nil)
+	err = Init(ctx, nil)
 	require.NoError(t, err)
 
 	hash, err := GetRepository().Add(ctx, targetURL)
@@ -91,8 +99,10 @@ func TestAddExistsURLFileSuccess(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestCreatedFileSuccess(t *testing.T) {
-	config.Load()
+func TestFileCreatedFileSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -100,7 +110,7 @@ func TestCreatedFileSuccess(t *testing.T) {
 
 	_ = os.Remove(config.GetOptions().FileStoragePath)
 
-	err := Init(ctx, nil)
+	err = Init(ctx, nil)
 	require.NoError(t, err)
 
 	_, err = GetRepository().Add(ctx, targetURL)
@@ -112,8 +122,10 @@ func TestCreatedFileSuccess(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestLoadFromFileSuccess(t *testing.T) {
-	config.Load()
+func TestFileLoadFromFileSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -121,7 +133,7 @@ func TestLoadFromFileSuccess(t *testing.T) {
 
 	_ = os.Remove(config.GetOptions().FileStoragePath)
 
-	err := Init(ctx, nil)
+	err = Init(ctx, nil)
 	require.NoError(t, err)
 
 	hash, err := GetRepository().Add(ctx, targetURL)
@@ -138,8 +150,7 @@ func TestLoadFromFileSuccess(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestIsReadyFileSuccess(t *testing.T) {
-	config.Load()
+func TestFileIsReadyFileSuccess(t *testing.T) {
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -156,8 +167,7 @@ func TestIsReadyFileSuccess(t *testing.T) {
 	assert.True(t, GetRepository().IsReady(ctx))
 }
 
-func TestIsReadyFileFalse(t *testing.T) {
-	config.Load()
+func TestFileIsReadyFileFalse(t *testing.T) {
 	urlhasher.Init(nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)

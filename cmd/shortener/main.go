@@ -32,7 +32,7 @@ func main() {
 	defer stop()
 
 	shutdown.Init()
-	config.Load()
+	config.Load(nil)
 	urlhasher.Init(nil)
 
 	var err error

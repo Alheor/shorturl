@@ -2,35 +2,77 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strconv"
+	"time"
 
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var pgRepo *Postgres
-
 const tableName = `short_url`
 
-// Postgres connection structure
-type Postgres struct {
+// PostgresRepo connection structure
+type PostgresRepo struct {
 	Conn *pgxpool.Pool
 }
 
 // Add Добавить URL
-func (pg *Postgres) Add(ctx context.Context, name string) (string, error) {
-	return ``, nil
+func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	hash := urlhasher.GetShortNameGenerator().Generate()
+
+	_, err := pg.Conn.Exec(ctx,
+		"INSERT INTO "+tableName+" (short_key, original_url) VALUES (@shortKey, @originalURL)",
+		pgx.NamedArgs{"shortKey": hash, "originalURL": name},
+	)
+
+	if err != nil {
+		pgError := err.(*pgconn.PgError)
+		if pgError.Code == "23505" {
+			return hash, nil
+		}
+
+		return ``, err
+	}
+
+	return hash, nil
 }
 
 // GetByShortName получить URL по короткому имени
-func (pg *Postgres) GetByShortName(ctx context.Context, name string) (string, error) {
-	return ``, nil
+func (pg *PostgresRepo) GetByShortName(ctx context.Context, name string) (string, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	var originalURL string
+
+	row := pg.Conn.QueryRow(ctx,
+		"SELECT original_url FROM "+tableName+" WHERE short_key=@shortKey",
+		pgx.NamedArgs{"shortKey": name},
+	)
+
+	err := row.Scan(&originalURL)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return ``, err
+		}
+
+		return ``, nil
+	}
+
+	return originalURL, nil
 }
 
 // IsReady готовность репозитория
-func (pg *Postgres) IsReady(ctx context.Context) bool {
+func (pg *PostgresRepo) IsReady(ctx context.Context) bool {
 	err := pg.Conn.Ping(ctx)
 	return err == nil
 }
@@ -40,14 +82,11 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 	_, err := conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS `+tableName+` (
 		    id SERIAL NOT NULL PRIMARY KEY,
-		    user_id varchar(36) NOT NULL,
-		    short_key varchar(`+strconv.Itoa(urlhasher.ShortNameLength)+`) NOT NULL,
-		    original_url text NOT NULL,
-			is_deleted boolean NOT NULL DEFAULT false
+		    short_key varchar(`+strconv.Itoa(urlhasher.ShortNameLength)+`) UNIQUE NOT NULL,
+		    original_url text NOT NULL 
 		);
 
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_short_key_is_deleted_unique_idx ON `+tableName+` (user_id, short_key, is_deleted);
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_original_url_is_deleted_unique_idx ON `+tableName+` (user_id, original_url, is_deleted);
+		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_short_key_original_url_unique_idx ON `+tableName+` (short_key, original_url);
 	`)
 
 	if err != nil {
