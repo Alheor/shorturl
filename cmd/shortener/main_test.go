@@ -2,16 +2,20 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Alheor/shorturl/internal/compress"
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/urlhasher"
+	"github.com/Alheor/shorturl/internal/urlhasher/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,18 +35,19 @@ type testData struct {
 	want        want
 }
 
-type mockShortNameGenerator struct{}
-
-func (rg mockShortNameGenerator) Generate() string {
-	return `mockStr`
-}
-
 func TestAddUrl(t *testing.T) {
-
-	err := repository.Init()
+	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, nil)
+	require.NoError(t, err)
+
+	mockRepo := new(mocks.MockShortName)
+	mockRepo.On("Generate").Return(`mockStr`)
+	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -53,7 +58,7 @@ func TestAddUrl(t *testing.T) {
 			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusCreated,
-				response: config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
+				response: config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate(),
 				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			},
 		},
@@ -69,7 +74,7 @@ func TestAddUrl(t *testing.T) {
 			},
 			want: want{
 				code:     http.StatusCreated,
-				response: config.GetOptions().BaseHost + `/` + urlhasher.ShortNameGenerator.Generate(),
+				response: config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate(),
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeTextPlain,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
@@ -123,18 +128,26 @@ func TestAddUrl(t *testing.T) {
 }
 
 func TestGetUrl(t *testing.T) {
-
-	err := repository.Init()
+	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	urlhasher.ShortNameGenerator = new(mockShortNameGenerator)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
-	repository.GetRepository().Add(`https://practicum.yandex.ru/test`)
+	err = repository.Init(ctx, nil)
+	require.NoError(t, err)
+
+	mockRepo := new(mocks.MockShortName)
+	mockRepo.On("Generate").Return(`mockStr`)
+	urlhasher.Init(mockRepo)
+
+	_, err = repository.GetRepository().Add(ctx, `https://practicum.yandex.ru/test`)
+	require.NoError(t, err)
 
 	tests := []testData{
 		{
 			name:    "get url by short name success",
-			URL:     `/` + urlhasher.ShortNameGenerator.Generate(),
+			URL:     `/` + urlhasher.GetShortNameGenerator().Generate(),
 			method:  http.MethodGet,
 			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
@@ -144,7 +157,7 @@ func TestGetUrl(t *testing.T) {
 		},
 		{
 			name:   "get url by short name success with gzip compression",
-			URL:    `/` + urlhasher.ShortNameGenerator.Generate(),
+			URL:    `/` + urlhasher.GetShortNameGenerator().Generate(),
 			method: http.MethodGet,
 			headers: map[string]string{
 				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
@@ -188,6 +201,56 @@ func TestGetUrl(t *testing.T) {
 
 			resp := httptest.NewRecorder()
 			httphandler.GetURL(resp, req)
+
+			res := resp.Result()
+
+			// проверяем код ответа
+			assert.Equal(t, test.want.code, res.StatusCode)
+
+			// получаем и проверяем тело запроса
+			defer res.Body.Close()
+			respBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err)
+
+			assert.Equal(t, test.want.response, string(respBody))
+			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
+		})
+	}
+}
+
+func TestGetPing(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err := repository.Init(ctx, nil)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(ctx, `https://practicum.yandex.ru/test`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name:    "get db is ready",
+			URL:     `/ping`,
+			method:  http.MethodGet,
+			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			want: want{
+				code: http.StatusOK,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(test.method, test.URL, nil)
+
+			for hName, hVal := range test.headers {
+				req.Header.Set(hName, hVal)
+			}
+
+			resp := httptest.NewRecorder()
+			httphandler.Ping(resp, req)
 
 			res := resp.Result()
 
