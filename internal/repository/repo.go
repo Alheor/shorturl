@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
@@ -25,7 +26,7 @@ func Init(ctx context.Context, repository Repository) error {
 		return nil
 	}
 
-	if config.GetOptions().DatabaseDsn != `` {
+	if strings.TrimSpace(config.GetOptions().DatabaseDsn) != `` {
 		logger.Info(`Repository starting in database mode`)
 
 		db, err := pgxpool.New(ctx, config.GetOptions().DatabaseDsn)
@@ -41,7 +42,7 @@ func Init(ctx context.Context, repository Repository) error {
 
 		createDBSchema(schemaCtx, db)
 
-	} else if config.GetOptions().FileStoragePath != `` {
+	} else if strings.TrimSpace(config.GetOptions().FileStoragePath) != `` {
 		logger.Info(`Repository starting in file mode`)
 
 		fRepo := &FileRepo{list: make(map[string]string)}

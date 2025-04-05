@@ -24,7 +24,7 @@ type PostgresRepo struct {
 // Add Добавить URL
 func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
 	hash := urlhasher.GetShortNameGenerator().Generate()
@@ -49,7 +49,7 @@ func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 // GetByShortName получить URL по короткому имени
 func (pg *PostgresRepo) GetByShortName(ctx context.Context, name string) (string, error) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
 	var originalURL string
