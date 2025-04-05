@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
@@ -14,69 +12,61 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDBGetUrlNotExists(t *testing.T) {
-	err := logger.Init(nil)
-	require.NoError(t, err)
+// Для ручного запуска с локальной БД
+//
+//func TestDBGetUrlNotExists(t *testing.T) {
+//	err := logger.Init(nil)
+//	require.NoError(t, err)
+//
+//	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
+//	config.Load(&cfg)
+//
+//	urlhasher.Init(nil)
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+//	defer cancel()
+//
+//	err = Init(ctx, nil)
+//	require.NoError(t, err)
+//
+//	url, err := GetRepository().GetByShortName(ctx, `any_url`)
+//	require.NoError(t, err)
+//	assert.Empty(t, url)
+//}
 
-	var cfg *config.Options
-	//cfg = &config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-
-	if cfg == nil {
-		t.Skip(`Run with database only`)
-		return
-	}
-
-	config.Load(cfg)
-	urlhasher.Init(nil)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	err = Init(ctx, nil)
-	require.NoError(t, err)
-
-	url, err := GetRepository().GetByShortName(ctx, `any_url`)
-	require.NoError(t, err)
-	assert.Empty(t, url)
-}
-
-func TestDBAddURLAndGetURLSuccess(t *testing.T) {
-	err := logger.Init(nil)
-	require.NoError(t, err)
-
-	var cfg *config.Options
-	//cfg = &config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-
-	if cfg == nil {
-		t.Skip(`Run with database only`)
-		return
-	}
-	config.Load(cfg)
-
-	urlhasher.Init(nil)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	err = Init(ctx, nil)
-	require.NoError(t, err)
-
-	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
-	shortsList := make(map[string]string)
-
-	for _, val := range urlList {
-		hash, err := GetRepository().Add(ctx, val)
-		require.NoError(t, err)
-
-		shortsList[hash] = val
-	}
-
-	for index, val := range shortsList {
-		res, err := GetRepository().GetByShortName(ctx, index)
-		require.NoError(t, err)
-		assert.Equal(t, val, res)
-	}
-}
+// Для ручного запуска с локальной БД
+//
+//func TestDBAddURLAndGetURLSuccess(t *testing.T) {
+//	err := logger.Init(nil)
+//	require.NoError(t, err)
+//
+//	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
+//	config.Load(&cfg)
+//
+//	urlhasher.Init(nil)
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+//	defer cancel()
+//
+//	err = Init(ctx, nil)
+//	require.NoError(t, err)
+//
+//	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
+//	shortsList := make(map[string]string)
+//
+//	for _, val := range urlList {
+//		hash, err := GetRepository().Add(ctx, val)
+//		require.NoError(t, err)
+//
+//		shortsList[hash] = val
+//	}
+//
+//	for index, val := range shortsList {
+//		res, err := GetRepository().GetByShortName(ctx, index)
+//		require.NoError(t, err)
+//		assert.Equal(t, val, res)
+//	}
+//}
 
 func TestDBIsReadySuccess(t *testing.T) {
 	urlhasher.Init(nil)
