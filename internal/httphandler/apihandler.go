@@ -64,6 +64,65 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	sendAPIResponse(resp, &response)
 }
 
+func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
+	var body []byte
+	var err error
+	var request []models.APIBatchRequestEl
+	var response []models.APIBatchResponseEl
+
+	defer req.Body.Close()
+	if body, err = io.ReadAll(req.Body); err != nil || len(body) == 0 {
+		sendAPIResponse(resp, &models.APIResponse{Error: `invalid body`, StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	if err = json.Unmarshal(body, &request); err != nil {
+		sendAPIResponse(resp, &models.APIResponse{Error: `invalid body`, StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	if len(request) == 0 {
+		sendAPIResponse(resp, &models.APIResponse{Error: `empty url list`, StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	for _, v := range request {
+		if _, err = url.ParseRequestURI(v.OriginalURL); err != nil {
+			sendAPIResponse(resp, &models.APIResponse{Error: `Url ` + v.OriginalURL + `invalid`, StatusCode: http.StatusBadRequest})
+			return
+		}
+
+		if v.CorrelationID == `` {
+			sendAPIResponse(resp, &models.APIResponse{Error: `empty correlation_id`, StatusCode: http.StatusBadRequest})
+			return
+		}
+	}
+
+	response, err = service.AddBatch(req.Context(), request)
+	if err != nil {
+		logger.Error(`Add batch error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rawByte, err := json.Marshal(response)
+	if err != nil {
+		logger.Error(`response marshal error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
+	resp.WriteHeader(http.StatusOK)
+
+	_, err = resp.Write(rawByte)
+	if err != nil {
+		logger.Error(`write response error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
 func sendAPIResponse(respWr http.ResponseWriter, resp *models.APIResponse) {
 	rawByte, err := json.Marshal(resp)
 	if err != nil {

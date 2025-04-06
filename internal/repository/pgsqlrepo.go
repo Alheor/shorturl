@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"github.com/jackc/pgx/v5"
@@ -44,6 +45,34 @@ func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 	}
 
 	return hash, nil
+}
+
+// AddBatch Добавить URL пачкой
+func (pg *PostgresRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error {
+
+	tx, err := pg.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	var entries [][]any
+	for _, v := range *list {
+		entries = append(entries, []any{v.ShortURL, v.OriginalURL})
+	}
+
+	_, err = pg.Conn.CopyFrom(
+		ctx,
+		pgx.Identifier{tableName},
+		[]string{"short_key", "original_url"},
+		pgx.CopyFromRows(entries),
+	)
+
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // GetByShortName получить URL по короткому имени
@@ -86,7 +115,7 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 		    original_url text NOT NULL 
 		);
 
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_user_id_short_key_original_url_unique_idx ON `+tableName+` (short_key, original_url);
+		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_short_key_original_url_unique_idx ON `+tableName+` (short_key, original_url);
 	`)
 
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
@@ -41,6 +42,30 @@ func (fr *MemoryRepo) Add(ctx context.Context, name string) (string, error) {
 	fr.list[hash] = name
 
 	return hash, nil
+}
+
+// AddBatch Добавить URL пачкой
+func (fr *MemoryRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error {
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	fr.Lock()
+	defer fr.Unlock()
+
+	for _, v := range *list {
+		//Уменьшить вероятность коллизии хэша
+		if _, exists := fr.list[v.ShortURL]; exists {
+			v.ShortURL = urlhasher.GetShortNameGenerator().Generate()
+		}
+
+		fr.list[v.ShortURL] = v.OriginalURL
+	}
+
+	return nil
 }
 
 // GetByShortName получить URL по короткому имени

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
@@ -145,6 +146,39 @@ func TestFileLoadFromFileSuccess(t *testing.T) {
 	url, err := GetRepository().GetByShortName(ctx, hash)
 	require.NoError(t, err)
 	assert.Equal(t, targetURL, url)
+
+	err = os.Remove(config.GetOptions().FileStoragePath)
+	require.NoError(t, err)
+}
+
+func TestFileAddBatchSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	urlhasher.Init(nil)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(config.GetOptions().FileStoragePath)
+
+	err = Init(ctx, nil)
+	require.NoError(t, err)
+
+	var urlList []models.BatchEl
+
+	urlList = append(urlList, models.BatchEl{CorrelationID: `1`, OriginalURL: targetURL + `1`, ShortURL: `hash1`})
+	urlList = append(urlList, models.BatchEl{CorrelationID: `2`, OriginalURL: targetURL + `2`, ShortURL: `hash2`})
+	urlList = append(urlList, models.BatchEl{CorrelationID: `3`, OriginalURL: targetURL + `3`, ShortURL: `hash3`})
+
+	err = GetRepository().AddBatch(ctx, &urlList)
+	require.NoError(t, err)
+
+	for _, v := range urlList {
+		res, err := GetRepository().GetByShortName(ctx, v.ShortURL)
+		require.NoError(t, err)
+		assert.Equal(t, v.OriginalURL, res)
+	}
 
 	err = os.Remove(config.GetOptions().FileStoragePath)
 	require.NoError(t, err)

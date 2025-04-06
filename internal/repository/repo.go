@@ -6,6 +6,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -14,6 +15,7 @@ var repo Repository
 
 type Repository interface {
 	Add(ctx context.Context, name string) (string, error)
+	AddBatch(ctx context.Context, list *[]models.BatchEl) error
 	GetByShortName(ctx context.Context, name string) (string, error)
 	IsReady(ctx context.Context) bool
 }

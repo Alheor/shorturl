@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
@@ -65,6 +66,45 @@ func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
 	}
 
 	return hash, nil
+}
+
+// AddBatch Добавить URL пачкой
+func (fr *FileRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error {
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	fr.Lock()
+	defer fr.Unlock()
+
+	var data []byte
+	var err error
+	snGen := urlhasher.GetShortNameGenerator()
+
+	for _, v := range *list {
+		//Уменьшить вероятность коллизии хэша
+		if _, exists := fr.list[v.ShortURL]; exists {
+			v.ShortURL = snGen.Generate()
+		}
+
+		el, err := json.Marshal(&URL{ID: v.ShortURL, URL: v.OriginalURL})
+		if err != nil {
+			return err
+		}
+
+		fr.list[v.ShortURL] = v.OriginalURL
+		data = append(data, append(el, '\n')...)
+	}
+
+	_, err = fr.file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetByShortName получить URL по короткому имени
