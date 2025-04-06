@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"net/http"
 	"time"
 
@@ -17,6 +18,10 @@ type (
 	loggingResponseWriter struct {
 		http.ResponseWriter
 		responseData *responseData
+	}
+
+	MemorySink struct {
+		*bytes.Buffer
 	}
 )
 
