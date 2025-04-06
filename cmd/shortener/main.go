@@ -24,6 +24,7 @@ func main() {
 
 	defer func() {
 		if err := recover(); err != nil {
+			logger.Error(``, err.(error))
 			logger.Sync()
 		}
 	}()

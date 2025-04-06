@@ -369,6 +369,8 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 
 			res := resp.Result()
 
+			defer res.Body.Close()
+
 			assert.Equal(t, test.want.code, res.StatusCode)
 			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
 		})
