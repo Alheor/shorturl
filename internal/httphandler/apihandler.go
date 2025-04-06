@@ -113,7 +113,7 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
-	resp.WriteHeader(http.StatusOK)
+	resp.WriteHeader(http.StatusCreated)
 
 	_, err = resp.Write(rawByte)
 	if err != nil {

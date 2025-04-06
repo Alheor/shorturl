@@ -182,7 +182,7 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
 			want: want{
-				code: http.StatusOK,
+				code: http.StatusCreated,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
