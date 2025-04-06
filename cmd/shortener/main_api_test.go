@@ -224,13 +224,94 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 
 			assert.Len(t, response, 2)
 
-			assert.Equal(t, `mockStr`, response[0].ShortURL)
-			assert.Equal(t, `mockStr`, response[1].ShortURL)
+			assert.Equal(t, config.GetOptions().BaseHost+`/mockStr`, response[0].ShortURL)
+			assert.Equal(t, config.GetOptions().BaseHost+`/mockStr`, response[1].ShortURL)
 
 			assert.True(t, response[0].CorrelationID == `id1` || response[0].CorrelationID == `id2`)
 			assert.True(t, response[1].CorrelationID == `id1` || response[1].CorrelationID == `id2`)
 
 			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
+		})
+	}
+}
+
+func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, nil)
+	require.NoError(t, err)
+
+	mockRepo := new(mocks.MockShortName)
+	mockRepo.On("Generate").Return(`mockStr`)
+	urlhasher.Init(mockRepo)
+
+	tests := []testData{
+		{
+			name:        `API add batch urls success`,
+			requestBody: []byte(`[{"correlation_id": "id1","original_url": "` + targetURL + `/test1"}]`),
+			headers: map[string]string{
+				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
+				httphandler.HeaderContentType:    httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodPost,
+			URL:    `/api/shorten/batch`,
+			want: want{
+				code: http.StatusCreated,
+				headers: map[string]string{
+					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
+					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
+				},
+			},
+		}, {
+			name:    `API get url success`,
+			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			method:  http.MethodPost,
+			URL:     `/` + urlhasher.GetShortNameGenerator().Generate(),
+			want: want{
+				code:    http.StatusTemporaryRedirect,
+				headers: map[string]string{httphandler.HeaderLocation: targetURL + `/test1`},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
+
+			var err error
+			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentTypeXGzip {
+				test.requestBody, err = compress.Compress(test.requestBody)
+
+				require.NoError(t, err)
+			}
+
+			for hName, hVal := range test.headers {
+				req.Header.Set(hName, hVal)
+			}
+
+			resp := httptest.NewRecorder()
+
+			if test.URL == `/api/shorten/batch` {
+				httphandler.AddShortenBatch(resp, req)
+			} else {
+				httphandler.GetURL(resp, req)
+			}
+
+			res := resp.Result()
+
+			assert.Equal(t, test.want.code, res.StatusCode)
+
+			defer res.Body.Close()
+
+			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
+
+			if test.URL != `/api/shorten/batch` {
+				assert.Equal(t, test.want.headers[httphandler.HeaderLocation], res.Header.Get(httphandler.HeaderLocation))
+			}
 		})
 	}
 }

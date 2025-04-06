@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -56,7 +57,7 @@ func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.A
 	for _, v := range list {
 		resList = append(resList, models.APIBatchResponseEl{
 			CorrelationID: v.CorrelationID,
-			ShortURL:      v.ShortURL,
+			ShortURL:      config.GetOptions().BaseHost + `/` + v.ShortURL,
 		})
 	}
 
