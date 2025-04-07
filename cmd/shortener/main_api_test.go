@@ -482,7 +482,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 	mockRepo.On("Generate").Return(`mockStr`)
 	urlhasher.Init(mockRepo)
 
-	err = repository.GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`/test`)
+	err = repository.GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`/test`)
 	require.NoError(t, err)
 
 	_, err = repository.GetRepository().Add(context.Background(), targetURL+`/test`)

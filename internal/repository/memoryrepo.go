@@ -100,6 +100,6 @@ func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 	return fr.list != nil
 }
 
-func (fr *MemoryRepo) RemoveByOriginalUrl(ctx context.Context, url string) error {
+func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, url string) error {
 	return errors.New(`method "Remove" from memory repository not supported`)
 }

@@ -118,12 +118,12 @@ func (pg *PostgresRepo) IsReady(ctx context.Context) bool {
 	return err == nil
 }
 
-// RemoveByOriginalUrl удалить url
-func (pg *PostgresRepo) RemoveByOriginalUrl(ctx context.Context, originalUrl string) error {
+// RemoveByOriginalURL удалить url
+func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, originalURL string) error {
 
 	_, err := pg.Conn.Exec(ctx,
 		"DELETE FROM "+tableName+" WHERE original_url=@original_url",
-		pgx.NamedArgs{"original_url": originalUrl},
+		pgx.NamedArgs{"original_url": originalURL},
 	)
 
 	return err

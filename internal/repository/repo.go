@@ -18,7 +18,7 @@ type Repository interface {
 	AddBatch(ctx context.Context, list *[]models.BatchEl) error
 	GetByShortName(ctx context.Context, name string) (string, error)
 	IsReady(ctx context.Context) bool
-	RemoveByOriginalUrl(ctx context.Context, url string) error
+	RemoveByOriginalURL(ctx context.Context, url string) error
 }
 
 func Init(ctx context.Context, repository Repository) error {

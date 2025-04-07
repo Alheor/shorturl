@@ -56,13 +56,13 @@ func TestDBAddURLAndGetURLSuccess(t *testing.T) {
 	err = Init(ctx, nil)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`1`)
+	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`1`)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`2`)
+	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`2`)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`3`)
+	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`3`)
 	require.NoError(t, err)
 
 	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
@@ -100,13 +100,13 @@ func TestDBAddBatchSuccess(t *testing.T) {
 	err = Init(ctx, nil)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`1`)
+	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`1`)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`2`)
+	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`2`)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`3`)
+	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`3`)
 	require.NoError(t, err)
 
 	var urlList []models.BatchEl

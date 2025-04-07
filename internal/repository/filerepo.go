@@ -139,7 +139,7 @@ func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	return fr.file != nil
 }
 
-func (fr *FileRepo) RemoveByOriginalUrl(ctx context.Context, url string) error {
+func (fr *FileRepo) RemoveByOriginalURL(ctx context.Context, url string) error {
 	return errors.New(`method "Remove" from file repository not supported`)
 }
 
