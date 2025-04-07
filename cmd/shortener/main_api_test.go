@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -31,6 +32,9 @@ func TestApiAddUrl(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
+
+	err = os.Remove(config.GetOptions().FileStoragePath)
+	require.NoError(t, err)
 
 	err = repository.Init(ctx, nil)
 	require.NoError(t, err)
@@ -68,7 +72,7 @@ func TestApiAddUrl(t *testing.T) {
 			method: http.MethodPost,
 			URL:    `/api/shorten`,
 			want: want{
-				code:     http.StatusCreated,
+				code:     http.StatusConflict,
 				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
@@ -453,6 +457,85 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 			defer res.Body.Close()
 
 			assert.Equal(t, test.want.code, res.StatusCode)
+			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
+		})
+	}
+}
+
+func TestApiAddUrlUniqIndexError(t *testing.T) {
+
+	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
+	config.Load(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, nil)
+	require.NoError(t, err)
+
+	mockRepo := new(mocks.MockShortName)
+	mockRepo.On("Generate").Return(`mockStr`)
+	urlhasher.Init(mockRepo)
+
+	err = repository.GetRepository().RemoveByOriginalUrl(context.Background(), targetURL+`/test`)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(context.Background(), targetURL+`/test`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name:        `API generate short url success`,
+			requestBody: []byte(`{"url":"` + targetURL + `/test"}`),
+			headers: map[string]string{
+				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
+				httphandler.HeaderContentType:    httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodPost,
+			URL:    `/api/shorten`,
+			want: want{
+				code:     http.StatusConflict,
+				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
+				headers: map[string]string{
+					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
+					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
+
+			var err error
+			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentTypeXGzip {
+				test.requestBody, err = compress.Compress(test.requestBody)
+
+				require.NoError(t, err)
+			}
+
+			for hName, hVal := range test.headers {
+				req.Header.Set(hName, hVal)
+			}
+
+			resp := httptest.NewRecorder()
+			httphandler.AddShorten(resp, req)
+
+			res := resp.Result()
+
+			assert.Equal(t, test.want.code, res.StatusCode)
+
+			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err)
+			assert.Equal(t, test.want.response, string(resBody))
 			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
 		})
 	}

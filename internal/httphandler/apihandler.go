@@ -3,6 +3,7 @@ package httphandler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -51,6 +52,18 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
 	var shortURL string
 	if shortURL, err = service.Add(ctx, request.URL); err != nil {
+
+		var uniqErr *models.UniqueErr
+		if errors.As(err, &uniqErr) {
+			response = models.APIResponse{
+				Result:     config.GetOptions().BaseHost + `/` + uniqErr.ShortKey,
+				StatusCode: http.StatusConflict,
+			}
+
+			sendAPIResponse(resp, &response)
+			return
+		}
+
 		response = models.APIResponse{Error: `Internal error`, StatusCode: http.StatusInternalServerError}
 		sendAPIResponse(resp, &response)
 		return

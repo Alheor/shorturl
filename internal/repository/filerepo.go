@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"sync"
 
@@ -39,7 +40,7 @@ func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
 	//Обработка существующих URL
 	for hash, el := range fr.list {
 		if el == name {
-			return hash, nil
+			return ``, &models.UniqueErr{Err: errors.New("url already exists"), ShortKey: hash}
 		}
 	}
 
@@ -136,6 +137,10 @@ func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	}
 
 	return fr.file != nil
+}
+
+func (fr *FileRepo) RemoveByOriginalUrl(ctx context.Context, url string) error {
+	return errors.New(`method "Remove" from file repository not supported`)
 }
 
 func (fr *FileRepo) Load(ctx context.Context, path string) error {

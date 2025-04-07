@@ -88,9 +88,10 @@ func TestMemoryAddExistsURLSuccess(t *testing.T) {
 	hash, err := GetRepository().Add(ctx, targetURL)
 	require.NoError(t, err)
 
-	hash1, err := GetRepository().Add(ctx, targetURL)
-	require.NoError(t, err)
-	require.Equal(t, hash, hash1)
+	_, err = GetRepository().Add(ctx, targetURL)
+	var uniqError *models.UniqueErr
+	require.ErrorAs(t, err, &uniqError)
+	require.Equal(t, hash, uniqError.ShortKey)
 }
 
 func TestMemoryAddBatchSuccess(t *testing.T) {

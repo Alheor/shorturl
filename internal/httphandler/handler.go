@@ -2,6 +2,7 @@ package httphandler
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/service"
 )
 
@@ -68,13 +70,29 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
+	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
+
 	shortURL, err := service.Add(ctx, URL)
 	if err != nil {
+
+		var uniqErr *models.UniqueErr
+		if errors.As(err, &uniqErr) {
+
+			resp.WriteHeader(http.StatusConflict)
+
+			_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + uniqErr.ShortKey))
+			if err != nil {
+				logger.Error(`error while response write`, err)
+				resp.WriteHeader(http.StatusInternalServerError)
+			}
+
+			return
+		}
+
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 	resp.WriteHeader(http.StatusCreated)
 
 	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + shortURL))

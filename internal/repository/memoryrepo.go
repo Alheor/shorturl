@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/Alheor/shorturl/internal/models"
@@ -29,7 +30,7 @@ func (fr *MemoryRepo) Add(ctx context.Context, name string) (string, error) {
 	//Обработка существующих URL
 	for hash, el := range fr.list {
 		if el == name {
-			return hash, nil
+			return ``, &models.UniqueErr{Err: errors.New("url already exists"), ShortKey: hash}
 		}
 	}
 
@@ -97,4 +98,8 @@ func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 	}
 
 	return fr.list != nil
+}
+
+func (fr *MemoryRepo) RemoveByOriginalUrl(ctx context.Context, url string) error {
+	return errors.New(`method "Remove" from memory repository not supported`)
 }

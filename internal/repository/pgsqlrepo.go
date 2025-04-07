@@ -10,6 +10,7 @@ import (
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -36,9 +37,20 @@ func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 	)
 
 	if err != nil {
-		pgError := err.(*pgconn.PgError)
-		if pgError.Code == "23505" {
-			return hash, nil
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			row := pg.Conn.QueryRow(ctx,
+				"SELECT short_key FROM "+tableName+" WHERE original_url=@originalUrl",
+				pgx.NamedArgs{"originalUrl": name},
+			)
+
+			var shortKey string
+			err = row.Scan(&shortKey)
+			if err != nil {
+				return ``, err
+			}
+
+			return ``, &models.UniqueErr{Err: pgErr, ShortKey: shortKey}
 		}
 
 		return ``, err
@@ -106,6 +118,17 @@ func (pg *PostgresRepo) IsReady(ctx context.Context) bool {
 	return err == nil
 }
 
+// RemoveByOriginalUrl удалить url
+func (pg *PostgresRepo) RemoveByOriginalUrl(ctx context.Context, originalUrl string) error {
+
+	_, err := pg.Conn.Exec(ctx,
+		"DELETE FROM "+tableName+" WHERE original_url=@original_url",
+		pgx.NamedArgs{"original_url": originalUrl},
+	)
+
+	return err
+}
+
 func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 
 	_, err := conn.Exec(ctx, `
@@ -115,7 +138,7 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
 		    original_url text NOT NULL 
 		);
 
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_short_key_original_url_unique_idx ON `+tableName+` (short_key, original_url);
+		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_original_url_unique_idx ON `+tableName+` (original_url);
 	`)
 
 	if err != nil {

@@ -5,3 +5,12 @@ type BatchEl struct {
 	OriginalURL   string
 	ShortURL      string
 }
+
+type UniqueErr struct {
+	ShortKey string
+	Err      error
+}
+
+func (e *UniqueErr) Error() string {
+	return e.Err.Error()
+}

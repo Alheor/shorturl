@@ -33,3 +33,9 @@ func (m *MockFileRepo) IsReady(ctx context.Context) bool {
 	args := m.Called(ctx)
 	return args.Bool(0)
 }
+
+// RemoveByOriginalUrl удалить url
+func (m *MockFileRepo) RemoveByOriginalUrl(ctx context.Context, originalUrl string) error {
+	args := m.Called(ctx, originalUrl)
+	return args.Error(0)
+}
