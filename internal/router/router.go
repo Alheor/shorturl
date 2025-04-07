@@ -17,8 +17,10 @@ func GetRoutes() chi.Router {
 	r := chi.NewRouter()
 
 	r.Get(`/*`, middlewareConveyor(httphandler.GetURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
+	r.Get(`/ping`, middlewareConveyor(httphandler.Ping, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
 	r.Post(`/`, middlewareConveyor(httphandler.AddURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
 	r.Post(`/api/shorten`, middlewareConveyor(httphandler.AddShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
+	r.Post(`/api/shorten/batch`, middlewareConveyor(httphandler.AddShortenBatch, logger.LoggingHTTPHandler, compress.GzipHTTPHandler))
 
 	return r
 }

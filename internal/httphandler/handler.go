@@ -1,14 +1,18 @@
 package httphandler
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
-	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/Alheor/shorturl/internal/models"
+	"github.com/Alheor/shorturl/internal/service"
 )
 
 const (
@@ -63,16 +67,35 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var shortURL *string
-	if shortURL, err = repository.GetRepository().Add(URL); err != nil {
+	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+	defer cancel()
+
+	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
+
+	shortURL, err := service.Add(ctx, URL)
+	if err != nil {
+
+		var uniqErr *models.UniqueErr
+		if errors.As(err, &uniqErr) {
+
+			resp.WriteHeader(http.StatusConflict)
+
+			_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + uniqErr.ShortKey))
+			if err != nil {
+				logger.Error(`error while response write`, err)
+				resp.WriteHeader(http.StatusInternalServerError)
+			}
+
+			return
+		}
+
 		resp.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 	resp.WriteHeader(http.StatusCreated)
 
-	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + *shortURL))
+	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + shortURL))
 	if err != nil {
 		logger.Error(`error while response write`, err)
 		resp.WriteHeader(http.StatusInternalServerError)
@@ -88,12 +111,27 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	URL := repository.GetRepository().GetByShortName(shortName)
-	if URL == nil {
+	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+	defer cancel()
+
+	URL := service.Get(ctx, shortName)
+	if len(URL) == 0 {
 		http.Error(resp, `Unknown identifier`, http.StatusBadRequest)
 		return
 	}
 
-	resp.Header().Set(HeaderLocation, *URL)
+	resp.Header().Set(HeaderLocation, URL)
 	resp.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func Ping(resp http.ResponseWriter, req *http.Request) {
+	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+	defer cancel()
+
+	if service.IsDBReady(ctx) {
+		resp.WriteHeader(http.StatusOK)
+		return
+	}
+
+	resp.WriteHeader(http.StatusInternalServerError)
 }
