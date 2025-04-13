@@ -44,6 +44,12 @@ const (
 	HeaderContentEncodingGzip = `gzip`
 )
 
+var baseHost string
+
+func Init(config *config.Options) {
+	baseHost = config.BaseHost
+}
+
 // AddURL контроллер добавления URL
 func AddURL(resp http.ResponseWriter, req *http.Request) {
 
@@ -80,7 +86,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 			resp.WriteHeader(http.StatusConflict)
 
-			_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + uniqErr.ShortKey))
+			_, err = resp.Write([]byte(baseHost + `/` + uniqErr.ShortKey))
 			if err != nil {
 				logger.Error(`error while response write`, err)
 				resp.WriteHeader(http.StatusInternalServerError)
@@ -95,7 +101,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	resp.WriteHeader(http.StatusCreated)
 
-	_, err = resp.Write([]byte(config.GetOptions().BaseHost + `/` + shortURL))
+	_, err = resp.Write([]byte(baseHost + `/` + shortURL))
 	if err != nil {
 		logger.Error(`error while response write`, err)
 		resp.WriteHeader(http.StatusInternalServerError)

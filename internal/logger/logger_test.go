@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Alheor/shorturl/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -64,7 +63,6 @@ func runTests(t *testing.T, tests []test) {
 		return sink, nil
 	})
 	require.NoError(t, err)
-	config.Load(nil)
 
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{"memory://"}

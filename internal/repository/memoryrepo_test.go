@@ -10,7 +10,6 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
-	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,15 +19,13 @@ func TestMemoryGetUrlNotExists(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{FileStoragePath: ``}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	url, err := GetRepository().GetByShortName(ctx, `any_url`)
@@ -40,15 +37,13 @@ func TestMemoryAddURLAndGetURLSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{FileStoragePath: ``}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
@@ -72,17 +67,15 @@ func TestMemoryAddExistsURLSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{FileStoragePath: ``}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_ = os.Remove(config.GetOptions().FileStoragePath)
+	_ = os.Remove(cfg.FileStoragePath)
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	hash, err := GetRepository().Add(ctx, targetURL)
@@ -98,15 +91,13 @@ func TestMemoryAddBatchSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{FileStoragePath: ``}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	var urlList []models.BatchEl
@@ -126,34 +117,37 @@ func TestMemoryAddBatchSuccess(t *testing.T) {
 }
 
 func TestMemoryIsReadySuccess(t *testing.T) {
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_ = os.Remove(config.GetOptions().FileStoragePath)
+	_ = os.Remove(cfg.FileStoragePath)
 
 	mockRepo := new(mocks.MockMemoryRepo)
 	mockRepo.On("IsReady", ctx).Return(true)
 
-	err := Init(ctx, mockRepo)
+	err := Init(ctx, &cfg, mockRepo)
 	require.NoError(t, err)
 
 	assert.True(t, GetRepository().IsReady(ctx))
 }
 
 func TestMemoryIsReadyFileFalse(t *testing.T) {
-	urlhasher.Init(nil)
+
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_ = os.Remove(config.GetOptions().FileStoragePath)
+	_ = os.Remove(cfg.FileStoragePath)
 
 	mockRepo := new(mocks.MockMemoryRepo)
 	mockRepo.On("IsReady", ctx).Return(false)
 
-	err := Init(ctx, mockRepo)
+	err := Init(ctx, &cfg, mockRepo)
 	require.NoError(t, err)
 
 	assert.False(t, GetRepository().IsReady(ctx))

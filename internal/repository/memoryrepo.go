@@ -34,12 +34,7 @@ func (fr *MemoryRepo) Add(ctx context.Context, name string) (string, error) {
 		}
 	}
 
-	//Уменьшить вероятность коллизии хэша
-	hash := urlhasher.GetShortNameGenerator().Generate()
-	if _, exists := fr.list[hash]; exists {
-		hash = urlhasher.GetShortNameGenerator().Generate()
-	}
-
+	hash := urlhasher.GetHash(name)
 	fr.list[hash] = name
 
 	return hash, nil
@@ -58,11 +53,6 @@ func (fr *MemoryRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) erro
 	defer fr.Unlock()
 
 	for _, v := range *list {
-		//Уменьшить вероятность коллизии хэша
-		if _, exists := fr.list[v.ShortURL]; exists {
-			v.ShortURL = urlhasher.GetShortNameGenerator().Generate()
-		}
-
 		fr.list[v.ShortURL] = v.OriginalURL
 	}
 

@@ -1,45 +1,15 @@
 package urlhasher
 
 import (
-	"math/rand"
-	"time"
+	"strconv"
+
+	"github.com/spaolacci/murmur3"
 )
 
-// ShortNameLength string length
-const ShortNameLength = 8
+// HashLength hash length
+const HashLength = 20
 
-var generator RandomStringGenerator
-
-type RandomStringGenerator interface {
-	Generate() string
-}
-
-// ShortName short name structure
-type ShortName struct{}
-
-func Init(g RandomStringGenerator) {
-
-	if g != nil {
-		generator = g
-		return
-	}
-
-	generator = new(ShortName)
-}
-
-// Generate создание хэша для URL
-func (sh *ShortName) Generate() string {
-	randSource := rand.New(rand.NewSource(time.Now().UnixNano()))
-	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-	b := make([]byte, ShortNameLength)
-	for i := range b {
-		b[i] = charset[randSource.Intn(len(charset))]
-	}
-
-	return string(b)
-}
-
-func GetShortNameGenerator() RandomStringGenerator {
-	return generator
+func GetHash(shortUrl string) string {
+	m := murmur3.Sum64([]byte(shortUrl))
+	return strconv.FormatUint(m, 10)
 }

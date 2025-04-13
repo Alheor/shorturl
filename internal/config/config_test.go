@@ -14,7 +14,7 @@ func TestLoadConfigFromFlags(t *testing.T) {
 	os.Args = append(os.Args, `-f=file-storage-path_test_value`)
 	os.Args = append(os.Args, `-d=database-dsn_test_value`)
 
-	Load(nil)
+	Load()
 
 	assert.Equal(t, `addr_test_value`, options.Addr)
 	assert.Equal(t, `base_host_test_value`, options.BaseHost)
@@ -36,7 +36,7 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	err = os.Setenv(`DATABASE_DSN`, `database-dsn_test_value`)
 	assert.NoError(t, err)
 
-	Load(nil)
+	Load()
 
 	assert.Equal(t, `addr_test_value`, options.Addr)
 	assert.Equal(t, `base_host_test_value`, options.BaseHost)
@@ -63,7 +63,7 @@ func TestPriorityLoadingConfig(t *testing.T) {
 	err = os.Setenv(`DATABASE_DSN`, `database-dsn_test_value_from_env`)
 	assert.NoError(t, err)
 
-	Load(nil)
+	Load()
 
 	assert.Equal(t, `addr_test_value_from_env`, options.Addr)
 	assert.Equal(t, `base_host_test_value_from_env`, options.BaseHost)

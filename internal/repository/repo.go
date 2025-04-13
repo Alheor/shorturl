@@ -21,17 +21,17 @@ type Repository interface {
 	RemoveByOriginalURL(ctx context.Context, url string) error
 }
 
-func Init(ctx context.Context, repository Repository) error {
+func Init(ctx context.Context, config *config.Options, repository Repository) error {
 
 	if repository != nil {
 		repo = repository
 		return nil
 	}
 
-	if config.GetOptions().DatabaseDsn != `` {
+	if config.DatabaseDsn != `` {
 		logger.Info(`Repository starting in database mode`)
 
-		db, err := pgxpool.New(ctx, config.GetOptions().DatabaseDsn)
+		db, err := pgxpool.New(ctx, config.DatabaseDsn)
 
 		if err != nil {
 			return err
@@ -42,14 +42,17 @@ func Init(ctx context.Context, repository Repository) error {
 		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
 		defer cancel()
 
-		createDBSchema(schemaCtx, db)
+		err = createDBSchema(schemaCtx, db)
+		if err != nil {
+			return err
+		}
 
-	} else if config.GetOptions().FileStoragePath != `` {
+	} else if config.FileStoragePath != `` {
 		logger.Info(`Repository starting in file mode`)
 
 		fRepo := &FileRepo{list: make(map[string]string)}
 
-		err := fRepo.Load(ctx, config.GetOptions().FileStoragePath)
+		err := fRepo.Load(ctx, config.FileStoragePath)
 		if err != nil {
 			return err
 		}

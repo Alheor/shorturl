@@ -11,6 +11,12 @@ import (
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
+var baseHost string
+
+func Init(config *config.Options) {
+	baseHost = config.BaseHost
+}
+
 func Add(ctx context.Context, URL string) (string, error) {
 
 	var err error
@@ -38,13 +44,12 @@ func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.A
 	defer cancel()
 
 	list := make([]models.BatchEl, 0, len(batch))
-	snGen := urlhasher.GetShortNameGenerator()
 
 	for _, v := range batch {
 		list = append(list, models.BatchEl{
 			CorrelationID: v.CorrelationID,
 			OriginalURL:   v.OriginalURL,
-			ShortURL:      snGen.Generate(),
+			ShortURL:      urlhasher.GetHash(v.OriginalURL),
 		})
 	}
 
@@ -57,7 +62,7 @@ func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.A
 	for _, v := range list {
 		resList = append(resList, models.APIBatchResponseEl{
 			CorrelationID: v.CorrelationID,
-			ShortURL:      config.GetOptions().BaseHost + `/` + v.ShortURL,
+			ShortURL:      baseHost + `/` + v.ShortURL,
 		})
 	}
 

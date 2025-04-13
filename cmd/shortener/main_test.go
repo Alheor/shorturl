@@ -15,8 +15,8 @@ import (
 	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/urlhasher"
-	"github.com/Alheor/shorturl/internal/urlhasher/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,21 +37,22 @@ type testData struct {
 }
 
 func TestAddUrl(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = os.Remove(config.GetOptions().FileStoragePath)
+	err = os.Remove(cfg.FileStoragePath)
 	require.NoError(t, err)
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -62,7 +63,7 @@ func TestAddUrl(t *testing.T) {
 			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusCreated,
-				response: config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate(),
+				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
 				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			},
 		},
@@ -78,7 +79,7 @@ func TestAddUrl(t *testing.T) {
 			},
 			want: want{
 				code:     http.StatusConflict,
-				response: config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate(),
+				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeTextPlain,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
@@ -132,21 +133,22 @@ func TestAddUrl(t *testing.T) {
 }
 
 func TestGetUrl(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	err = os.Remove(config.GetOptions().FileStoragePath)
+	err = os.Remove(cfg.FileStoragePath)
 	require.NoError(t, err)
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	_, err = repository.GetRepository().Add(ctx, targetURL+`/test`)
 	require.NoError(t, err)
@@ -154,7 +156,7 @@ func TestGetUrl(t *testing.T) {
 	tests := []testData{
 		{
 			name:    "get url by short name success",
-			URL:     `/` + urlhasher.GetShortNameGenerator().Generate(),
+			URL:     `/` + urlhasher.GetHash(targetURL+`/test`),
 			method:  http.MethodGet,
 			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
@@ -164,7 +166,7 @@ func TestGetUrl(t *testing.T) {
 		},
 		{
 			name:   "get url by short name success with gzip compression",
-			URL:    `/` + urlhasher.GetShortNameGenerator().Generate(),
+			URL:    `/` + urlhasher.GetHash(targetURL+`/test`),
 			method: http.MethodGet,
 			headers: map[string]string{
 				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
@@ -227,13 +229,18 @@ func TestGetUrl(t *testing.T) {
 }
 
 func TestGetPing(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	tests := []testData{
@@ -280,21 +287,21 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-	config.Load(&cfg)
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	err = repository.GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`/test`)
 	require.NoError(t, err)
@@ -311,7 +318,7 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			want: want{
 				code:     http.StatusConflict,
-				response: config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate(),
+				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
 				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			},
 		},

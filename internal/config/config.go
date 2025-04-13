@@ -23,16 +23,7 @@ func init() {
 	flag.StringVar(&options.DatabaseDsn, `d`, ``, "database dsn")
 }
 
-func GetOptions() Options {
-	return options
-}
-
-func Load(opts *Options) {
-
-	if opts != nil {
-		options = *opts
-		return
-	}
+func Load() Options {
 
 	flag.Parse()
 
@@ -47,4 +38,6 @@ func Load(opts *Options) {
 	println(`base host: ` + options.BaseHost)
 	println(`file storage path: ` + options.FileStoragePath)
 	println(`database dsn: ` + options.DatabaseDsn)
+
+	return options
 }

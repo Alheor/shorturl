@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
@@ -15,8 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-const tableName = `short_url`
 
 // PostgresRepo connection structure
 type PostgresRepo struct {
@@ -29,10 +26,10 @@ func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	hash := urlhasher.GetShortNameGenerator().Generate()
+	hash := urlhasher.GetHash(name)
 
 	_, err := pg.Conn.Exec(ctx,
-		"INSERT INTO "+tableName+" (short_key, original_url) VALUES (@shortKey, @originalURL)",
+		"INSERT INTO short_url (short_key, original_url) VALUES (@shortKey, @originalURL)",
 		pgx.NamedArgs{"shortKey": hash, "originalURL": name},
 	)
 
@@ -40,7 +37,7 @@ func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			row := pg.Conn.QueryRow(ctx,
-				"SELECT short_key FROM "+tableName+" WHERE original_url=@originalUrl",
+				"SELECT short_key FROM short_url WHERE original_url=@originalUrl",
 				pgx.NamedArgs{"originalUrl": name},
 			)
 
@@ -74,7 +71,7 @@ func (pg *PostgresRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) er
 
 	_, err = pg.Conn.CopyFrom(
 		ctx,
-		pgx.Identifier{tableName},
+		pgx.Identifier{`short_url`},
 		[]string{"short_key", "original_url"},
 		pgx.CopyFromRows(entries),
 	)
@@ -96,7 +93,7 @@ func (pg *PostgresRepo) GetByShortName(ctx context.Context, name string) (string
 	var originalURL string
 
 	row := pg.Conn.QueryRow(ctx,
-		"SELECT original_url FROM "+tableName+" WHERE short_key=@shortKey",
+		"SELECT original_url FROM short_url WHERE short_key=@shortKey",
 		pgx.NamedArgs{"shortKey": name},
 	)
 
@@ -122,26 +119,28 @@ func (pg *PostgresRepo) IsReady(ctx context.Context) bool {
 func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, originalURL string) error {
 
 	_, err := pg.Conn.Exec(ctx,
-		"DELETE FROM "+tableName+" WHERE original_url=@original_url",
+		"DELETE FROM short_url WHERE original_url=@original_url",
 		pgx.NamedArgs{"original_url": originalURL},
 	)
 
 	return err
 }
 
-func createDBSchema(ctx context.Context, conn *pgxpool.Pool) {
+func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 
 	_, err := conn.Exec(ctx, `
-		CREATE TABLE IF NOT EXISTS `+tableName+` (
+		CREATE TABLE IF NOT EXISTS short_url (
 		    id SERIAL NOT NULL PRIMARY KEY,
-		    short_key varchar(`+strconv.Itoa(urlhasher.ShortNameLength)+`) UNIQUE NOT NULL,
+		    short_key varchar(`+strconv.Itoa(urlhasher.HashLength)+`) UNIQUE NOT NULL,
 		    original_url text NOT NULL 
 		);
 
-		CREATE UNIQUE INDEX IF NOT EXISTS `+tableName+`_original_url_unique_idx ON `+tableName+` (original_url);
+		CREATE UNIQUE INDEX IF NOT EXISTS short_url_original_url_unique_idx ON short_url (original_url);
 	`)
 
 	if err != nil {
-		logger.Error(`create schema db error`, err)
+		return err
 	}
+
+	return nil
 }

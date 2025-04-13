@@ -9,7 +9,6 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
-	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,15 +21,13 @@ func TestDBGetUrlNotExists(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	url, err := GetRepository().GetByShortName(ctx, `any_url`)
@@ -45,15 +42,13 @@ func TestDBAddURLAndGetURLSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`1`)
@@ -89,15 +84,13 @@ func TestDBAddBatchSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`1`)
@@ -132,22 +125,22 @@ func TestDBIsReadySuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-	config.Load(&cfg)
-
-	urlhasher.Init(nil)
+	cfg := config.Load()
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = Init(ctx, nil)
+	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
 	assert.True(t, GetRepository().IsReady(ctx))
 }
 
 func TestDBIsReadyFail(t *testing.T) {
-	urlhasher.Init(nil)
+
+	cfg := config.Load()
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -155,7 +148,7 @@ func TestDBIsReadyFail(t *testing.T) {
 	mockRepo := new(mocks.MockPostgres)
 	mockRepo.On("IsReady", ctx).Return(false)
 
-	err := Init(ctx, mockRepo)
+	err := Init(ctx, &cfg, mockRepo)
 	require.NoError(t, err)
 
 	assert.False(t, GetRepository().IsReady(ctx))

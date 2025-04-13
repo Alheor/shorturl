@@ -44,12 +44,7 @@ func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
 		}
 	}
 
-	//Уменьшить вероятность коллизии хэша
-	hash := urlhasher.GetShortNameGenerator().Generate()
-	if _, exists := fr.list[hash]; exists {
-		hash = urlhasher.GetShortNameGenerator().Generate()
-	}
-
+	hash := urlhasher.GetHash(name)
 	fr.list[hash] = name
 
 	data, err := json.Marshal(&URL{ID: hash, URL: name})
@@ -83,13 +78,9 @@ func (fr *FileRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error 
 
 	var data []byte
 	var err error
-	snGen := urlhasher.GetShortNameGenerator()
 
 	for _, v := range *list {
-		//Уменьшить вероятность коллизии хэша
-		if _, exists := fr.list[v.ShortURL]; exists {
-			v.ShortURL = snGen.Generate()
-		}
+		v.ShortURL = urlhasher.GetHash(v.OriginalURL)
 
 		el, err := json.Marshal(&URL{ID: v.ShortURL, URL: v.OriginalURL})
 		if err != nil {

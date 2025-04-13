@@ -17,8 +17,8 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/urlhasher"
-	"github.com/Alheor/shorturl/internal/urlhasher/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,21 +27,22 @@ import (
 const targetURL = `https://practicum.yandex.ru`
 
 func TestApiAddUrl(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = os.Remove(config.GetOptions().FileStoragePath)
+	err = os.Remove(cfg.FileStoragePath)
 	require.NoError(t, err)
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -55,7 +56,7 @@ func TestApiAddUrl(t *testing.T) {
 			URL:    `/api/shorten`,
 			want: want{
 				code:     http.StatusCreated,
-				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
+				response: `{"result":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`) + `"}`,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
@@ -73,7 +74,7 @@ func TestApiAddUrl(t *testing.T) {
 			URL:    `/api/shorten`,
 			want: want{
 				code:     http.StatusConflict,
-				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
+				response: `{"result":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`) + `"}`,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
@@ -162,18 +163,19 @@ func TestApiAddUrl(t *testing.T) {
 }
 
 func TestApiAddBatchUrlsSuccess(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -228,8 +230,8 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 
 			assert.Len(t, response, 2)
 
-			assert.Equal(t, config.GetOptions().BaseHost+`/mockStr`, response[0].ShortURL)
-			assert.Equal(t, config.GetOptions().BaseHost+`/mockStr`, response[1].ShortURL)
+			assert.Equal(t, cfg.BaseHost+`/`+urlhasher.GetHash(targetURL+`/test1`), response[0].ShortURL)
+			assert.Equal(t, cfg.BaseHost+`/`+urlhasher.GetHash(targetURL+`/test2`), response[1].ShortURL)
 
 			assert.True(t, response[0].CorrelationID == `id1` || response[0].CorrelationID == `id2`)
 			assert.True(t, response[1].CorrelationID == `id1` || response[1].CorrelationID == `id2`)
@@ -240,18 +242,19 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 }
 
 func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -274,7 +277,7 @@ func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
 			name:    `API get url success`,
 			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
 			method:  http.MethodPost,
-			URL:     `/` + urlhasher.GetShortNameGenerator().Generate(),
+			URL:     `/` + urlhasher.GetHash(targetURL+`/test1`),
 			want: want{
 				code:    http.StatusTemporaryRedirect,
 				headers: map[string]string{httphandler.HeaderLocation: targetURL + `/test1`},
@@ -321,18 +324,19 @@ func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
 }
 
 func TestApiAddBatchUrlsError(t *testing.T) {
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	tests := []testData{
 		{
@@ -466,21 +470,21 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	cfg := config.Load()
+
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	cfg := config.Options{DatabaseDsn: `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`}
-	config.Load(&cfg)
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = repository.Init(ctx, nil)
+	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
-
-	mockRepo := new(mocks.MockShortName)
-	mockRepo.On("Generate").Return(`mockStr`)
-	urlhasher.Init(mockRepo)
 
 	err = repository.GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`/test`)
 	require.NoError(t, err)
@@ -500,7 +504,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 			URL:    `/api/shorten`,
 			want: want{
 				code:     http.StatusConflict,
-				response: `{"result":"` + config.GetOptions().BaseHost + `/` + urlhasher.GetShortNameGenerator().Generate() + `"}`,
+				response: `{"result":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`) + `"}`,
 				headers: map[string]string{
 					httphandler.HeaderContentType:     httphandler.HeaderContentTypeJSON,
 					httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,

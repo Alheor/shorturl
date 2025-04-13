@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/service"
@@ -56,7 +55,7 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 		var uniqErr *models.UniqueErr
 		if errors.As(err, &uniqErr) {
 			response = models.APIResponse{
-				Result:     config.GetOptions().BaseHost + `/` + uniqErr.ShortKey,
+				Result:     baseHost + `/` + uniqErr.ShortKey,
 				StatusCode: http.StatusConflict,
 			}
 
@@ -70,7 +69,7 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	response = models.APIResponse{
-		Result:     config.GetOptions().BaseHost + `/` + shortURL,
+		Result:     baseHost + `/` + shortURL,
 		StatusCode: http.StatusCreated,
 	}
 
