@@ -138,9 +138,7 @@ func TestDBIsReadySuccess(t *testing.T) {
 }
 
 func TestDBIsReadyFail(t *testing.T) {
-
 	cfg := config.Load()
-	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

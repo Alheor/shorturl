@@ -44,6 +44,9 @@ func TestRepoRunInFileMode(t *testing.T) {
 }
 
 func TestRepoRunInDBMode(t *testing.T) {
+
+	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 

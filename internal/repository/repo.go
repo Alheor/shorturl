@@ -29,7 +29,7 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 	}
 
 	if config.DatabaseDsn != `` {
-		logger.Info(`Repository starting in database mode ` + config.DatabaseDsn)
+		logger.Info(`Repository starting in database mode`)
 
 		db, err := pgxpool.New(ctx, config.DatabaseDsn)
 
