@@ -9,7 +9,7 @@ import (
 // HashLength hash length
 const HashLength = 20
 
-func GetHash(shortUrl string) string {
-	m := murmur3.Sum64([]byte(shortUrl))
+func GetHash(URL string) string {
+	m := murmur3.Sum64([]byte(URL))
 	return strconv.FormatUint(m, 10)
 }
