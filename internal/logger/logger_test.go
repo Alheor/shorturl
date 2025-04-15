@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Alheor/shorturl/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,10 +22,6 @@ type logResult struct {
 	Duration string `json:"duration"`
 	Status   int    `json:"status"`
 	Size     int    `json:"size"`
-}
-
-type MemorySink struct {
-	*bytes.Buffer
 }
 
 func (s *MemorySink) Close() error { return nil }
@@ -68,11 +63,11 @@ func runTests(t *testing.T, tests []test) {
 		return sink, nil
 	})
 	require.NoError(t, err)
-	config.Load()
 
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{"memory://"}
-	Init(&cfg)
+	err = Init(&cfg)
+	require.NoError(t, err)
 
 	ts := httptest.NewServer(getRoutes())
 	defer ts.Close()

@@ -1,144 +1,73 @@
 package repository
 
 import (
-	"bufio"
-	"encoding/json"
-	"os"
-	"sync"
+	"context"
+	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
-	"github.com/Alheor/shorturl/internal/urlhasher"
+	"github.com/Alheor/shorturl/internal/models"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type URL struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+var repo Repository
+
+type Repository interface {
+	Add(ctx context.Context, name string) (string, error)
+	AddBatch(ctx context.Context, list *[]models.BatchEl) error
+	GetByShortName(ctx context.Context, name string) (string, error)
+	IsReady(ctx context.Context) bool
+	RemoveByOriginalURL(ctx context.Context, url string) error
 }
 
-type URLMap struct {
-	list map[string]string
-	file *os.File
-	sync.RWMutex
-}
+func Init(ctx context.Context, config *config.Options, repository Repository) error {
 
-var urlMap *URLMap
-
-func Init() error {
-	if urlMap != nil {
-		urlMap = nil
-	}
-
-	urlMap = &URLMap{list: make(map[string]string)}
-
-	err := load(urlMap, config.GetOptions().FileStoragePath)
-	if err != nil {
-		return err
-	}
-
-	file, err := os.OpenFile(config.GetOptions().FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
-
-	urlMap.file = file
-
-	return nil
-}
-
-func GetRepository() *URLMap {
-	if urlMap == nil {
-		logger.Fatal(`uninitialized repository`, nil)
-	}
-
-	return urlMap
-}
-
-// Add Добавить URL
-func (sn *URLMap) Add(name string) (*string, error) {
-
-	sn.Lock()
-	defer sn.Unlock()
-
-	//Обработка существующих URL
-	for hash, el := range urlMap.list {
-		if el == name {
-			return &hash, nil
-		}
-	}
-
-	//Уменьшить вероятность коллизии хэша
-	hash := urlhasher.ShortNameGenerator.Generate()
-	if _, exists := urlMap.list[hash]; exists {
-		hash = urlhasher.ShortNameGenerator.Generate()
-	}
-
-	urlMap.list[hash] = name
-
-	data, err := json.Marshal(&URL{ID: hash, URL: name})
-	if err != nil {
-		logger.Error(`marshal error`, err)
-		return nil, err
-	}
-
-	data = append(data, '\n')
-
-	_, err = sn.file.Write(data)
-	if err != nil {
-		logger.Error(`file write error`, err)
-		return nil, err
-	}
-
-	return &hash, nil
-}
-
-// GetByShortName получить URL по короткому имени
-func (sn *URLMap) GetByShortName(name string) *string {
-
-	sn.RLock()
-	defer sn.RUnlock()
-
-	el, exists := urlMap.list[name]
-	if !exists {
+	if repository != nil {
+		repo = repository
 		return nil
 	}
 
-	return &el
-}
+	if config.DatabaseDsn != `` {
+		logger.Info(`Repository starting in database mode`)
 
-// IsReady готовность репозитория
-func (sn *URLMap) IsReady() bool {
-	return sn.file != nil
-}
+		db, err := pgxpool.New(ctx, config.DatabaseDsn)
 
-func load(um *URLMap, path string) error {
-
-	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-
-	um.Lock()
-	defer um.Unlock()
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		data := scanner.Bytes()
-
-		el := URL{}
-		err = json.Unmarshal(data, &el)
 		if err != nil {
-			continue
+			return err
 		}
 
-		um.list[el.ID] = el.URL
-	}
+		repo = &PostgresRepo{Conn: db}
 
-	err = file.Close()
-	if err != nil {
-		return err
+		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
+		defer cancel()
+
+		err = createDBSchema(schemaCtx, db)
+		if err != nil {
+			return err
+		}
+
+	} else if config.FileStoragePath != `` {
+		logger.Info(`Repository starting in file mode`)
+
+		fRepo := &FileRepo{list: make(map[string]string)}
+
+		err := fRepo.Load(ctx, config.FileStoragePath)
+		if err != nil {
+			return err
+		}
+
+		repo = fRepo
+
+	} else {
+		logger.Info(`Repository starting in memory mode`)
+
+		repo = &MemoryRepo{list: make(map[string]string)}
 	}
 
 	return nil
+}
+
+func GetRepository() Repository {
+	return repo
 }

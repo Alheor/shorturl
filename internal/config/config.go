@@ -11,31 +11,33 @@ type Options struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseHost        string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDsn     string `env:"DATABASE_DSN"`
 }
 
-var opts Options
+var options Options
 
 func init() {
-	flag.StringVar(&opts.Addr, `a`, `localhost:8080`, "listen host/ip:port")
-	flag.StringVar(&opts.BaseHost, `b`, `http://localhost:8080`, "base host")
-	flag.StringVar(&opts.FileStoragePath, `f`, `/tmp/short-url.json`, "Path to storage file")
+	flag.StringVar(&options.Addr, `a`, `localhost:8080`, "listen host/ip:port")
+	flag.StringVar(&options.BaseHost, `b`, `http://localhost:8080`, "base host")
+	flag.StringVar(&options.FileStoragePath, `f`, `/tmp/short-url.json`, "Path to storage file")
+	flag.StringVar(&options.DatabaseDsn, `d`, ``, "database dsn")
 }
 
-func GetOptions() Options {
-	return opts
-}
+func Load() Options {
 
-func Load() {
 	flag.Parse()
 
-	err := env.Parse(&opts)
+	err := env.Parse(&options)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	println(`--- Loaded configuration ---`)
 
-	println(`listen: ` + opts.Addr)
-	println(`base host: ` + opts.BaseHost)
-	println(`file storage path: ` + opts.FileStoragePath)
+	println(`listen: ` + options.Addr)
+	println(`base host: ` + options.BaseHost)
+	println(`file storage path: ` + options.FileStoragePath)
+	println(`database dsn: ` + options.DatabaseDsn)
+
+	return options
 }

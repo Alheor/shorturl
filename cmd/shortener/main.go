@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
+	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/router"
+	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/shutdown"
-	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"go.uber.org/zap"
 )
@@ -24,6 +25,7 @@ func main() {
 
 	defer func() {
 		if err := recover(); err != nil {
+			logger.Error(``, err.(error))
 			logger.Sync()
 		}
 	}()
@@ -32,8 +34,7 @@ func main() {
 	defer stop()
 
 	shutdown.Init()
-	config.Load()
-	urlhasher.Init()
+	cfg := config.Load()
 
 	var err error
 
@@ -42,25 +43,28 @@ func main() {
 		panic(err)
 	}
 
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
 	shutdown.GetCloser().Add(func(ctx context.Context) error {
 		logger.Sync()
 		return nil
 	})
 
-	err = repository.Init()
+	err = repository.Init(ctx, &cfg, nil)
 	if err != nil {
 		logger.Fatal(`error while initialize repository`, err)
 	}
 
 	srv := &http.Server{
-		Addr:    config.GetOptions().Addr,
+		Addr:    cfg.Addr,
 		Handler: router.GetRoutes(),
 	}
 
 	shutdown.GetCloser().Add(srv.Shutdown)
 
 	go func() {
-		logger.Info("Starting server", zap.String("addr", config.GetOptions().Addr))
+		logger.Info("Starting server", zap.String("addr", cfg.Addr))
 
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal(`error while starting http server`, err)
