@@ -15,6 +15,7 @@ import (
 	"github.com/Alheor/shorturl/internal/router"
 	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/shutdown"
+	"github.com/Alheor/shorturl/internal/userauth"
 
 	"go.uber.org/zap"
 )
@@ -43,6 +44,15 @@ func main() {
 		panic(err)
 	}
 
+	if cfg.SignatureKey == config.DefaultLSignatureKey {
+		logger.Error(`Used default signature key! Please change the key!`, nil)
+	}
+
+	if len(cfg.SignatureKey) == 0 {
+		logger.Fatal(`Signature key is empty`, nil)
+	}
+
+	userauth.Init(&cfg)
 	httphandler.Init(&cfg)
 	service.Init(&cfg)
 

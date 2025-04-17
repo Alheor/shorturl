@@ -11,12 +11,12 @@ import (
 
 // MemoryRepo structure
 type MemoryRepo struct {
-	list map[string]string
+	list map[string]map[string]string
 	sync.RWMutex
 }
 
 // Add Добавить URL
-func (fr *MemoryRepo) Add(ctx context.Context, name string) (string, error) {
+func (fr *MemoryRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
 
 	select {
 	case <-ctx.Done():
@@ -27,21 +27,27 @@ func (fr *MemoryRepo) Add(ctx context.Context, name string) (string, error) {
 	fr.Lock()
 	defer fr.Unlock()
 
+	if fr.list[user.ID] == nil {
+		fr.list[user.ID] = make(map[string]string)
+	}
+
+	urls := fr.list[user.ID]
+
 	//Обработка существующих URL
-	for hash, el := range fr.list {
+	for hash, el := range urls {
 		if el == name {
 			return ``, &models.UniqueErr{Err: errors.New("url already exists"), ShortKey: hash}
 		}
 	}
 
 	hash := urlhasher.GetHash(name)
-	fr.list[hash] = name
+	urls[hash] = name
 
 	return hash, nil
 }
 
 // AddBatch Добавить URL пачкой
-func (fr *MemoryRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error {
+func (fr *MemoryRepo) AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error {
 
 	select {
 	case <-ctx.Done():
@@ -52,15 +58,21 @@ func (fr *MemoryRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) erro
 	fr.Lock()
 	defer fr.Unlock()
 
+	if fr.list[user.ID] == nil {
+		fr.list[user.ID] = make(map[string]string)
+	}
+
+	urls := fr.list[user.ID]
+
 	for _, v := range *list {
-		fr.list[v.ShortURL] = v.OriginalURL
+		urls[v.ShortURL] = v.OriginalURL
 	}
 
 	return nil
 }
 
 // GetByShortName получить URL по короткому имени
-func (fr *MemoryRepo) GetByShortName(ctx context.Context, name string) (string, error) {
+func (fr *MemoryRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, error) {
 
 	select {
 	case <-ctx.Done():
@@ -71,7 +83,12 @@ func (fr *MemoryRepo) GetByShortName(ctx context.Context, name string) (string, 
 	fr.RLock()
 	defer fr.RUnlock()
 
-	el, exists := fr.list[name]
+	urls, exists := fr.list[user.ID]
+	if !exists {
+		return ``, nil
+	}
+
+	el, exists := urls[name]
 	if !exists {
 		return ``, nil
 	}
@@ -90,6 +107,6 @@ func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 	return fr.list != nil
 }
 
-func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, url string) error {
+func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from memory repository not supported`)
 }

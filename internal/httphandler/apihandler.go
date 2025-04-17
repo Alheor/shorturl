@@ -12,6 +12,7 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/service"
+	"github.com/Alheor/shorturl/internal/userauth"
 )
 
 func AddShorten(resp http.ResponseWriter, req *http.Request) {
@@ -49,8 +50,15 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		response = models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized}
+		sendAPIResponse(resp, &response)
+		return
+	}
+
 	var shortURL string
-	if shortURL, err = service.Add(ctx, request.URL); err != nil {
+	if shortURL, err = service.Add(ctx, user, request.URL); err != nil {
 
 		var uniqErr *models.UniqueErr
 		if errors.As(err, &uniqErr) {
@@ -100,7 +108,7 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 
 	for _, v := range request {
 		if _, err = url.ParseRequestURI(v.OriginalURL); err != nil {
-			sendAPIResponse(resp, &models.APIResponse{Error: `Url ` + v.OriginalURL + `invalid`, StatusCode: http.StatusBadRequest})
+			sendAPIResponse(resp, &models.APIResponse{Error: `Url '` + v.OriginalURL + `' invalid`, StatusCode: http.StatusBadRequest})
 			return
 		}
 
@@ -110,7 +118,16 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	response, err = service.AddBatch(req.Context(), request)
+	ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+	defer cancel()
+
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	response, err = service.AddBatch(ctx, user, request)
 	if err != nil {
 		logger.Error(`Add batch error`, err)
 		resp.WriteHeader(http.StatusInternalServerError)

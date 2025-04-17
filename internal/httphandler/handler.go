@@ -13,6 +13,7 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/service"
+	"github.com/Alheor/shorturl/internal/userauth"
 )
 
 const (
@@ -76,9 +77,15 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 
-	shortURL, err := service.Add(ctx, URL)
+	shortURL, err := service.Add(ctx, user, URL)
 	if err != nil {
 
 		var uniqErr *models.UniqueErr
@@ -120,7 +127,13 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
-	URL := service.Get(ctx, shortName)
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	URL := service.Get(ctx, user, shortName)
 	if len(URL) == 0 {
 		http.Error(resp, `Unknown identifier`, http.StatusBadRequest)
 		return
