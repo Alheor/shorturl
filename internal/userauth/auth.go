@@ -64,6 +64,7 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 			)
 		}
 		println(userCookie.User.ID)
+
 		ctxWithUser := context.WithValue(req.Context(), models.ContextValueName, &userCookie.User)
 		f(resp, req.Clone(ctxWithUser))
 	}
