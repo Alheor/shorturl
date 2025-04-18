@@ -17,6 +17,8 @@ import (
 
 func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
+	logger.Info(`Used "AddShorten" handler`)
+
 	var body []byte
 	var err error
 	var request models.APIRequest
@@ -85,6 +87,9 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 }
 
 func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
+
+	logger.Info(`Used "AddShortenBatch" handler`)
+
 	var body []byte
 	var err error
 	var request []models.APIBatchRequestEl
@@ -153,6 +158,8 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 }
 
 func GetALlShorten(resp http.ResponseWriter, req *http.Request) {
+
+	logger.Info(`Used "GetALlShorten" handler`)
 
 	var response models.APIResponse
 

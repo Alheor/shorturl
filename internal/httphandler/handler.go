@@ -54,6 +54,8 @@ func Init(config *config.Options) {
 // AddURL контроллер добавления URL
 func AddURL(resp http.ResponseWriter, req *http.Request) {
 
+	logger.Info(`Used "AddURL" handler`)
+
 	var body []byte
 	var err error
 
@@ -118,6 +120,8 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 // GetURL контроллер получения URL по короткому имени
 func GetURL(resp http.ResponseWriter, req *http.Request) {
 
+	logger.Info(`Used "GetURL" handler`)
+
 	shortName := strings.TrimLeft(strings.TrimSpace(req.RequestURI), `/`)
 	if len(shortName) == 0 {
 		http.Error(resp, `Identifier required`, http.StatusBadRequest)
@@ -144,6 +148,9 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 }
 
 func Ping(resp http.ResponseWriter, req *http.Request) {
+
+	logger.Info(`Used "Ping" handler`)
+
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
