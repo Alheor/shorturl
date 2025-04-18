@@ -83,7 +83,7 @@ func main() {
 
 	<-ctx.Done()
 
-	println("shutting down ...")
+	logger.Info("shutting down ...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
