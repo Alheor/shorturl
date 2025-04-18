@@ -26,7 +26,6 @@ func GetRoutes() chi.Router {
 	r.Get(`/api/user/urls`,
 		middlewareConveyor(httphandler.GetALlShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
-	println(`load route /`)
 	r.Post(`/`,
 		middlewareConveyor(httphandler.AddURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
