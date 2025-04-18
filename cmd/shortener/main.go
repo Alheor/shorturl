@@ -83,6 +83,8 @@ func main() {
 
 	<-ctx.Done()
 
+	time.Sleep(2 * time.Second)
+
 	logger.Info("shutting down ...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
