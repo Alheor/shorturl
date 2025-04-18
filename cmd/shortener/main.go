@@ -83,12 +83,10 @@ func main() {
 
 	<-ctx.Done()
 
-	time.Sleep(2 * time.Second)
-
 	logger.Info("shutting down ...")
+	//
+	//shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	//defer cancel()
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-
-	shutdown.GetCloser().Close(shutdownCtx)
+	//shutdown.GetCloser().Close(shutdownCtx)
 }
