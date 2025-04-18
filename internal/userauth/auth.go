@@ -37,7 +37,6 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 		var err error
 
 		for _, cookie := range req.Cookies() {
-			println(`incoming cookie: ` + cookie.Value)
 			if cookie.Name == models.CookiesName {
 				userCookie, err = parseCookie(cookie)
 				break
@@ -57,7 +56,6 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 			userCookie = getUserCookie()
 			cookieValue := string(userCookie.Sign) + userCookie.User.ID
 
-			println(`set cookie to user: ` + userCookie.User.ID)
 			http.SetCookie(resp,
 				&http.Cookie{
 					Name:  models.CookiesName,

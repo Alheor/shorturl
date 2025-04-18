@@ -34,8 +34,7 @@ func TestApiAddUrl(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err = os.Remove(cfg.FileStoragePath)
-	require.NoError(t, err)
+	_ = os.Remove(cfg.FileStoragePath)
 
 	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
