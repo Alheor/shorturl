@@ -37,7 +37,6 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 		var err error
 
 		for _, cookie := range req.Cookies() {
-			println(cookie.Name)
 			if cookie.Name == models.CookiesName {
 				userCookie, err = parseCookie(cookie)
 				break
@@ -64,7 +63,6 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 				},
 			)
 		}
-		println(userCookie.User.ID)
 
 		ctxWithUser := context.WithValue(req.Context(), models.ContextValueName, &userCookie.User)
 		f(resp, req.Clone(ctxWithUser))
@@ -74,12 +72,12 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 func parseCookie(cookie *http.Cookie) (userCookie *models.UserCookie, error error) {
 
 	if len(cookie.Value) < sha256.Size {
-		return nil, &models.EmptyUserIDErr{Err: nil}
+		return nil, nil
 	}
 
 	cookieValue, err := base64.StdEncoding.DecodeString(cookie.Value)
 	if err != nil {
-		return nil, &models.EmptyUserIDErr{Err: err}
+		return nil, nil
 	}
 
 	signature := cookieValue[:sha256.Size]
@@ -92,7 +90,7 @@ func parseCookie(cookie *http.Cookie) (userCookie *models.UserCookie, error erro
 	expectedSignature := GetSignature(value.String())
 
 	if !hmac.Equal(signature, expectedSignature) {
-		return nil, errors.New(`invalid signature`)
+		return nil, nil
 	}
 
 	return &models.UserCookie{User: models.User{ID: value.String()}, Sign: signature}, nil

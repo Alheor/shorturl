@@ -458,7 +458,7 @@ func TestApiGetAllUrlsError(t *testing.T) {
 			URL:    `/api/user/urls`,
 			cookie: &http.Cookie{
 				Name:  models.CookiesName,
-				Value: `invalid value`,
+				Value: `aW52YWxpZF92YWx1ZV9pbnZhbGlkX3ZhbHVlX2ludmFsaWRfdmFsdWUK`,
 			},
 			want: want{
 				code:     http.StatusUnauthorized,

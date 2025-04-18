@@ -76,6 +76,44 @@ func TestFileAddURLAndGetURLSuccess(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestFileAddURLAndGetAllURLSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	cfg := config.Load()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(cfg.FileStoragePath)
+
+	err = Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
+	shortsList := make(map[string]string)
+
+	for _, val := range urlList {
+		hash, err := GetRepository().Add(ctx, user, val)
+		require.NoError(t, err)
+
+		shortsList[hash] = val
+	}
+
+	list, err := GetRepository().GetAll(ctx, user)
+	require.NoError(t, err)
+
+	storageList := *list
+	for sourceHash, _ := range shortsList {
+		_, exists := storageList[sourceHash]
+		assert.True(t, exists)
+
+	}
+
+	err = os.Remove(cfg.FileStoragePath)
+	require.NoError(t, err)
+}
+
 func TestFileAddExistsURLFileSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
