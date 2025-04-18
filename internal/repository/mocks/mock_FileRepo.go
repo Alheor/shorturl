@@ -39,3 +39,8 @@ func (m *MockFileRepo) RemoveByOriginalURL(ctx context.Context, user *models.Use
 	args := m.Called(ctx, user, originalURL)
 	return args.Error(0)
 }
+
+func (m *MockFileRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+	args := m.Called(ctx, user)
+	return &map[string]string{}, args.Error(0)
+}

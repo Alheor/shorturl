@@ -152,6 +152,56 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func GetALlShorten(resp http.ResponseWriter, req *http.Request) {
+
+	var response models.APIResponse
+
+	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+	defer cancel()
+
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		response = models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized}
+		sendAPIResponse(resp, &response)
+		return
+	}
+
+	list, err := service.GetAll(ctx, user)
+	if err != nil {
+
+		var notFound *models.HistoryNotFoundErr
+		if errors.As(err, &notFound) {
+			resp.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		logger.Error(`Get all urls error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if len(*list) == 0 {
+		resp.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	rawByte, err := json.Marshal(list)
+	if err != nil {
+		logger.Error(`response marshal error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
+	resp.WriteHeader(http.StatusOK)
+
+	_, err = resp.Write(rawByte)
+	if err != nil {
+		logger.Error(`write response error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 func sendAPIResponse(respWr http.ResponseWriter, resp *models.APIResponse) {
 	rawByte, err := json.Marshal(resp)
 	if err != nil {

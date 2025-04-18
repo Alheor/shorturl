@@ -13,6 +13,7 @@ import (
 )
 
 var repo Repository
+var Connection *pgxpool.Pool
 
 type Repository interface {
 	Add(ctx context.Context, user *models.User, name string) (string, error)
@@ -20,6 +21,7 @@ type Repository interface {
 	GetByShortName(ctx context.Context, user *models.User, name string) (string, error)
 	IsReady(ctx context.Context) bool
 	RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error
+	GetAll(ctx context.Context, user *models.User) (*map[string]string, error)
 }
 
 func Init(ctx context.Context, config *config.Options, repository Repository) error {
@@ -32,20 +34,19 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 	if config.DatabaseDsn != `` {
 		logger.Info(`Repository starting in database mode`)
 
-		var db *pgxpool.Pool
 		var err error
 
-		if db, err = pgxpool.New(ctx, config.DatabaseDsn); err != nil {
+		if Connection, err = pgxpool.New(ctx, config.DatabaseDsn); err != nil {
 			return err
 		}
 
 		logger.Info(`Running migrations ...`)
 
-		if err = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err != nil {
+		if err = goose.Up(stdlib.OpenDBFromPool(Connection), "./internal/migrations"); err != nil {
 			logger.Error(`run migrations error: `, err)
 		}
 
-		repo = &PostgresRepo{Conn: db}
+		repo = &PostgresRepo{Conn: Connection}
 
 		logger.Info(`done`)
 

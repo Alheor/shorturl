@@ -110,3 +110,22 @@ func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from memory repository not supported`)
 }
+
+func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	fr.RLock()
+	defer fr.RUnlock()
+
+	list, exists := fr.list[user.ID]
+	if !exists {
+		return nil, &models.HistoryNotFoundErr{}
+	}
+
+	return &list, nil
+}

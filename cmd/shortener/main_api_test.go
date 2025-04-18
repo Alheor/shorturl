@@ -345,7 +345,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	err = repository.GetRepository().RemoveByOriginalURL(context.Background(), user, targetURL+`/test`)
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
 	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test`)
@@ -367,6 +367,117 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 				headers: map[string]string{
 					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
 				},
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestApiGetAllUrlsFromDBSuccess(t *testing.T) {
+
+	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
+	cfg := config.Load()
+
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test1`)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test2`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name: `API get all urls success`,
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/api/user/urls`,
+			cookie: getCookie(),
+			want: want{
+				code:     http.StatusOK,
+				response: `[{"original_url":"` + targetURL + `/test1","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test1`) + `"},{"original_url":"` + targetURL + `/test2","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test2`) + `"}]`,
+				headers: map[string]string{
+					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				},
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestApiGetAllUrlsError(t *testing.T) {
+
+	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
+	cfg := config.Load()
+
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name: `API get all urls without user`,
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/api/user/urls`,
+			cookie: &http.Cookie{
+				Name:  models.CookiesName,
+				Value: `invalid value`,
+			},
+			want: want{
+				code:     http.StatusUnauthorized,
+				response: `{"error":"Unauthorized"}`,
+				headers: map[string]string{
+					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				},
+			},
+		},
+		{
+			name: `API get all urls empty list`,
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/api/user/urls`,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusNoContent,
 			},
 		},
 	}

@@ -123,3 +123,45 @@ func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, user *models.Us
 
 	return err
 }
+
+func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+
+	rows, err := pg.Conn.Query(ctx,
+		"SELECT short_key, original_url FROM short_url WHERE user_id = @userId",
+		pgx.NamedArgs{"userId": user.ID},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	historyList := map[string]string{}
+	for rows.Next() {
+		var shortURL string
+		var originalURL string
+
+		err = rows.Scan(&shortURL, &originalURL)
+		if err != nil {
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return nil, err
+			}
+
+			return nil, err
+		}
+
+		historyList[shortURL] = originalURL
+	}
+
+	err = rows.Err()
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	return &historyList, nil
+}

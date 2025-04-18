@@ -152,6 +152,25 @@ func (fr *FileRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, 
 	return errors.New(`method "Remove" from file repository not supported`)
 }
 
+func (fr *FileRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	fr.RLock()
+	defer fr.RUnlock()
+
+	list, exists := fr.list[user.ID]
+	if !exists {
+		return nil, &models.HistoryNotFoundErr{}
+	}
+
+	return &list, nil
+}
+
 func (fr *FileRepo) Load(ctx context.Context, path string) error {
 
 	select {

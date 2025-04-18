@@ -65,16 +65,19 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 		}
 
 		ctxWithUser := context.WithValue(req.Context(), models.ContextValueName, &userCookie.User)
-
 		f(resp, req.Clone(ctxWithUser))
 	}
 }
 
 func parseCookie(cookie *http.Cookie) (userCookie *models.UserCookie, error error) {
 
+	if len(cookie.Value) < sha256.Size {
+		return nil, &models.EmptyUserIDErr{Err: nil}
+	}
+
 	cookieValue, err := base64.StdEncoding.DecodeString(cookie.Value)
 	if err != nil {
-		return nil, errors.New(`invalid signature`)
+		return nil, &models.EmptyUserIDErr{Err: err}
 	}
 
 	signature := cookieValue[:sha256.Size]

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
@@ -67,6 +68,22 @@ func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchReq
 	}
 
 	return resList, nil
+}
+
+func GetAll(ctx context.Context, user *models.User) (*[]models.HistoryEl, error) {
+
+	list, err := repository.GetRepository().GetAll(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	history := make([]models.HistoryEl, 0, len(*list))
+	for short, originValue := range *list {
+		short = strings.TrimRight(baseHost, `/`) + `/` + short
+		history = append(history, models.HistoryEl{OriginalURL: originValue, ShortURL: short})
+	}
+
+	return &history, nil
 }
 
 func IsDBReady(ctx context.Context) bool {

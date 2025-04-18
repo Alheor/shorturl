@@ -233,7 +233,7 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	err = repository.GetRepository().RemoveByOriginalURL(context.Background(), user, targetURL+`/test`)
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
 	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test`)
