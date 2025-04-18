@@ -104,7 +104,7 @@ func TestFileAddURLAndGetAllURLSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	storageList := *list
-	for sourceHash, _ := range shortsList {
+	for sourceHash := range shortsList {
 		_, exists := storageList[sourceHash]
 		assert.True(t, exists)
 
