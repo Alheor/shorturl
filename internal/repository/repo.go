@@ -5,9 +5,9 @@ import (
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
-	"time"
-
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 )
 
 var repo Repository
@@ -37,21 +37,21 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 			return err
 		}
 
-		//logger.Info(`Running migrations ...`)
-		//
-		//if err = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err != nil {
-		//	logger.Error(`run migrations error: `, err)
-		//}
+		logger.Info(`Running migrations ...`)
+
+		if err = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err != nil {
+			logger.Error(`run migrations error: `, err)
+		}
 
 		repo = &PostgresRepo{Conn: db}
 
-		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
-		defer cancel()
-
-		err = createDBSchema(schemaCtx, db)
-		if err != nil {
-			return err
-		}
+		//schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
+		//defer cancel()
+		//
+		//err = createDBSchema(schemaCtx, db)
+		//if err != nil {
+		//	return err
+		//}
 
 	} else if config.FileStoragePath != `` {
 		logger.Info(`Repository starting in file mode`)
