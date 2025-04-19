@@ -7,11 +7,15 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// DefaultLSignatureKey signature key for user authentication
+const DefaultLSignatureKey = `40d40c8d1b5fff17e7edcabc6b2fa4ab`
+
 type Options struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseHost        string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDsn     string `env:"DATABASE_DSN"`
+	SignatureKey    string `env:"SIGNATURE_KEY"`
 }
 
 var options Options
@@ -38,6 +42,12 @@ func Load() Options {
 	println(`base host: ` + options.BaseHost)
 	println(`file storage path: ` + options.FileStoragePath)
 	println(`database dsn: ` + options.DatabaseDsn)
+
+	if options.SignatureKey == DefaultLSignatureKey {
+		println(`signature key status: used default key`)
+	} else {
+		println(`signature key status: key specified by parameter`)
+	}
 
 	return options
 }
