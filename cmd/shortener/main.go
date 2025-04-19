@@ -82,7 +82,6 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	time.Sleep(10 * time.Second)
 
 	logger.Info("shutting down ...")
 
