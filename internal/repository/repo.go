@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"time"
 )
 
 var repo Repository
@@ -43,13 +44,13 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 			panic(err1)
 		}
 
-		//schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
-		//defer cancel()
-		//
-		//err = createDBSchema(schemaCtx, db)
-		//if err != nil {
-		//	return err
-		//}
+		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
+		defer cancel()
+
+		err = createDBSchema(schemaCtx, db)
+		if err != nil {
+			return err
+		}
 
 		repo = &PostgresRepo{Conn: db}
 
