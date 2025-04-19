@@ -1,12 +1,12 @@
 -- +goose Up
-CREATE TABLE public.short_url (
+CREATE TABLE short_url (
 	id SERIAL NOT NULL PRIMARY KEY,
 	short_key varchar(8) UNIQUE NOT NULL,
 	original_url text NOT NULL
 );
 
-CREATE UNIQUE INDEX short_url_original_url_unique_idx ON  public.short_url (original_url);
+CREATE UNIQUE INDEX short_url_original_url_unique_idx ON short_url (original_url);
 
 -- +goose Down
 DROP INDEX short_url_original_url_unique_idx;
-DROP TABLE  public.short_url;
+DROP TABLE short_url;
