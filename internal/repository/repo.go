@@ -37,13 +37,13 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 			return err
 		}
 
+		repo = &PostgresRepo{Conn: db}
+
 		logger.Info(`Running migrations ...`)
 
 		if err = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err != nil {
 			logger.Error(`run migrations error: `, err)
 		}
-
-		repo = &PostgresRepo{Conn: db}
 
 		//schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
 		//defer cancel()
