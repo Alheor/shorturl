@@ -139,14 +139,14 @@ func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, user *models.Us
 func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 
 	_, err := conn.Exec(ctx, `
-		CREATE TABLE short_url (
+		CREATE TABLE IF NOT EXISTS short_url (
 		    id SERIAL NOT NULL PRIMARY KEY,
 		    user_id varchar(36) NOT NULL,
 		    short_key varchar(`+strconv.Itoa(urlhasher.HashLength)+`) UNIQUE NOT NULL,
 		    original_url text NOT NULL 
 		);
 
-		CREATE UNIQUE INDEX short_url_user_id_original_url_unique_idx ON short_url (user_id, original_url);
+		CREATE UNIQUE INDEX IF NOT EXISTS short_url_user_id_original_url_unique_idx ON short_url (user_id, original_url);
 	`)
 
 	if err != nil {
