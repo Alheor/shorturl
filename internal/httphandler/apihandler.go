@@ -52,9 +52,9 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
 	user := auth.GetUser(ctx)
 	if user == nil {
-		//response = models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized}
-		//sendAPIResponse(resp, &response)
-		//return
+		response = models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized}
+		sendAPIResponse(resp, &response)
+		return
 	}
 
 	var shortURL string
@@ -123,8 +123,8 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 
 	user := auth.GetUser(ctx)
 	if user == nil {
-		//sendAPIResponse(resp, &models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized})
-		//return
+		sendAPIResponse(resp, &models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized})
+		return
 	}
 
 	response, err = service.AddBatch(req.Context(), request)

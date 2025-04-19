@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/Alheor/shorturl/internal/auth"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -51,6 +52,7 @@ func main() {
 		logger.Fatal(`Signature key is empty`, nil)
 	}
 
+	auth.Init(&cfg)
 	httphandler.Init(&cfg)
 	service.Init(&cfg)
 
