@@ -32,6 +32,8 @@ func GetUser(ctx context.Context) *models.User {
 func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 
+		println(`123`)
+
 		var userCookie *models.UserCookie
 		var err error
 
@@ -44,6 +46,7 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 
 		if err != nil {
 			var myErr *models.EmptyUserIDErr
+			println(`321`)
 			if errors.As(err, &myErr) {
 				f(resp, req)
 				return
