@@ -79,8 +79,8 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	user := auth.GetUser(ctx)
 	if user == nil {
-		resp.WriteHeader(http.StatusUnauthorized)
-		return
+		//resp.WriteHeader(http.StatusUnauthorized)
+		//return
 	}
 
 	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
@@ -129,8 +129,8 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 
 	user := auth.GetUser(ctx)
 	if user == nil {
-		resp.WriteHeader(http.StatusUnauthorized)
-		return
+		//resp.WriteHeader(http.StatusUnauthorized)
+		//return
 	}
 
 	URL := service.Get(ctx, shortName)
