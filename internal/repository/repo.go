@@ -5,7 +5,6 @@ import (
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -41,27 +40,15 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 
 		logger.Info(`Running migrations ...`)
 
+		_ = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations")
+
 		schemaCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		tx, err := db.BeginTx(schemaCtx, pgx.TxOptions{})
+		err = createDBSchema(schemaCtx, db)
 		if err != nil {
 			return err
 		}
-
-		if err1 := goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err1 != nil {
-			panic(err1)
-		}
-
-		err = tx.Commit(schemaCtx)
-		if err != nil {
-			return err
-		}
-
-		//err = createDBSchema(schemaCtx, db)
-		//if err != nil {
-		//	return err
-		//}
 
 		repo = &PostgresRepo{Conn: db}
 
