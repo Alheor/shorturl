@@ -40,8 +40,6 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 
 		logger.Info(`Running migrations ...`)
 
-		_ = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations")
-
 		schemaCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
@@ -49,6 +47,8 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 		if err != nil {
 			return err
 		}
+
+		_ = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations")
 
 		repo = &PostgresRepo{Conn: db}
 
