@@ -2,14 +2,13 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 )
 
 var repo Repository
@@ -40,13 +39,17 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 			return err
 		}
 
-		logger.Info(`Running migrations ...`)
-
-		if err = goose.Up(stdlib.OpenDBFromPool(Connection), "./internal/migrations"); err != nil {
-			logger.Error(`run migrations error: `, err)
-		}
+		logger.Info(`Apply DB schema ...`)
 
 		repo = &PostgresRepo{Conn: Connection}
+
+		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
+		defer cancel()
+
+		err = createDBSchema(schemaCtx, Connection)
+		if err != nil {
+			return err
+		}
 
 		logger.Info(`done`)
 
