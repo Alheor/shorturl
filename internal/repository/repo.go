@@ -39,11 +39,9 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 
 		logger.Info(`Running migrations ...`)
 
-		if err = goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err != nil {
-			logger.Error(`run migrations error: `, err)
+		if err1 := goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err1 != nil {
+			panic(err1)
 		}
-
-		repo = &PostgresRepo{Conn: db}
 
 		//schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
 		//defer cancel()
@@ -52,6 +50,8 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 		//if err != nil {
 		//	return err
 		//}
+
+		repo = &PostgresRepo{Conn: db}
 
 	} else if config.FileStoragePath != `` {
 		logger.Info(`Repository starting in file mode`)
