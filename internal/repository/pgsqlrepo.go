@@ -188,7 +188,7 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 		);
 
 		CREATE UNIQUE INDEX IF NOT EXISTS short_url_user_id_original_url_unique_idx ON short_url (user_id, original_url);
-		CREATE INDEX INDEX IF NOT short_url_user_id_idx ON short_url (user_id);
+		CREATE INDEX IF NOT EXISTS short_url_user_id_idx ON short_url (user_id);
 	`)
 
 	if err != nil {
