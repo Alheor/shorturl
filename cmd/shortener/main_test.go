@@ -213,50 +213,50 @@ func TestGetPing(t *testing.T) {
 	runTests(t, tests)
 }
 
-//func TestAddUrlUniqIndexError(t *testing.T) {
-//
-//	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
-//
-//	cfg := config.Load()
-//
-//	err := logger.Init(nil)
-//	require.NoError(t, err)
-//
-//	httphandler.Init(&cfg)
-//	service.Init(&cfg)
-//
-//	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
-//
-//	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-//	defer cancel()
-//
-//	err = repository.Init(ctx, &cfg, nil)
-//	require.NoError(t, err)
-//
-//	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
-//	require.NoError(t, err)
-//
-//	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test`)
-//	require.NoError(t, err)
-//
-//	tests := []testData{
-//		{
-//			name:        "generate short url success",
-//			requestBody: []byte(targetURL + `/test`),
-//			URL:         `/`,
-//			method:      http.MethodPost,
-//			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
-//			cookie:      getCookie(),
-//			want: want{
-//				code:     http.StatusConflict,
-//				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
-//				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
-//			},
-//		},
-//	}
-//
-//	runTests(t, tests)
-//}
+func TestAddUrlUniqIndexError(t *testing.T) {
+
+	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
+	cfg := config.Load()
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name:        "generate short url success",
+			requestBody: []byte(targetURL + `/test`),
+			URL:         `/`,
+			method:      http.MethodPost,
+			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			cookie:      getCookie(),
+			want: want{
+				code:     http.StatusConflict,
+				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
+				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
 
 func runTests(t *testing.T, tests []testData) {
 

@@ -83,6 +83,27 @@ func main() {
 
 	<-ctx.Done()
 
+	println(`all DB`)
+	rows, err := repository.Connection.Query(context.Background(), `SELECT short_key, original_url FROM short_url`)
+	if err != nil {
+		panic(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var shortURL string
+		var originalURL string
+
+		err = rows.Scan(&shortURL, &originalURL)
+		if err != nil {
+			panic(err)
+		}
+
+		println(`DB: ` + shortURL + originalURL)
+	}
+	time.Sleep(2 * time.Second)
+
 	logger.Info("shutting down ...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
