@@ -43,6 +43,14 @@ func main() {
 		panic(err)
 	}
 
+	if cfg.SignatureKey == config.DefaultLSignatureKey {
+		logger.Error(`Used default signature key! Please change the key!`, nil)
+	}
+
+	if len(cfg.SignatureKey) == 0 {
+		logger.Fatal(`Signature key is empty`, nil)
+	}
+
 	httphandler.Init(&cfg)
 	service.Init(&cfg)
 

@@ -3,6 +3,7 @@ package httphandler
 import (
 	"context"
 	"errors"
+	"github.com/Alheor/shorturl/internal/auth"
 	"io"
 	"net/http"
 	"net/url"
@@ -76,6 +77,12 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
+	user := auth.GetUser(ctx)
+	if user == nil {
+		resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 
 	shortURL, err := service.Add(ctx, URL)
@@ -119,6 +126,12 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
+
+	user := auth.GetUser(ctx)
+	if user == nil {
+		resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	URL := service.Get(ctx, shortName)
 	if len(URL) == 0 {

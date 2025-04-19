@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Alheor/shorturl/internal/auth"
 	"io"
 	"net/http"
 	"net/url"
@@ -48,6 +49,13 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
+
+	user := auth.GetUser(ctx)
+	if user == nil {
+		response = models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized}
+		sendAPIResponse(resp, &response)
+		return
+	}
 
 	var shortURL string
 	if shortURL, err = service.Add(ctx, request.URL); err != nil {
@@ -100,7 +108,7 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 
 	for _, v := range request {
 		if _, err = url.ParseRequestURI(v.OriginalURL); err != nil {
-			sendAPIResponse(resp, &models.APIResponse{Error: `Url ` + v.OriginalURL + `invalid`, StatusCode: http.StatusBadRequest})
+			sendAPIResponse(resp, &models.APIResponse{Error: `Url ` + v.OriginalURL + ` invalid`, StatusCode: http.StatusBadRequest})
 			return
 		}
 
@@ -108,6 +116,15 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 			sendAPIResponse(resp, &models.APIResponse{Error: `empty correlation_id`, StatusCode: http.StatusBadRequest})
 			return
 		}
+	}
+
+	ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+	defer cancel()
+
+	user := auth.GetUser(ctx)
+	if user == nil {
+		sendAPIResponse(resp, &models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized})
+		return
 	}
 
 	response, err = service.AddBatch(req.Context(), request)
