@@ -26,7 +26,7 @@ type FileRepo struct {
 }
 
 // Add Добавить URL
-func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
+func (fr *FileRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
 
 	select {
 	case <-ctx.Done():
@@ -65,7 +65,7 @@ func (fr *FileRepo) Add(ctx context.Context, name string) (string, error) {
 }
 
 // AddBatch Добавить URL пачкой
-func (fr *FileRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error {
+func (fr *FileRepo) AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error {
 
 	select {
 	case <-ctx.Done():
@@ -100,7 +100,7 @@ func (fr *FileRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error 
 }
 
 // GetByShortName получить URL по короткому имени
-func (fr *FileRepo) GetByShortName(ctx context.Context, name string) (string, error) {
+func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, error) {
 
 	select {
 	case <-ctx.Done():
@@ -130,7 +130,7 @@ func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	return fr.file != nil
 }
 
-func (fr *FileRepo) RemoveByOriginalURL(ctx context.Context, url string) error {
+func (fr *FileRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from file repository not supported`)
 }
 

@@ -21,7 +21,7 @@ type PostgresRepo struct {
 }
 
 // Add Добавить URL
-func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
+func (pg *PostgresRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
@@ -57,7 +57,7 @@ func (pg *PostgresRepo) Add(ctx context.Context, name string) (string, error) {
 }
 
 // AddBatch Добавить URL пачкой
-func (pg *PostgresRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) error {
+func (pg *PostgresRepo) AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error {
 
 	tx, err := pg.Conn.Begin(ctx)
 	if err != nil {
@@ -85,7 +85,7 @@ func (pg *PostgresRepo) AddBatch(ctx context.Context, list *[]models.BatchEl) er
 }
 
 // GetByShortName получить URL по короткому имени
-func (pg *PostgresRepo) GetByShortName(ctx context.Context, name string) (string, error) {
+func (pg *PostgresRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
@@ -116,7 +116,7 @@ func (pg *PostgresRepo) IsReady(ctx context.Context) bool {
 }
 
 // RemoveByOriginalURL удалить url
-func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, originalURL string) error {
+func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, originalURL string) error {
 
 	_, err := pg.Conn.Exec(ctx,
 		"DELETE FROM short_url WHERE original_url=@original_url",

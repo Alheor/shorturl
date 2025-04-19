@@ -21,7 +21,7 @@ func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 
 	var err error
 	var shortURL string
-	if shortURL, err = repository.GetRepository().Add(ctx, URL); err != nil {
+	if shortURL, err = repository.GetRepository().Add(ctx, user, URL); err != nil {
 		return ``, err
 	}
 
@@ -29,7 +29,7 @@ func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 }
 
 func Get(ctx context.Context, user *models.User, shortName string) string {
-	str, err := repository.GetRepository().GetByShortName(ctx, shortName)
+	str, err := repository.GetRepository().GetByShortName(ctx, user, shortName)
 	if err != nil {
 		logger.Error(`get url error: `, err)
 		return ``
@@ -53,7 +53,7 @@ func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchReq
 		})
 	}
 
-	err := repository.GetRepository().AddBatch(ctx, &list)
+	err := repository.GetRepository().AddBatch(ctx, user, &list)
 	if err != nil {
 		return nil, err
 	}

@@ -14,11 +14,11 @@ import (
 var repo Repository
 
 type Repository interface {
-	Add(ctx context.Context, name string) (string, error)
-	AddBatch(ctx context.Context, list *[]models.BatchEl) error
-	GetByShortName(ctx context.Context, name string) (string, error)
+	Add(ctx context.Context, user *models.User, name string) (string, error)
+	AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error
+	GetByShortName(ctx context.Context, user *models.User, name string) (string, error)
 	IsReady(ctx context.Context) bool
-	RemoveByOriginalURL(ctx context.Context, url string) error
+	RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error
 }
 
 func Init(ctx context.Context, config *config.Options, repository Repository) error {
