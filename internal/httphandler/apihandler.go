@@ -58,7 +58,7 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	var shortURL string
-	if shortURL, err = service.Add(ctx, request.URL); err != nil {
+	if shortURL, err = service.Add(ctx, user, request.URL); err != nil {
 
 		var uniqErr *models.UniqueErr
 		if errors.As(err, &uniqErr) {
@@ -127,7 +127,7 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	response, err = service.AddBatch(req.Context(), request)
+	response, err = service.AddBatch(ctx, user, request)
 	if err != nil {
 		logger.Error(`Add batch error`, err)
 		resp.WriteHeader(http.StatusInternalServerError)

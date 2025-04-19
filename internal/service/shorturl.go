@@ -17,7 +17,7 @@ func Init(config *config.Options) {
 	baseHost = config.BaseHost
 }
 
-func Add(ctx context.Context, URL string) (string, error) {
+func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 
 	var err error
 	var shortURL string
@@ -28,7 +28,7 @@ func Add(ctx context.Context, URL string) (string, error) {
 	return shortURL, nil
 }
 
-func Get(ctx context.Context, shortName string) string {
+func Get(ctx context.Context, user *models.User, shortName string) string {
 	str, err := repository.GetRepository().GetByShortName(ctx, shortName)
 	if err != nil {
 		logger.Error(`get url error: `, err)
@@ -38,7 +38,7 @@ func Get(ctx context.Context, shortName string) string {
 	return str
 }
 
-func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.APIBatchResponseEl, error) {
+func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchRequestEl) ([]models.APIBatchResponseEl, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

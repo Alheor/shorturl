@@ -85,7 +85,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 
-	shortURL, err := service.Add(ctx, URL)
+	shortURL, err := service.Add(ctx, user, URL)
 	if err != nil {
 
 		var uniqErr *models.UniqueErr
@@ -133,7 +133,7 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	URL := service.Get(ctx, shortName)
+	URL := service.Get(ctx, user, shortName)
 	if len(URL) == 0 {
 		http.Error(resp, `Unknown identifier`, http.StatusBadRequest)
 		return
