@@ -23,8 +23,9 @@ var options Options
 func init() {
 	flag.StringVar(&options.Addr, `a`, `localhost:8080`, "listen host/ip:port")
 	flag.StringVar(&options.BaseHost, `b`, `http://localhost:8080`, "base host")
-	flag.StringVar(&options.FileStoragePath, `f`, `/tmp/short-url.json`, "Path to storage file")
+	flag.StringVar(&options.FileStoragePath, `f`, `/tmp/short-url.json`, "path to storage file")
 	flag.StringVar(&options.DatabaseDsn, `d`, ``, "database dsn")
+	flag.StringVar(&options.SignatureKey, `k`, DefaultLSignatureKey, "signature key")
 }
 
 func Load() Options {
