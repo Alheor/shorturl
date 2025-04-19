@@ -6,8 +6,6 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"time"
 )
 
@@ -40,9 +38,9 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 
 		logger.Info(`Running migrations ...`)
 
-		if err1 := goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err1 != nil {
-			panic(err1)
-		}
+		//if err1 := goose.Up(stdlib.OpenDBFromPool(db), "./internal/migrations"); err1 != nil {
+		//	panic(err1)
+		//}
 
 		schemaCtx, cancel := context.WithTimeout(ctx, 50*time.Second)
 		defer cancel()
