@@ -11,7 +11,7 @@ import (
 
 // MemoryRepo structure
 type MemoryRepo struct {
-	list map[string]string
+	list map[string]map[string]string
 	sync.RWMutex
 }
 
@@ -27,15 +27,21 @@ func (fr *MemoryRepo) Add(ctx context.Context, user *models.User, name string) (
 	fr.Lock()
 	defer fr.Unlock()
 
+	if fr.list[user.ID] == nil {
+		fr.list[user.ID] = make(map[string]string)
+	}
+
+	urls := fr.list[user.ID]
+
 	//Обработка существующих URL
-	for hash, el := range fr.list {
+	for hash, el := range urls {
 		if el == name {
 			return ``, &models.UniqueErr{Err: errors.New("url already exists"), ShortKey: hash}
 		}
 	}
 
 	hash := urlhasher.GetHash(name)
-	fr.list[hash] = name
+	urls[hash] = name
 
 	return hash, nil
 }
@@ -52,8 +58,14 @@ func (fr *MemoryRepo) AddBatch(ctx context.Context, user *models.User, list *[]m
 	fr.Lock()
 	defer fr.Unlock()
 
+	if fr.list[user.ID] == nil {
+		fr.list[user.ID] = make(map[string]string)
+	}
+
+	urls := fr.list[user.ID]
+
 	for _, v := range *list {
-		fr.list[v.ShortURL] = v.OriginalURL
+		urls[v.ShortURL] = v.OriginalURL
 	}
 
 	return nil
@@ -71,7 +83,12 @@ func (fr *MemoryRepo) GetByShortName(ctx context.Context, user *models.User, nam
 	fr.RLock()
 	defer fr.RUnlock()
 
-	el, exists := fr.list[name]
+	urls, exists := fr.list[user.ID]
+	if !exists {
+		return ``, nil
+	}
+
+	el, exists := urls[name]
 	if !exists {
 		return ``, nil
 	}

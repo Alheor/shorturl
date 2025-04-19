@@ -14,13 +14,14 @@ import (
 )
 
 type URL struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	UserID string `json:"user_id"`
+	ID     string `json:"id"`
+	URL    string `json:"url"`
 }
 
 // FileRepo structure
 type FileRepo struct {
-	list map[string]string
+	list map[string]map[string]string
 	file *os.File
 	sync.RWMutex
 }
@@ -37,17 +38,23 @@ func (fr *FileRepo) Add(ctx context.Context, user *models.User, name string) (st
 	fr.Lock()
 	defer fr.Unlock()
 
+	if fr.list[user.ID] == nil {
+		fr.list[user.ID] = make(map[string]string)
+	}
+
+	urls := fr.list[user.ID]
+
 	//Обработка существующих URL
-	for hash, el := range fr.list {
+	for hash, el := range urls {
 		if el == name {
 			return ``, &models.UniqueErr{Err: errors.New("url already exists"), ShortKey: hash}
 		}
 	}
 
 	hash := urlhasher.GetHash(name)
-	fr.list[hash] = name
+	urls[hash] = name
 
-	data, err := json.Marshal(&URL{ID: hash, URL: name})
+	data, err := json.Marshal(&URL{UserID: user.ID, ID: hash, URL: name})
 	if err != nil {
 		logger.Error(`marshal error`, err)
 		return ``, err
@@ -76,18 +83,24 @@ func (fr *FileRepo) AddBatch(ctx context.Context, user *models.User, list *[]mod
 	fr.Lock()
 	defer fr.Unlock()
 
+	if fr.list[user.ID] == nil {
+		fr.list[user.ID] = make(map[string]string)
+	}
+
+	urls := fr.list[user.ID]
+
 	var data []byte
 	var err error
 
 	for _, v := range *list {
 		v.ShortURL = urlhasher.GetHash(v.OriginalURL)
 
-		el, err := json.Marshal(&URL{ID: v.ShortURL, URL: v.OriginalURL})
+		el, err := json.Marshal(&URL{UserID: user.ID, ID: v.ShortURL, URL: v.OriginalURL})
 		if err != nil {
 			return err
 		}
 
-		fr.list[v.ShortURL] = v.OriginalURL
+		urls[v.ShortURL] = v.OriginalURL
 		data = append(data, append(el, '\n')...)
 	}
 
@@ -111,7 +124,12 @@ func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name 
 	fr.RLock()
 	defer fr.RUnlock()
 
-	el, exists := fr.list[name]
+	urls, exists := fr.list[user.ID]
+	if !exists {
+		return ``, nil
+	}
+
+	el, exists := urls[name]
 	if !exists {
 		return ``, nil
 	}
@@ -163,7 +181,11 @@ func (fr *FileRepo) Load(ctx context.Context, path string) error {
 			continue
 		}
 
-		fr.list[el.ID] = el.URL
+		if fr.list[el.UserID] == nil {
+			fr.list[el.UserID] = make(map[string]string)
+		}
+
+		fr.list[el.UserID][el.ID] = el.URL
 	}
 
 	return nil

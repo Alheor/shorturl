@@ -50,7 +50,7 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 	} else if config.FileStoragePath != `` {
 		logger.Info(`Repository starting in file mode`)
 
-		fRepo := &FileRepo{list: make(map[string]string)}
+		fRepo := &FileRepo{list: make(map[string]map[string]string)}
 
 		err := fRepo.Load(ctx, config.FileStoragePath)
 		if err != nil {
@@ -62,7 +62,7 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 	} else {
 		logger.Info(`Repository starting in memory mode`)
 
-		repo = &MemoryRepo{list: make(map[string]string)}
+		repo = &MemoryRepo{list: make(map[string]map[string]string)}
 	}
 
 	return nil
