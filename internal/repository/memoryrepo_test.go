@@ -28,7 +28,7 @@ func TestMemoryGetUrlNotExists(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, user, `any_url`)
+	url, _, err := GetRepository().GetByShortName(ctx, user, `any_url`)
 	require.NoError(t, err)
 	assert.Empty(t, url)
 }
@@ -57,7 +57,7 @@ func TestMemoryAddURLAndGetURLSuccess(t *testing.T) {
 	}
 
 	for index, val := range shortsList {
-		res, err := GetRepository().GetByShortName(ctx, user, index)
+		res, _, err := GetRepository().GetByShortName(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, res)
 	}
@@ -143,7 +143,7 @@ func TestMemoryAddBatchSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range urlList {
-		res, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
+		res, _, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
 		require.NoError(t, err)
 		assert.Equal(t, v.OriginalURL, res)
 	}

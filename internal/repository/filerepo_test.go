@@ -34,7 +34,7 @@ func TestFileGetUrlNotExists(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, user, `any_url`)
+	url, _, err := GetRepository().GetByShortName(ctx, user, `any_url`)
 	require.NoError(t, err)
 	assert.Empty(t, url)
 
@@ -67,7 +67,7 @@ func TestFileAddURLAndGetURLSuccess(t *testing.T) {
 	}
 
 	for index, val := range shortsList {
-		res, err := GetRepository().GetByShortName(ctx, user, index)
+		res, _, err := GetRepository().GetByShortName(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, res)
 	}
@@ -183,7 +183,7 @@ func TestFileLoadFromFileSuccess(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, user, hash)
+	url, _, err := GetRepository().GetByShortName(ctx, user, hash)
 	require.NoError(t, err)
 	assert.Equal(t, targetURL, url)
 
@@ -215,7 +215,7 @@ func TestFileAddBatchSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range urlList {
-		res, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
+		res, _, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
 		require.NoError(t, err)
 		assert.Equal(t, v.OriginalURL, res)
 	}

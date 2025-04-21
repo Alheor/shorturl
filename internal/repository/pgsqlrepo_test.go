@@ -33,9 +33,10 @@ func TestDBGetUrlNotExists(t *testing.T) {
 	_, err = Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, user, `any_url`)
+	url, isRemoved, err := GetRepository().GetByShortName(ctx, user, `any_url`)
 	require.NoError(t, err)
 	assert.Empty(t, url)
+	assert.False(t, isRemoved)
 }
 
 func TestDBAddURLAndGetURLSuccess(t *testing.T) {
@@ -68,9 +69,10 @@ func TestDBAddURLAndGetURLSuccess(t *testing.T) {
 	}
 
 	for index, val := range shortsList {
-		res, err := GetRepository().GetByShortName(ctx, user, index)
+		res, isRemoved, err := GetRepository().GetByShortName(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, res)
+		assert.False(t, isRemoved)
 	}
 }
 
@@ -103,9 +105,10 @@ func TestDBAddBatchSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range urlList {
-		res, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
+		res, isRemoved, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
 		require.NoError(t, err)
 		assert.Equal(t, v.OriginalURL, res)
+		assert.False(t, isRemoved)
 	}
 }
 

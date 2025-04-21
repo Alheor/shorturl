@@ -2,7 +2,6 @@ package mocks
 
 import (
 	"context"
-
 	"github.com/Alheor/shorturl/internal/models"
 
 	"github.com/stretchr/testify/mock"
@@ -23,10 +22,9 @@ func (m *MockFileRepo) AddBatch(ctx context.Context, user *models.User, list *[]
 	return args.Error(0)
 }
 
-func (m *MockFileRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, error) {
-
+func (m *MockFileRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
 	args := m.Called(ctx, user, name)
-	return args.String(0), args.Error(0)
+	return args.String(0), args.Bool(1), args.Error(0)
 }
 
 func (m *MockFileRepo) IsReady(ctx context.Context) bool {
@@ -43,4 +41,9 @@ func (m *MockFileRepo) RemoveByOriginalURL(ctx context.Context, user *models.Use
 func (m *MockFileRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
 	args := m.Called(ctx, user)
 	return &map[string]string{}, args.Error(0)
+}
+
+func (m *MockFileRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
+	args := m.Called(ctx, user, list)
+	return args.Error(0)
 }
