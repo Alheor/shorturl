@@ -157,9 +157,9 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func GetALlShorten(resp http.ResponseWriter, req *http.Request) {
+func GetAllShorten(resp http.ResponseWriter, req *http.Request) {
 
-	logger.Info(`Used "GetALlShorten" handler`)
+	logger.Info(`Used "GetAllShorten" handler`)
 
 	var response models.APIResponse
 
@@ -207,6 +207,46 @@ func GetALlShorten(resp http.ResponseWriter, req *http.Request) {
 		logger.Error(`write response error`, err)
 		resp.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func DeleteShorten(resp http.ResponseWriter, req *http.Request) {
+
+	logger.Info(`Used "DeleteShorten" handler`)
+
+	var request []string
+	var response models.APIResponse
+	var body []byte
+	var err error
+
+	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+	defer cancel()
+
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		response = models.APIResponse{Error: `Unauthorized`, StatusCode: http.StatusUnauthorized}
+		sendAPIResponse(resp, &response)
+		return
+	}
+
+	defer req.Body.Close()
+	if body, err = io.ReadAll(req.Body); err != nil || len(body) == 0 {
+		sendAPIResponse(resp, &models.APIResponse{Error: `invalid body`, StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	if err = json.Unmarshal(body, &request); err != nil {
+		sendAPIResponse(resp, &models.APIResponse{Error: `invalid body`, StatusCode: http.StatusBadRequest})
+		return
+	}
+
+	err = service.RemoveBatch(ctx, user, request)
+	if err != nil {
+		logger.Error(`Remove batch urls error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp.WriteHeader(http.StatusAccepted)
 }
 
 func sendAPIResponse(respWr http.ResponseWriter, resp *models.APIResponse) {

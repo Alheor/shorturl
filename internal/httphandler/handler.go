@@ -138,9 +138,14 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 	//	return
 	//}
 
-	URL := service.Get(ctx, nil, shortName)
+	URL, isRemoved := service.Get(ctx, nil, shortName)
 	if len(URL) == 0 {
 		http.Error(resp, `Unknown identifier`, http.StatusBadRequest)
+		return
+	}
+
+	if isRemoved {
+		resp.WriteHeader(http.StatusGone)
 		return
 	}
 

@@ -483,3 +483,92 @@ func TestApiGetAllUrlsError(t *testing.T) {
 
 	runTests(t, tests)
 }
+
+func TestApiRemoveBatch(t *testing.T) {
+
+	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
+	cfg := config.Load()
+
+	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	httphandler.Init(&cfg)
+	service.Init(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
+	require.NoError(t, err)
+
+	var user1 = &models.User{ID: `0b32aa55-b2af-63ba-9e1c-5da06e1b610e`}
+
+	hash1, err := repository.GetRepository().Add(context.Background(), user, targetURL+`/test1`)
+	require.NoError(t, err)
+
+	hash2, err := repository.GetRepository().Add(context.Background(), user, targetURL+`/test2`)
+	require.NoError(t, err)
+
+	hash3, err := repository.GetRepository().Add(context.Background(), user1, targetURL+`/test3`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name:        `API remove batch urls success`,
+			requestBody: []byte(`["` + hash1 + `", "` + hash2 + `", "` + hash3 + `"]`),
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodDelete,
+			URL:    `/api/user/urls`,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusAccepted,
+			},
+		},
+		{
+			name: `get url success`,
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/` + hash1,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusGone,
+			},
+		},
+		{
+			name: `get url success`,
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/` + hash2,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusGone,
+			},
+		},
+		{
+			name: `get url success`,
+			headers: map[string]string{
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/` + hash3,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusTemporaryRedirect,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}

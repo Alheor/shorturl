@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/models"
@@ -85,38 +87,39 @@ func (pg *PostgresRepo) AddBatch(ctx context.Context, user *models.User, list *[
 }
 
 // GetByShortName получить URL по короткому имени
-func (pg *PostgresRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, error) {
+func (pg *PostgresRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
 	var originalURL string
+	var isDeletedURL bool
 	var row pgx.Row
 
 	//Костыль для прохождения тестов
 	if user == nil {
 		row = pg.Conn.QueryRow(ctx,
-			"SELECT original_url FROM short_url WHERE short_key=@shortKey",
+			"SELECT original_url, is_deleted  FROM short_url WHERE short_key=@shortKey",
 			pgx.NamedArgs{"shortKey": name},
 		)
 
 	} else {
 		row = pg.Conn.QueryRow(ctx,
-			"SELECT original_url FROM short_url WHERE user_id=@userId AND short_key=@shortKey",
+			"SELECT original_url, is_deleted  FROM short_url WHERE user_id=@userId AND short_key=@shortKey",
 			pgx.NamedArgs{"userId": user.ID, "shortKey": name},
 		)
 	}
 
-	err := row.Scan(&originalURL)
+	err := row.Scan(&originalURL, &isDeletedURL)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return ``, err
+			return ``, false, err
 		}
 
-		return ``, nil
+		return ``, false, nil
 	}
 
-	return originalURL, nil
+	return originalURL, isDeletedURL, nil
 }
 
 // IsReady готовность репозитория
@@ -177,6 +180,26 @@ func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (*map[str
 	return &historyList, nil
 }
 
+func (pg *PostgresRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
+	regex := regexp.MustCompile(`\D`)
+	stringIds := ``
+
+	for _, id := range list {
+		stringIds += `'` + regex.ReplaceAllString(id, ``) + `',`
+	}
+
+	_, err := pg.Conn.Exec(ctx,
+		"UPDATE short_url SET is_deleted = true WHERE user_id = @userId AND short_key IN ("+strings.TrimSuffix(stringIds, ",")+")",
+		pgx.NamedArgs{"userId": user.ID},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 
 	_, err := conn.Exec(ctx, `
@@ -184,7 +207,8 @@ func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 		    id SERIAL NOT NULL PRIMARY KEY,
 		    user_id varchar(36) NOT NULL,
 		    short_key varchar(`+strconv.Itoa(urlhasher.HashLength)+`) UNIQUE NOT NULL,
-		    original_url text NOT NULL 
+		    original_url text NOT NULL,
+			is_deleted boolean NOT NULL DEFAULT false
 		);
 
 		CREATE UNIQUE INDEX IF NOT EXISTS short_url_user_id_original_url_unique_idx ON short_url (user_id, original_url);

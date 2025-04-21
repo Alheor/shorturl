@@ -29,14 +29,14 @@ func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 	return shortURL, nil
 }
 
-func Get(ctx context.Context, user *models.User, shortName string) string {
-	str, err := repository.GetRepository().GetByShortName(ctx, user, shortName)
+func Get(ctx context.Context, user *models.User, shortName string) (URL string, isRemoved bool) {
+	str, isRemoved, err := repository.GetRepository().GetByShortName(ctx, user, shortName)
 	if err != nil {
 		logger.Error(`get url error: `, err)
-		return ``
+		return ``, false
 	}
 
-	return str
+	return str, isRemoved
 }
 
 func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchRequestEl) ([]models.APIBatchResponseEl, error) {
@@ -84,6 +84,15 @@ func GetAll(ctx context.Context, user *models.User) (*[]models.HistoryEl, error)
 	}
 
 	return &history, nil
+}
+
+func RemoveBatch(ctx context.Context, user *models.User, list []string) error {
+	err := repository.GetRepository().RemoveBatch(ctx, user, list)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func IsDBReady(ctx context.Context) bool {

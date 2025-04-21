@@ -113,11 +113,11 @@ func (fr *FileRepo) AddBatch(ctx context.Context, user *models.User, list *[]mod
 }
 
 // GetByShortName получить URL по короткому имени
-func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, error) {
+func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
 
 	select {
 	case <-ctx.Done():
-		return ``, ctx.Err()
+		return ``, false, ctx.Err()
 	default:
 	}
 
@@ -130,25 +130,25 @@ func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name 
 			//Жесть, но тесты нужно пройти
 			for short, original := range el {
 				if short == name {
-					return original, nil
+					return original, false, nil
 				}
 			}
 		}
 
-		return ``, nil
+		return ``, false, nil
 	}
 
 	urls, exists := fr.list[user.ID]
 	if !exists {
-		return ``, nil
+		return ``, false, nil
 	}
 
 	el, exists := urls[name]
 	if !exists {
-		return ``, nil
+		return ``, false, nil
 	}
 
-	return el, nil
+	return el, false, nil
 }
 
 // IsReady готовность репозитория
@@ -222,4 +222,8 @@ func (fr *FileRepo) Load(ctx context.Context, path string) error {
 	}
 
 	return nil
+}
+
+func (fr *FileRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
+	return errors.New(`method "RemoveBatch" from file repository not supported`)
 }

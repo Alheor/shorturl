@@ -17,10 +17,11 @@ var Connection *pgxpool.Pool
 type Repository interface {
 	Add(ctx context.Context, user *models.User, name string) (string, error)
 	AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error
-	GetByShortName(ctx context.Context, user *models.User, name string) (string, error)
+	GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error)
 	IsReady(ctx context.Context) bool
 	RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error
 	GetAll(ctx context.Context, user *models.User) (*map[string]string, error)
+	RemoveBatch(ctx context.Context, user *models.User, list []string) error
 }
 
 func Init(ctx context.Context, config *config.Options, repository Repository) error {
