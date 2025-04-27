@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,9 +15,12 @@ import (
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/httphandler"
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
+	"github.com/Alheor/shorturl/internal/router"
 	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/urlhasher"
+	"github.com/Alheor/shorturl/internal/userauth"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +37,7 @@ type testData struct {
 	headers     map[string]string
 	method      string
 	URL         string
+	cookie      *http.Cookie
 	want        want
 }
 
@@ -61,6 +66,7 @@ func TestAddUrl(t *testing.T) {
 			URL:         `/`,
 			method:      http.MethodPost,
 			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			cookie:      getCookie(),
 			want: want{
 				code:     http.StatusCreated,
 				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
@@ -77,6 +83,7 @@ func TestAddUrl(t *testing.T) {
 				httphandler.HeaderContentType:     httphandler.HeaderContentTypeXGzip,
 				httphandler.HeaderContentEncoding: httphandler.HeaderContentEncodingGzip,
 			},
+			cookie: getCookie(),
 			want: want{
 				code:     http.StatusConflict,
 				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
@@ -100,36 +107,7 @@ func TestAddUrl(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
-
-			var err error
-			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentTypeXGzip {
-				test.requestBody, err = compress.Compress(test.requestBody)
-
-				require.NoError(t, err)
-			}
-
-			for hName, hVal := range test.headers {
-				req.Header.Set(hName, hVal)
-			}
-
-			resp := httptest.NewRecorder()
-			httphandler.AddURL(resp, req)
-
-			res := resp.Result()
-
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
-		})
-	}
+	runTests(t, tests)
 }
 
 func TestGetUrl(t *testing.T) {
@@ -150,7 +128,7 @@ func TestGetUrl(t *testing.T) {
 	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	_, err = repository.GetRepository().Add(ctx, targetURL+`/test`)
+	_, err = repository.GetRepository().Add(ctx, user, targetURL+`/test`)
 	require.NoError(t, err)
 
 	tests := []testData{
@@ -159,6 +137,7 @@ func TestGetUrl(t *testing.T) {
 			URL:     `/` + urlhasher.GetHash(targetURL+`/test`),
 			method:  http.MethodGet,
 			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			cookie:  getCookie(),
 			want: want{
 				code:    http.StatusTemporaryRedirect,
 				headers: map[string]string{httphandler.HeaderLocation: targetURL + `/test`},
@@ -169,9 +148,9 @@ func TestGetUrl(t *testing.T) {
 			URL:    `/` + urlhasher.GetHash(targetURL+`/test`),
 			method: http.MethodGet,
 			headers: map[string]string{
-				httphandler.HeaderAcceptEncoding: httphandler.HeaderContentEncodingGzip,
-				httphandler.HeaderContentType:    httphandler.HeaderContentTypeTextPlain,
+				httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain,
 			},
+			cookie: getCookie(),
 			want: want{
 				code:    http.StatusTemporaryRedirect,
 				headers: map[string]string{httphandler.HeaderLocation: targetURL + `/test`},
@@ -200,32 +179,7 @@ func TestGetUrl(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(test.method, test.URL, nil)
-
-			for hName, hVal := range test.headers {
-				req.Header.Set(hName, hVal)
-			}
-
-			resp := httptest.NewRecorder()
-			httphandler.GetURL(resp, req)
-
-			res := resp.Result()
-
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-			respBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.want.response, string(respBody))
-			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
-		})
-	}
+	runTests(t, tests)
 }
 
 func TestGetPing(t *testing.T) {
@@ -249,38 +203,14 @@ func TestGetPing(t *testing.T) {
 			URL:     `/ping`,
 			method:  http.MethodGet,
 			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			cookie:  getCookie(),
 			want: want{
 				code: http.StatusOK,
 			},
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(test.method, test.URL, nil)
-
-			for hName, hVal := range test.headers {
-				req.Header.Set(hName, hVal)
-			}
-
-			resp := httptest.NewRecorder()
-			httphandler.Ping(resp, req)
-
-			res := resp.Result()
-
-			// проверяем код ответа
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			// получаем и проверяем тело запроса
-			defer res.Body.Close()
-			respBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-
-			assert.Equal(t, test.want.response, string(respBody))
-			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
-		})
-	}
+	runTests(t, tests)
 }
 
 func TestAddUrlUniqIndexError(t *testing.T) {
@@ -303,10 +233,10 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 	err = repository.Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	err = repository.GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`/test`)
+	_, err = repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
-	_, err = repository.GetRepository().Add(context.Background(), targetURL+`/test`)
+	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test`)
 	require.NoError(t, err)
 
 	tests := []testData{
@@ -316,6 +246,7 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 			URL:         `/`,
 			method:      http.MethodPost,
 			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			cookie:      getCookie(),
 			want: want{
 				code:     http.StatusConflict,
 				response: cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`),
@@ -324,34 +255,73 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 		},
 	}
 
+	runTests(t, tests)
+}
+
+func runTests(t *testing.T, tests []testData) {
+
+	ts := httptest.NewServer(router.GetRoutes())
+	defer ts.Close()
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(test.method, test.URL, bytes.NewReader(test.requestBody))
-
 			var err error
-			if test.headers[httphandler.HeaderContentType] == httphandler.HeaderContentTypeXGzip {
-				test.requestBody, err = compress.Compress(test.requestBody)
 
+			if test.headers[httphandler.HeaderContentEncoding] == httphandler.HeaderContentEncodingGzip {
+				test.requestBody, err = compress.Compress(test.requestBody)
 				require.NoError(t, err)
+			}
+
+			req, err := http.NewRequest(test.method, ts.URL+test.URL, bytes.NewReader(test.requestBody))
+			require.NoError(t, err)
+
+			if test.cookie != nil {
+				req.AddCookie(test.cookie)
 			}
 
 			for hName, hVal := range test.headers {
 				req.Header.Set(hName, hVal)
 			}
 
-			resp := httptest.NewRecorder()
-			httphandler.AddURL(resp, req)
+			client := ts.Client()
+			transport := &http.Transport{Proxy: http.ProxyFromEnvironment}
+			transport.DisableCompression = true
+			client.Transport = transport
 
-			res := resp.Result()
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
 
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
+			resp, err := client.Do(req)
 			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
-			assert.Equal(t, test.want.headers[httphandler.HeaderContentType], res.Header.Get(httphandler.HeaderContentType))
+
+			assert.Equal(t, test.want.code, resp.StatusCode)
+
+			defer resp.Body.Close()
+			resBody, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			if test.headers[httphandler.HeaderContentEncoding] == httphandler.HeaderContentEncodingGzip {
+				test.requestBody, err = compress.GzipDecompress(resBody)
+				require.NoError(t, err)
+
+				assert.Equal(t, test.want.response, string(test.requestBody))
+			} else {
+				assert.Equal(t, test.want.response, string(resBody))
+			}
+
+			for hName, hValue := range test.want.headers {
+				assert.Equal(t, hValue, resp.Header.Get(hName))
+			}
 		})
+	}
+}
+
+func getCookie() *http.Cookie {
+	cookiesValue := string(userauth.GetSignature(user.ID)) + user.ID
+
+	return &http.Cookie{
+		Name:  models.CookiesName,
+		Value: base64.StdEncoding.EncodeToString([]byte(cookiesValue)),
 	}
 }

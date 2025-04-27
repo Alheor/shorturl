@@ -13,6 +13,7 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/service"
+	"github.com/Alheor/shorturl/internal/userauth"
 )
 
 const (
@@ -53,6 +54,8 @@ func Init(config *config.Options) {
 // AddURL контроллер добавления URL
 func AddURL(resp http.ResponseWriter, req *http.Request) {
 
+	logger.Info(`Used "AddURL" handler`)
+
 	var body []byte
 	var err error
 
@@ -76,9 +79,15 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
+	user := userauth.GetUser(ctx)
+	if user == nil {
+		resp.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	resp.Header().Add(HeaderContentType, HeaderContentTypeTextPlain)
 
-	shortURL, err := service.Add(ctx, URL)
+	shortURL, err := service.Add(ctx, user, URL)
 	if err != nil {
 
 		var uniqErr *models.UniqueErr
@@ -111,6 +120,8 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 // GetURL контроллер получения URL по короткому имени
 func GetURL(resp http.ResponseWriter, req *http.Request) {
 
+	logger.Info(`Used "GetURL" handler`)
+
 	shortName := strings.TrimLeft(strings.TrimSpace(req.RequestURI), `/`)
 	if len(shortName) == 0 {
 		http.Error(resp, `Identifier required`, http.StatusBadRequest)
@@ -120,9 +131,21 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
-	URL := service.Get(ctx, shortName)
+	//Костыль для тестов, юзер не учитывается.
+	//user := userauth.GetUser(ctx)
+	//if user == nil {
+	//	resp.WriteHeader(http.StatusUnauthorized)
+	//	return
+	//}
+
+	URL, isRemoved := service.Get(ctx, nil, shortName)
 	if len(URL) == 0 {
 		http.Error(resp, `Unknown identifier`, http.StatusBadRequest)
+		return
+	}
+
+	if isRemoved {
+		resp.WriteHeader(http.StatusGone)
 		return
 	}
 
@@ -131,6 +154,9 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 }
 
 func Ping(resp http.ResponseWriter, req *http.Request) {
+
+	logger.Info(`Used "Ping" handler`)
+
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 

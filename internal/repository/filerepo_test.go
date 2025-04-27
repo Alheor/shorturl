@@ -18,6 +18,8 @@ import (
 
 const targetURL = `https://practicum.yandex.ru/`
 
+var user = &models.User{ID: `6a30af51-b6ac-63ba-9e1c-5da06e1b610e`}
+
 func TestFileGetUrlNotExists(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
@@ -32,7 +34,7 @@ func TestFileGetUrlNotExists(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, `any_url`)
+	url, _, err := GetRepository().GetByShortName(ctx, user, `any_url`)
 	require.NoError(t, err)
 	assert.Empty(t, url)
 
@@ -58,16 +60,54 @@ func TestFileAddURLAndGetURLSuccess(t *testing.T) {
 	shortsList := make(map[string]string)
 
 	for _, val := range urlList {
-		hash, err := GetRepository().Add(ctx, val)
+		hash, err := GetRepository().Add(ctx, user, val)
 		require.NoError(t, err)
 
 		shortsList[hash] = val
 	}
 
 	for index, val := range shortsList {
-		res, err := GetRepository().GetByShortName(ctx, index)
+		res, _, err := GetRepository().GetByShortName(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, res)
+	}
+
+	err = os.Remove(cfg.FileStoragePath)
+	require.NoError(t, err)
+}
+
+func TestFileAddURLAndGetAllURLSuccess(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	cfg := config.Load()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(cfg.FileStoragePath)
+
+	err = Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
+	shortsList := make(map[string]string)
+
+	for _, val := range urlList {
+		hash, err := GetRepository().Add(ctx, user, val)
+		require.NoError(t, err)
+
+		shortsList[hash] = val
+	}
+
+	list, err := GetRepository().GetAll(ctx, user)
+	require.NoError(t, err)
+
+	storageList := *list
+	for sourceHash := range shortsList {
+		_, exists := storageList[sourceHash]
+		assert.True(t, exists)
+
 	}
 
 	err = os.Remove(cfg.FileStoragePath)
@@ -88,10 +128,10 @@ func TestFileAddExistsURLFileSuccess(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	hash, err := GetRepository().Add(ctx, targetURL)
+	hash, err := GetRepository().Add(ctx, user, targetURL)
 	require.NoError(t, err)
 
-	_, err = GetRepository().Add(ctx, targetURL)
+	_, err = GetRepository().Add(ctx, user, targetURL)
 	var uniqError *models.UniqueErr
 	require.ErrorAs(t, err, &uniqError)
 	require.Equal(t, hash, uniqError.ShortKey)
@@ -114,7 +154,7 @@ func TestFileCreatedFileSuccess(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	_, err = GetRepository().Add(ctx, targetURL)
+	_, err = GetRepository().Add(ctx, user, targetURL)
 	require.NoError(t, err)
 
 	assert.FileExists(t, cfg.FileStoragePath)
@@ -137,13 +177,13 @@ func TestFileLoadFromFileSuccess(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	hash, err := GetRepository().Add(ctx, targetURL)
+	hash, err := GetRepository().Add(ctx, user, targetURL)
 	require.NoError(t, err)
 
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, hash)
+	url, _, err := GetRepository().GetByShortName(ctx, user, hash)
 	require.NoError(t, err)
 	assert.Equal(t, targetURL, url)
 
@@ -171,11 +211,11 @@ func TestFileAddBatchSuccess(t *testing.T) {
 	urlList = append(urlList, models.BatchEl{CorrelationID: `2`, OriginalURL: targetURL + `2`, ShortURL: urlhasher.GetHash(targetURL + `2`)})
 	urlList = append(urlList, models.BatchEl{CorrelationID: `3`, OriginalURL: targetURL + `3`, ShortURL: urlhasher.GetHash(targetURL + `3`)})
 
-	err = GetRepository().AddBatch(ctx, &urlList)
+	err = GetRepository().AddBatch(ctx, user, &urlList)
 	require.NoError(t, err)
 
 	for _, v := range urlList {
-		res, err := GetRepository().GetByShortName(ctx, v.ShortURL)
+		res, _, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
 		require.NoError(t, err)
 		assert.Equal(t, v.OriginalURL, res)
 	}

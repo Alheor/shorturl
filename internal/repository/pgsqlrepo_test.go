@@ -30,9 +30,13 @@ func TestDBGetUrlNotExists(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	url, err := GetRepository().GetByShortName(ctx, `any_url`)
+	_, err = Connection.Exec(ctx, `TRUNCATE short_url`)
+	require.NoError(t, err)
+
+	url, isRemoved, err := GetRepository().GetByShortName(ctx, user, `any_url`)
 	require.NoError(t, err)
 	assert.Empty(t, url)
+	assert.False(t, isRemoved)
 }
 
 func TestDBAddURLAndGetURLSuccess(t *testing.T) {
@@ -51,29 +55,24 @@ func TestDBAddURLAndGetURLSuccess(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`1`)
-	require.NoError(t, err)
-
-	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`2`)
-	require.NoError(t, err)
-
-	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`3`)
+	_, err = Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
 	urlList := map[int]string{1: targetURL + `1`, 2: targetURL + `2`, 3: targetURL + `3`}
 	shortsList := make(map[string]string)
 
 	for _, val := range urlList {
-		hash, err := GetRepository().Add(ctx, val)
+		hash, err := GetRepository().Add(ctx, user, val)
 		require.NoError(t, err)
 
 		shortsList[hash] = val
 	}
 
 	for index, val := range shortsList {
-		res, err := GetRepository().GetByShortName(ctx, index)
+		res, isRemoved, err := GetRepository().GetByShortName(ctx, user, index)
 		require.NoError(t, err)
 		assert.Equal(t, val, res)
+		assert.False(t, isRemoved)
 	}
 }
 
@@ -93,13 +92,7 @@ func TestDBAddBatchSuccess(t *testing.T) {
 	err = Init(ctx, &cfg, nil)
 	require.NoError(t, err)
 
-	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`1`)
-	require.NoError(t, err)
-
-	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`2`)
-	require.NoError(t, err)
-
-	err = GetRepository().RemoveByOriginalURL(context.Background(), targetURL+`3`)
+	_, err = Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
 	var urlList []models.BatchEl
@@ -108,13 +101,14 @@ func TestDBAddBatchSuccess(t *testing.T) {
 	urlList = append(urlList, models.BatchEl{CorrelationID: `2`, OriginalURL: targetURL + `2`, ShortURL: `hash2`})
 	urlList = append(urlList, models.BatchEl{CorrelationID: `3`, OriginalURL: targetURL + `3`, ShortURL: `hash3`})
 
-	err = GetRepository().AddBatch(ctx, &urlList)
+	err = GetRepository().AddBatch(ctx, user, &urlList)
 	require.NoError(t, err)
 
 	for _, v := range urlList {
-		res, err := GetRepository().GetByShortName(ctx, v.ShortURL)
+		res, isRemoved, err := GetRepository().GetByShortName(ctx, user, v.ShortURL)
 		require.NoError(t, err)
 		assert.Equal(t, v.OriginalURL, res)
+		assert.False(t, isRemoved)
 	}
 }
 
@@ -132,6 +126,9 @@ func TestDBIsReadySuccess(t *testing.T) {
 	defer cancel()
 
 	err = Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	_, err = Connection.Exec(ctx, `TRUNCATE short_url`)
 	require.NoError(t, err)
 
 	assert.True(t, GetRepository().IsReady(ctx))

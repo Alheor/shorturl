@@ -11,6 +11,15 @@ type UniqueErr struct {
 	Err      error
 }
 
+type HistoryNotFoundErr struct {
+	error
+}
+
+type HistoryEl struct {
+	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+}
+
 func (e *UniqueErr) Error() string {
 	return e.Err.Error()
 }

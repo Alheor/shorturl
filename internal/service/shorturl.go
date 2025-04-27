@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
@@ -17,28 +18,28 @@ func Init(config *config.Options) {
 	baseHost = config.BaseHost
 }
 
-func Add(ctx context.Context, URL string) (string, error) {
+func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 
 	var err error
 	var shortURL string
-	if shortURL, err = repository.GetRepository().Add(ctx, URL); err != nil {
+	if shortURL, err = repository.GetRepository().Add(ctx, user, URL); err != nil {
 		return ``, err
 	}
 
 	return shortURL, nil
 }
 
-func Get(ctx context.Context, shortName string) string {
-	str, err := repository.GetRepository().GetByShortName(ctx, shortName)
+func Get(ctx context.Context, user *models.User, shortName string) (URL string, isRemoved bool) {
+	str, isRemoved, err := repository.GetRepository().GetByShortName(ctx, user, shortName)
 	if err != nil {
 		logger.Error(`get url error: `, err)
-		return ``
+		return ``, false
 	}
 
-	return str
+	return str, isRemoved
 }
 
-func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.APIBatchResponseEl, error) {
+func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchRequestEl) ([]models.APIBatchResponseEl, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -53,7 +54,7 @@ func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.A
 		})
 	}
 
-	err := repository.GetRepository().AddBatch(ctx, &list)
+	err := repository.GetRepository().AddBatch(ctx, user, &list)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +68,31 @@ func AddBatch(ctx context.Context, batch []models.APIBatchRequestEl) ([]models.A
 	}
 
 	return resList, nil
+}
+
+func GetAll(ctx context.Context, user *models.User) (*[]models.HistoryEl, error) {
+
+	list, err := repository.GetRepository().GetAll(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	history := make([]models.HistoryEl, 0, len(*list))
+	for short, originValue := range *list {
+		short = strings.TrimRight(baseHost, `/`) + `/` + short
+		history = append(history, models.HistoryEl{OriginalURL: originValue, ShortURL: short})
+	}
+
+	return &history, nil
+}
+
+func RemoveBatch(ctx context.Context, user *models.User, list []string) error {
+	err := repository.GetRepository().RemoveBatch(ctx, user, list)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func IsDBReady(ctx context.Context) bool {
