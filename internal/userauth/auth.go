@@ -36,12 +36,8 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 		var userCookie *models.UserCookie
 		var err error
 
-		for _, cookie := range req.Cookies() {
-			if cookie.Name == models.CookiesName {
-				userCookie, err = parseCookie(cookie)
-				break
-			}
-		}
+		cookie, _ := req.Cookie(models.CookiesName)
+		userCookie, err = parseCookie(cookie)
 
 		if err != nil {
 			var myErr *models.EmptyUserIDErr
