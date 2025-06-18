@@ -40,9 +40,13 @@ func (m *MockMemoryRepo) RemoveByOriginalURL(ctx context.Context, user *models.U
 	return args.Error(0)
 }
 
-func (m *MockMemoryRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
-	args := m.Called(ctx, user)
-	return &map[string]string{}, args.Error(0)
+func (m *MockMemoryRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	ch := make(chan models.HistoryEl)
+	chRrr := make(chan error)
+	close(ch)
+	close(chRrr)
+
+	return ch, chRrr
 }
 
 func (m *MockMemoryRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {

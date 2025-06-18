@@ -125,23 +125,38 @@ func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, user *models.User
 	return errors.New(`method "Remove" from memory repository not supported`)
 }
 
-func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	out := make(chan models.HistoryEl)
+	errCh := make(chan error, 1)
+
+	defer close(errCh)
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		close(out)
+		errCh <- ctx.Err()
+
+		return out, errCh
 	default:
 	}
 
-	fr.RLock()
-	defer fr.RUnlock()
-
 	list, exists := fr.list[user.ID]
 	if !exists {
-		return nil, &models.HistoryNotFoundErr{}
+		close(out)
+		errCh <- &models.HistoryNotFoundErr{}
+
+		return out, errCh
 	}
 
-	return &list, nil
+	go func() {
+		defer close(out)
+
+		for shortURL, originalURL := range list {
+			out <- models.HistoryEl{OriginalURL: originalURL, ShortURL: shortURL}
+		}
+	}()
+
+	return out, errCh
 }
 
 func (fr *MemoryRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
