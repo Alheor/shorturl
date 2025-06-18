@@ -20,7 +20,7 @@ type Repository interface {
 	GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error)
 	IsReady(ctx context.Context) bool
 	RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error
-	GetAll(ctx context.Context, user *models.User) (*map[string]string, error)
+	GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error)
 	RemoveBatch(ctx context.Context, user *models.User, list []string) error
 }
 

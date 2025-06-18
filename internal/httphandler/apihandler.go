@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/logger"
@@ -173,39 +174,74 @@ func GetAllShorten(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	list, err := service.GetAll(ctx, user)
-	if err != nil {
+	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
 
-		var notFound *models.HistoryNotFoundErr
-		if errors.As(err, &notFound) {
-			resp.WriteHeader(http.StatusNoContent)
+	chList, chErr := service.GetAll(ctx, user)
+	first := true
+	hasEls := false
+
+	for el := range chList {
+		hasEls = true
+
+		if first {
+			_, err := resp.Write([]byte("["))
+			if err != nil {
+				logger.Error(`write response error`, err)
+				resp.WriteHeader(http.StatusInternalServerError)
+
+				return
+			}
+
+		} else {
+			_, err := resp.Write([]byte(","))
+			if err != nil {
+				logger.Error(`write response error`, err)
+				resp.WriteHeader(http.StatusInternalServerError)
+
+				return
+			}
+		}
+		first = false
+
+		short := strings.TrimRight(baseHost, `/`) + `/` + el.ShortURL
+		h := models.HistoryEl{OriginalURL: el.OriginalURL, ShortURL: short}
+		rawByte, err := json.Marshal(h)
+		if err != nil {
+			logger.Error(`response marshal error`, err)
+			resp.WriteHeader(http.StatusInternalServerError)
+
 			return
 		}
 
+		_, err = resp.Write(rawByte)
+		if err != nil {
+			logger.Error(`write response error`, err)
+			resp.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+	}
+
+	if hasEls {
+		_, err := resp.Write([]byte("]"))
+		if err != nil {
+			logger.Error(`write response error`, err)
+			resp.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+	}
+
+	for err := range chErr {
 		logger.Error(`Get all urls error`, err)
 		resp.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
-	if len(*list) == 0 {
+	if !hasEls {
 		resp.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	rawByte, err := json.Marshal(list)
-	if err != nil {
-		logger.Error(`response marshal error`, err)
-		resp.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
-	resp.WriteHeader(http.StatusOK)
-
-	_, err = resp.Write(rawByte)
-	if err != nil {
-		logger.Error(`write response error`, err)
-		resp.WriteHeader(http.StatusInternalServerError)
 	}
 }
 

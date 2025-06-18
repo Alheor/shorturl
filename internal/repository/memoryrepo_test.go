@@ -85,14 +85,21 @@ func TestMemoryAddURLAndGetAllURLSuccess(t *testing.T) {
 		shortsList[hash] = val
 	}
 
-	list, err := GetRepository().GetAll(ctx, user)
+	ch, chErr := GetRepository().GetAll(ctx, user)
 	require.NoError(t, err)
 
-	storageList := *list
+	storageList := make(map[string]string)
+	for el := range ch {
+		storageList[el.ShortURL] = el.OriginalURL
+	}
+
 	for sourceHash := range shortsList {
 		_, exists := storageList[sourceHash]
 		assert.True(t, exists)
+	}
 
+	for el := range chErr {
+		assert.Nil(t, el)
 	}
 }
 
