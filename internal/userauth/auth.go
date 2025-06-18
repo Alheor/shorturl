@@ -67,6 +67,14 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func GetSignature(uuid string) []byte {
+	h := hmac.New(sha256.New, signatureKey)
+	h.Write([]byte(models.CookiesName))
+	h.Write([]byte(uuid))
+
+	return h.Sum(nil)
+}
+
 func parseCookie(cookie *http.Cookie) (userCookie *models.UserCookie, error error) {
 
 	if len(cookie.Value) < sha256.Size {
@@ -97,14 +105,6 @@ func parseCookie(cookie *http.Cookie) (userCookie *models.UserCookie, error erro
 func getUserCookie() *models.UserCookie {
 	userID := generateUserUUID()
 	return &models.UserCookie{User: models.User{ID: userID}, Sign: GetSignature(userID)}
-}
-
-func GetSignature(uuid string) []byte {
-	h := hmac.New(sha256.New, signatureKey)
-	h.Write([]byte(models.CookiesName))
-	h.Write([]byte(uuid))
-
-	return h.Sum(nil)
 }
 
 func generateUserUUID() string {

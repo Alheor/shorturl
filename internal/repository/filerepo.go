@@ -13,6 +13,8 @@ import (
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
+var _ IRepository = (*FileRepo)(nil)
+
 type URL struct {
 	UserID string `json:"user_id"`
 	ID     string `json:"id"`

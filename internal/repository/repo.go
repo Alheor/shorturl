@@ -11,10 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var repo Repository
+var repo IRepository
 var Connection *pgxpool.Pool
 
-type Repository interface {
+type IRepository interface {
 	Add(ctx context.Context, user *models.User, name string) (string, error)
 	AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error
 	GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error)
@@ -24,7 +24,7 @@ type Repository interface {
 	RemoveBatch(ctx context.Context, user *models.User, list []string) error
 }
 
-func Init(ctx context.Context, config *config.Options, repository Repository) error {
+func Init(ctx context.Context, config *config.Options, repository IRepository) error {
 
 	if repository != nil {
 		repo = repository
@@ -32,7 +32,7 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 	}
 
 	if config.DatabaseDsn != `` {
-		logger.Info(`Repository starting in database mode`)
+		logger.Info(`IRepository starting in database mode`)
 
 		var err error
 
@@ -52,10 +52,8 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 			return err
 		}
 
-		logger.Info(`done`)
-
 	} else if config.FileStoragePath != `` {
-		logger.Info(`Repository starting in file mode`)
+		logger.Info(`IRepository starting in file mode`)
 
 		fRepo := &FileRepo{list: make(map[string]map[string]string)}
 
@@ -66,19 +64,17 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 
 		repo = fRepo
 
-		logger.Info(`done`)
-
 	} else {
-		logger.Info(`Repository starting in memory mode`)
+		logger.Info(`IRepository starting in memory mode`)
 
 		repo = &MemoryRepo{list: make(map[string]map[string]string)}
-
-		logger.Info(`done`)
 	}
+
+	logger.Info(`done`)
 
 	return nil
 }
 
-func GetRepository() Repository {
+func GetRepository() IRepository {
 	return repo
 }

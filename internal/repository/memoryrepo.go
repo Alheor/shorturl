@@ -9,6 +9,8 @@ import (
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
+var _ IRepository = (*MemoryRepo)(nil)
+
 // MemoryRepo structure
 type MemoryRepo struct {
 	list map[string]map[string]string
