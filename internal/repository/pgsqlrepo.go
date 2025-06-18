@@ -17,6 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var _ IRepository = (*PostgresRepo)(nil)
+
 // PostgresRepo connection structure
 type PostgresRepo struct {
 	Conn *pgxpool.Pool
@@ -138,7 +140,9 @@ func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, user *models.Us
 	return err
 }
 
-func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	out := make(chan models.HistoryEl)
+	errCh := make(chan error, 1)
 
 	rows, err := pg.Conn.Query(ctx,
 		"SELECT short_key, original_url FROM short_url WHERE user_id = @userId",
@@ -146,38 +150,35 @@ func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (*map[str
 	)
 
 	if err != nil {
-		return nil, err
+		close(out)
+		errCh <- err
+		close(errCh)
+		return out, errCh
 	}
 
-	defer rows.Close()
+	go func() {
+		defer rows.Close()
+		defer close(out)
+		defer close(errCh)
 
-	historyList := map[string]string{}
-	for rows.Next() {
-		var shortURL string
-		var originalURL string
+		for rows.Next() {
+			var shortURL, originalURL string
+			if err = rows.Scan(&shortURL, &originalURL); err == nil {
+				out <- models.HistoryEl{OriginalURL: originalURL, ShortURL: shortURL}
 
-		err = rows.Scan(&shortURL, &originalURL)
-		if err != nil {
-			if !errors.Is(err, pgx.ErrNoRows) {
-				return nil, err
+			} else {
+				errCh <- err
+				return
 			}
-
-			return nil, err
 		}
 
-		historyList[shortURL] = originalURL
-	}
-
-	err = rows.Err()
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
+		err = rows.Err()
+		if err != nil {
+			errCh <- err
 		}
+	}()
 
-		return nil, err
-	}
-
-	return &historyList, nil
+	return out, errCh
 }
 
 func (pg *PostgresRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {

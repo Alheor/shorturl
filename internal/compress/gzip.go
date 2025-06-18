@@ -12,6 +12,8 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 )
 
+var _ io.Writer = (*gzipWriter)(nil)
+
 type gzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer

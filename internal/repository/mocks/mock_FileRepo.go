@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+
 	"github.com/Alheor/shorturl/internal/models"
 
 	"github.com/stretchr/testify/mock"
@@ -38,9 +39,13 @@ func (m *MockFileRepo) RemoveByOriginalURL(ctx context.Context, user *models.Use
 	return args.Error(0)
 }
 
-func (m *MockFileRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
-	args := m.Called(ctx, user)
-	return &map[string]string{}, args.Error(0)
+func (m *MockFileRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	ch := make(chan models.HistoryEl)
+	chRrr := make(chan error)
+	close(ch)
+	close(chRrr)
+
+	return ch, chRrr
 }
 
 func (m *MockFileRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {

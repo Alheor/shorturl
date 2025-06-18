@@ -2,12 +2,15 @@ package logger
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+var _ io.Writer = (*loggingResponseWriter)(nil)
 
 type (
 	responseData struct {
@@ -24,20 +27,6 @@ type (
 		*bytes.Buffer
 	}
 )
-
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size
-
-	return size, err
-}
-
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode
-}
-
-var logger *zap.Logger
 
 // Init Инициализация логгера
 func Init(cfg *zap.Config) error {
@@ -64,6 +53,20 @@ func Init(cfg *zap.Config) error {
 
 	return nil
 }
+
+func (r *loggingResponseWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size
+
+	return size, err
+}
+
+func (r *loggingResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode
+}
+
+var logger *zap.Logger
 
 // LoggingHTTPHandler логирование http запросов
 func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
