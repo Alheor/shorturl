@@ -22,6 +22,7 @@ func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 	var err error
 	var shortURL string
 	if shortURL, err = repository.GetRepository().Add(ctx, user, URL); err != nil {
+		logger.Error(`add url error: `, err)
 		return ``, err
 	}
 
@@ -55,6 +56,7 @@ func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchReq
 
 	err := repository.GetRepository().AddBatch(ctx, user, &list)
 	if err != nil {
+		logger.Error(`add batch url error: `, err)
 		return nil, err
 	}
 
@@ -76,6 +78,7 @@ func GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-
 func RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	err := repository.GetRepository().RemoveBatch(ctx, user, list)
 	if err != nil {
+		logger.Error(`remove batch url error: `, err)
 		return err
 	}
 

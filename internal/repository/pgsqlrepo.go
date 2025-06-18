@@ -41,7 +41,7 @@ func (pg *PostgresRepo) Add(ctx context.Context, user *models.User, name string)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			row := pg.Conn.QueryRow(ctx,
-				"SELECT sho	rt_key FROM short_url WHERE user_id=@userId AND original_url=@originalUrl",
+				"SELECT short_key FROM short_url WHERE user_id=@userId AND original_url=@originalUrl",
 				pgx.NamedArgs{"userId": user.ID, "originalUrl": name},
 			)
 
