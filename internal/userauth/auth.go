@@ -1,3 +1,9 @@
+// Package userauth - сервис авторизации.
+//
+// # Описание
+//
+// Авторизует пользователя по наличию специально подписанной cookie.
+// Если у пользователя нет cookie или данные в ней невалидно подписаны, то выдается новая cookie.
 package userauth
 
 import (
@@ -16,11 +22,12 @@ import (
 
 var signatureKey []byte
 
+// Init Подготовка сервиса к работе.
 func Init(config *config.Options) {
 	signatureKey = []byte(config.SignatureKey)
 }
 
-// GetUser get user from context
+// GetUser get user from context.
 func GetUser(ctx context.Context) *models.User {
 	authUser := ctx.Value(models.ContextValueName)
 	if authUser != nil {
@@ -30,6 +37,7 @@ func GetUser(ctx context.Context) *models.User {
 	return nil
 }
 
+// AuthHTTPHandler обработчик авторизации пользователя.
 func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 
@@ -67,6 +75,7 @@ func AuthHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// GetSignature Получение подписи.
 func GetSignature(uuid string) []byte {
 	h := hmac.New(sha256.New, signatureKey)
 	h.Write([]byte(models.CookiesName))

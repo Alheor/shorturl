@@ -15,20 +15,14 @@ import (
 
 var _ IRepository = (*FileRepo)(nil)
 
-type URL struct {
-	UserID string `json:"user_id"`
-	ID     string `json:"id"`
-	URL    string `json:"url"`
-}
-
-// FileRepo structure
+// FileRepo - структура файлового репозитория.
 type FileRepo struct {
 	list map[string]map[string]string
 	file *os.File
 	sync.RWMutex
 }
 
-// Add Добавить URL
+// Add Добавить URL.
 func (fr *FileRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
 
 	select {
@@ -49,6 +43,7 @@ func (fr *FileRepo) Add(ctx context.Context, user *models.User, name string) (st
 	//Обработка существующих URL
 	for hash, el := range urls {
 		if el == name {
+
 			return ``, &models.UniqueErr{Err: errors.New("url already exists"), ShortKey: hash}
 		}
 	}
@@ -73,7 +68,7 @@ func (fr *FileRepo) Add(ctx context.Context, user *models.User, name string) (st
 	return hash, nil
 }
 
-// AddBatch Добавить URL пачкой
+// AddBatch Добавить несколько URL.
 func (fr *FileRepo) AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error {
 
 	select {
@@ -114,7 +109,7 @@ func (fr *FileRepo) AddBatch(ctx context.Context, user *models.User, list *[]mod
 	return nil
 }
 
-// GetByShortName получить URL по короткому имени
+// GetByShortName Получить URL по короткому имени.
 func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
 
 	select {
@@ -153,7 +148,7 @@ func (fr *FileRepo) GetByShortName(ctx context.Context, user *models.User, name 
 	return el, false, nil
 }
 
-// IsReady готовность репозитория
+// IsReady Готовность репозитория.
 func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():
@@ -164,10 +159,13 @@ func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	return fr.file != nil
 }
 
+// RemoveByOriginalURL - удалить URL.
+// Deprecated: не поддерживается эти типом репозитория.
 func (fr *FileRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from file repository not supported`)
 }
 
+// GetAll получить все URL пользователя.
 func (fr *FileRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
 	out := make(chan models.HistoryEl)
 	errCh := make(chan error, 1)
@@ -202,7 +200,14 @@ func (fr *FileRepo) GetAll(ctx context.Context, user *models.User) (<-chan model
 	return out, errCh
 }
 
-func (fr *FileRepo) Load(ctx context.Context, path string) error {
+// RemoveBatch - массовое удаление URL.
+// Deprecated: не поддерживается эти типом репозитория.
+func (fr *FileRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
+	return errors.New(`method "RemoveBatch" from file repository not supported`)
+}
+
+// Load - загрузка данных из файла.
+func (fr *FileRepo) load(ctx context.Context, path string) error {
 
 	select {
 	case <-ctx.Done():
@@ -239,8 +244,4 @@ func (fr *FileRepo) Load(ctx context.Context, path string) error {
 	}
 
 	return nil
-}
-
-func (fr *FileRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
-	return errors.New(`method "RemoveBatch" from file repository not supported`)
 }

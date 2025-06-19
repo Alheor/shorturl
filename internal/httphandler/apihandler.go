@@ -16,6 +16,7 @@ import (
 	"github.com/Alheor/shorturl/internal/userauth"
 )
 
+// AddShorten API обработчик запроса на добавление URL пользователя.
 func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "AddShorten" handler`)
@@ -87,6 +88,7 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	sendAPIResponse(resp, &response)
 }
 
+// AddShortenBatch API обработчик запроса на массовое добавление URL пользователя.
 func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "AddShortenBatch" handler`)
@@ -158,6 +160,7 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// GetAllShorten API обработчик запроса на получение всех URL пользователя.
 func GetAllShorten(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "GetAllShorten" handler`)
@@ -245,6 +248,7 @@ func GetAllShorten(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// DeleteShorten API обработчик запроса на удаление URL пользователя.
 func DeleteShorten(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "DeleteShorten" handler`)
@@ -285,6 +289,7 @@ func DeleteShorten(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusAccepted)
 }
 
+// Подготовка ответа.
 func sendAPIResponse(respWr http.ResponseWriter, resp *models.APIResponse) {
 	rawByte, err := json.Marshal(resp)
 	if err != nil {

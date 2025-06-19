@@ -1,3 +1,8 @@
+// Package router - сервис маршрутизации.
+//
+// # Описание
+//
+// Описывает маршрутизацию и позволяет загрузить ее в веб-сервер.
 package router
 
 import (
@@ -41,6 +46,7 @@ func GetRoutes() chi.Router {
 	return r
 }
 
+// Функция - конвейер.
 func middlewareConveyor(h http.HandlerFunc, middlewares ...HTTPMiddleware) http.HandlerFunc {
 	for _, middleware := range middlewares {
 		h = middleware(h)

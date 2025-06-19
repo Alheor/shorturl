@@ -26,12 +26,17 @@ func BenchmarkApiAddUrlWithFile(b *testing.B) {
 
 	ctx := context.Background()
 
-	_ = os.Remove(cfg.FileStoragePath)
-
 	repository.Init(ctx, &cfg, nil)
 
 	b.ResetTimer()
 	b.Run("AddUrl file storage", func(b *testing.B) {
+		b.StopTimer()
+
+		_ = os.Remove(cfg.FileStoragePath)
+		repository.Init(ctx, &cfg, nil)
+
+		b.StartTimer()
+
 		for i := 0; i < triesN; i++ {
 			service.Add(ctx, user, targetURL+`/test`+strconv.Itoa(i))
 		}
@@ -48,12 +53,17 @@ func BenchmarkApiAddUrlWithMap(b *testing.B) {
 
 	ctx := context.Background()
 
-	_ = os.Remove(cfg.FileStoragePath)
-
 	repository.Init(ctx, &cfg, nil)
 
 	b.ResetTimer()
 	b.Run("AddUrl map storage", func(b *testing.B) {
+		b.StopTimer()
+
+		_ = os.Remove(cfg.FileStoragePath)
+		repository.Init(ctx, &cfg, nil)
+
+		b.StartTimer()
+
 		for i := 0; i < triesN; i++ {
 			service.Add(ctx, user, targetURL+`/test`+strconv.Itoa(i))
 		}
@@ -61,6 +71,9 @@ func BenchmarkApiAddUrlWithMap(b *testing.B) {
 }
 
 func BenchmarkApiAddUrlWithDB(b *testing.B) {
+
+	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -70,12 +83,18 @@ func BenchmarkApiAddUrlWithDB(b *testing.B) {
 
 	ctx := context.Background()
 
-	_ = os.Remove(cfg.FileStoragePath)
-
 	repository.Init(ctx, &cfg, nil)
+
+	repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 
 	b.ResetTimer()
 	b.Run("AddUrl DB storage", func(b *testing.B) {
+		b.StopTimer()
+
+		repository.Connection.Exec(ctx, `TRUNCATE short_url`)
+
+		b.StartTimer()
+
 		for i := 0; i < triesN; i++ {
 			service.Add(ctx, user, targetURL+`/test`+strconv.Itoa(i))
 		}
@@ -104,6 +123,13 @@ func BenchmarkApiAddBatchUrlsWithFile(b *testing.B) {
 
 	b.ResetTimer()
 	b.Run("AddBatchUrls file storage", func(b *testing.B) {
+		b.StopTimer()
+
+		_ = os.Remove(cfg.FileStoragePath)
+		repository.Init(ctx, &cfg, nil)
+
+		b.StartTimer()
+
 		service.AddBatch(ctx, user, request)
 	})
 }
@@ -131,11 +157,21 @@ func BenchmarkApiAddBatchUrlsWithMap(b *testing.B) {
 
 	b.ResetTimer()
 	b.Run("AddBatchUrls map storage", func(b *testing.B) {
+		b.StopTimer()
+
+		_ = os.Remove(cfg.FileStoragePath)
+		repository.Init(ctx, &cfg, nil)
+
+		b.StartTimer()
+
 		service.AddBatch(ctx, user, request)
 	})
 }
 
 func BenchmarkApiAddBatchUrlsWithDB(b *testing.B) {
+
+	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -158,6 +194,12 @@ func BenchmarkApiAddBatchUrlsWithDB(b *testing.B) {
 
 	b.ResetTimer()
 	b.Run("AddBatchUrls DB storage", func(b *testing.B) {
+		b.StopTimer()
+
+		repository.Connection.Exec(ctx, `TRUNCATE short_url`)
+
+		b.StartTimer()
+
 		service.AddBatch(ctx, user, request)
 	})
 }
@@ -232,6 +274,9 @@ func BenchmarkApiGetAllUrlsWithMap(b *testing.B) {
 }
 
 func BenchmarkApiGetAllUrlsWithDB(b *testing.B) {
+
+	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -242,6 +287,8 @@ func BenchmarkApiGetAllUrlsWithDB(b *testing.B) {
 	ctx := context.Background()
 
 	repository.Init(ctx, &cfg, nil)
+
+	repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 
 	var request []models.APIBatchRequestEl
 
@@ -330,6 +377,9 @@ func BenchmarkGetUrlWithMap(b *testing.B) {
 }
 
 func BenchmarkGetUrlWithDB(b *testing.B) {
+
+	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
+
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -340,6 +390,8 @@ func BenchmarkGetUrlWithDB(b *testing.B) {
 	ctx := context.Background()
 
 	repository.Init(ctx, &cfg, nil)
+
+	repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 
 	var request []models.APIBatchRequestEl
 
@@ -361,69 +413,6 @@ func BenchmarkGetUrlWithDB(b *testing.B) {
 	})
 }
 
-func BenchmarkDeleteUrlWithFile(b *testing.B) {
-	cfg := config.Load()
-
-	logger.Init(nil)
-	httphandler.Init(&cfg)
-	service.Init(&cfg)
-
-	ctx := context.Background()
-
-	repository.Init(ctx, &cfg, nil)
-
-	var request []models.APIBatchRequestEl
-	var list []string
-	for i := 0; i < triesN; i++ {
-		url := targetURL + `/test` + strconv.Itoa(i)
-		request = append(request, models.APIBatchRequestEl{
-			OriginalURL:   url,
-			CorrelationID: strconv.Itoa(i),
-		})
-
-		list = append(list, urlhasher.GetHash(url))
-	}
-
-	service.AddBatch(ctx, user, request)
-
-	b.ResetTimer()
-	b.Run("Remove batch file storage", func(b *testing.B) {
-		service.RemoveBatch(ctx, user, list)
-	})
-}
-
-func BenchmarkDeleteUrlWithMap(b *testing.B) {
-	cfg := config.Load()
-	cfg.FileStoragePath = ``
-
-	logger.Init(nil)
-	httphandler.Init(&cfg)
-	service.Init(&cfg)
-
-	ctx := context.Background()
-
-	repository.Init(ctx, &cfg, nil)
-
-	var request []models.APIBatchRequestEl
-	var list []string
-	for i := 0; i < triesN; i++ {
-		url := targetURL + `/test` + strconv.Itoa(i)
-		request = append(request, models.APIBatchRequestEl{
-			OriginalURL:   url,
-			CorrelationID: strconv.Itoa(i),
-		})
-
-		list = append(list, urlhasher.GetHash(url))
-	}
-
-	service.AddBatch(ctx, user, request)
-
-	b.ResetTimer()
-	b.Run("Remove batch map storage", func(b *testing.B) {
-		service.RemoveBatch(ctx, user, list)
-	})
-}
-
 func BenchmarkDeleteUrlWithDB(b *testing.B) {
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
@@ -435,6 +424,8 @@ func BenchmarkDeleteUrlWithDB(b *testing.B) {
 	ctx := context.Background()
 
 	repository.Init(ctx, &cfg, nil)
+
+	repository.Connection.Exec(ctx, `TRUNCATE short_url`)
 
 	var request []models.APIBatchRequestEl
 	var list []string

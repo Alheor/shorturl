@@ -1,3 +1,8 @@
+// Package logger - сервис логирования.
+//
+// # Описание
+//
+// Сервис предоставляют возможности для логирования событий различного уровня, а так же логирования HTTP запросов.
 package logger
 
 import (
@@ -28,7 +33,9 @@ type (
 	}
 )
 
-// Init Инициализация логгера
+var logger *zap.Logger
+
+// Init Инициализация логгера.
 func Init(cfg *zap.Config) error {
 	if logger != nil {
 		return nil
@@ -66,9 +73,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
-var logger *zap.Logger
-
-// LoggingHTTPHandler логирование http запросов
+// LoggingHTTPHandler обработчик логирования запросов.
 func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		start := time.Now()
@@ -95,13 +100,13 @@ func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Info info level
+// Info info level.
 func Info(msg string, fields ...zapcore.Field) {
 	logger.Info(msg, fields...)
 	defer logger.Sync()
 }
 
-// Error error level
+// Error error level.
 func Error(msg string, err error) {
 	if err != nil {
 		logger.Error(msg + `: ` + err.Error())
@@ -112,7 +117,7 @@ func Error(msg string, err error) {
 	defer logger.Sync()
 }
 
-// Fatal error level
+// Fatal error level.
 func Fatal(msg string, err error) {
 	if err != nil {
 		logger.Error(msg + `: ` + err.Error())
@@ -125,6 +130,7 @@ func Fatal(msg string, err error) {
 	logger.Fatal(`End`)
 }
 
+// Sync сохранение буфера логгера.
 func Sync() error {
 
 	if logger == nil {

@@ -56,6 +56,22 @@ func TestLogging(t *testing.T) {
 	runTests(t, tests)
 }
 
+func TestInitWithDefaultCfg(t *testing.T) {
+
+	err := Init(nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+}
+
+func TestInitWithOtherCfg(t *testing.T) {
+
+	cfg := zap.NewProductionConfig()
+
+	err := Init(&cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+}
+
 func runTests(t *testing.T, tests []test) {
 	sink := &MemorySink{new(bytes.Buffer)}
 
