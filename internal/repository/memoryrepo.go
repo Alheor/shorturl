@@ -123,7 +123,7 @@ func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 	return fr.list != nil
 }
 
-// RemoveByOriginalURL - удалить URL.
+// RemoveByOriginalURL удалить URL.
 // Deprecated: не поддерживается эти типом репозитория.
 func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from memory repository not supported`)
@@ -164,7 +164,7 @@ func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (<-chan mod
 	return out, errCh
 }
 
-// RemoveBatch - массовое удаление URL.
+// RemoveBatch массовое удаление URL.
 // Deprecated: не поддерживается эти типом репозитория.
 func (fr *MemoryRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	return errors.New(`method "RemoveBatch" from memory repository not supported`)

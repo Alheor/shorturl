@@ -16,6 +16,7 @@ import (
 	"github.com/Alheor/shorturl/internal/userauth"
 )
 
+// HTTP заголовки
 const (
 	// HeaderContentType header "Content-Type" name.
 	HeaderContentType = `Content-Type`

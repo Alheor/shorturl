@@ -95,9 +95,9 @@ func TestParseCookieInvalidSignature(t *testing.T) {
 
 func TestParseCookieValidSignature(t *testing.T) {
 
-	userId := `6a30af51-b6ac-63ba-9e1c-5da06e1b610e`
+	userID := `6a30af51-b6ac-63ba-9e1c-5da06e1b610e`
 	cookie := &http.Cookie{}
-	cookie.Value = base64.StdEncoding.EncodeToString([]byte(string(GetSignature(userId)) + userId))
+	cookie.Value = base64.StdEncoding.EncodeToString([]byte(string(GetSignature(userID)) + userID))
 
 	userCookie, err := parseCookie(cookie)
 	assert.Nil(t, err)

@@ -24,6 +24,7 @@ type EmptyUserIDErr struct {
 	Err error
 }
 
+// Error реализация интерфейса Error
 func (e *EmptyUserIDErr) Error() string {
 	return e.Err.Error()
 }

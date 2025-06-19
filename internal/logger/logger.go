@@ -17,6 +17,7 @@ import (
 
 var _ io.Writer = (*loggingResponseWriter)(nil)
 
+// Структуры HTTP логирования
 type (
 	responseData struct {
 		status int
@@ -61,6 +62,7 @@ func Init(cfg *zap.Config) error {
 	return nil
 }
 
+// Write Реализация интерфейса Writer
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
@@ -68,6 +70,7 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
+// WriteHeader Реализация интерфейса Writer
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode

@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// HTTPMiddleware функция-обертка для реализации конвейера
 type HTTPMiddleware func(f http.HandlerFunc) http.HandlerFunc
 
 // GetRoutes Загрузка маршрутизации

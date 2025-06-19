@@ -159,7 +159,7 @@ func (fr *FileRepo) IsReady(ctx context.Context) bool {
 	return fr.file != nil
 }
 
-// RemoveByOriginalURL - удалить URL.
+// RemoveByOriginalURL удалить URL.
 // Deprecated: не поддерживается эти типом репозитория.
 func (fr *FileRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from file repository not supported`)
@@ -200,7 +200,7 @@ func (fr *FileRepo) GetAll(ctx context.Context, user *models.User) (<-chan model
 	return out, errCh
 }
 
-// RemoveBatch - массовое удаление URL.
+// RemoveBatch массовое удаление URL.
 // Deprecated: не поддерживается эти типом репозитория.
 func (fr *FileRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	return errors.New(`method "RemoveBatch" from file repository not supported`)

@@ -13,6 +13,7 @@ type UniqueErr struct {
 	Err      error
 }
 
+// Error реализация интерфейса Error
 func (e *UniqueErr) Error() string {
 	return e.Err.Error()
 }

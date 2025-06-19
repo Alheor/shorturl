@@ -24,6 +24,7 @@ type gzipWriter struct {
 	Writer io.Writer
 }
 
+// Write реализация интерфейса Writer
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
