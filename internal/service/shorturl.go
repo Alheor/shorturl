@@ -1,8 +1,24 @@
+// Package service - основные функции сервиса сокращения URL адресов.
+//
+// # Описание
+//
+// Представляет собой набор функций - моделей бизнес процесса.
+//
+// • Добавление 1 URL и получение его сокращенной версии в ответ.
+//
+// • Получение 1 URL по сокращенной версии.
+//
+// • Массовое добавление URL и получение их сокращенной версии в ответ.
+//
+// • Получение всех сокращенных URL.
+//
+// • Массовое удаление URL.
+//
+// • Проверка работоспособности репозитория.
 package service
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
@@ -14,21 +30,25 @@ import (
 
 var baseHost string
 
+// Init Подготовка сервиса к работе
 func Init(config *config.Options) {
 	baseHost = config.BaseHost
 }
 
+// Add Добавление 1 URL и получение его сокращенной версии в ответ.
 func Add(ctx context.Context, user *models.User, URL string) (string, error) {
 
 	var err error
 	var shortURL string
 	if shortURL, err = repository.GetRepository().Add(ctx, user, URL); err != nil {
+		logger.Error(`add url error: `, err)
 		return ``, err
 	}
 
 	return shortURL, nil
 }
 
+// Get Получение 1 URL по сокращенной версии.
 func Get(ctx context.Context, user *models.User, shortName string) (URL string, isRemoved bool) {
 	str, isRemoved, err := repository.GetRepository().GetByShortName(ctx, user, shortName)
 	if err != nil {
@@ -39,6 +59,7 @@ func Get(ctx context.Context, user *models.User, shortName string) (URL string, 
 	return str, isRemoved
 }
 
+// AddBatch Массовое добавление URL и получение их сокращенной версии в ответ.
 func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchRequestEl) ([]models.APIBatchResponseEl, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -56,6 +77,7 @@ func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchReq
 
 	err := repository.GetRepository().AddBatch(ctx, user, &list)
 	if err != nil {
+		logger.Error(`add batch url error: `, err)
 		return nil, err
 	}
 
@@ -70,31 +92,23 @@ func AddBatch(ctx context.Context, user *models.User, batch []models.APIBatchReq
 	return resList, nil
 }
 
-func GetAll(ctx context.Context, user *models.User) (*[]models.HistoryEl, error) {
-
-	list, err := repository.GetRepository().GetAll(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-
-	history := make([]models.HistoryEl, 0, len(*list))
-	for short, originValue := range *list {
-		short = strings.TrimRight(baseHost, `/`) + `/` + short
-		history = append(history, models.HistoryEl{OriginalURL: originValue, ShortURL: short})
-	}
-
-	return &history, nil
+// GetAll Получение всех сокращенных URL.
+func GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	return repository.GetRepository().GetAll(ctx, user)
 }
 
+// RemoveBatch Массовое удаление URL.
 func RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	err := repository.GetRepository().RemoveBatch(ctx, user, list)
 	if err != nil {
+		logger.Error(`remove batch url error: `, err)
 		return err
 	}
 
 	return nil
 }
 
+// IsDBReady Проверка работоспособности репозитория.
 func IsDBReady(ctx context.Context) bool {
 	return repository.GetRepository().IsReady(ctx)
 }

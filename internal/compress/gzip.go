@@ -1,3 +1,8 @@
+// Package compress - сервис работы со сжатым HTTP трафиком.
+//
+// # Описание
+//
+// Используется как конвейер при обработке HTTP запросов.
 package compress
 
 import (
@@ -12,16 +17,19 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 )
 
+var _ io.Writer = (*gzipWriter)(nil)
+
 type gzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
 }
 
+// Write реализация интерфейса Writer
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-// GzipHTTPHandler обработка сжатых запросов
+// GzipHTTPHandler Gzip обработчик сжатых запросов.
 func GzipHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		if !strings.Contains(req.Header.Get(httphandler.HeaderAcceptEncoding), httphandler.HeaderContentEncodingGzip) {
@@ -69,7 +77,7 @@ func GzipHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Compress сжатие данных
+// Compress сжатие данных.
 func Compress(data []byte) ([]byte, error) {
 	var b bytes.Buffer
 
@@ -91,7 +99,7 @@ func Compress(data []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// GzipDecompress разжатие данных
+// GzipDecompress разжатие данных.
 func GzipDecompress(data []byte) ([]byte, error) {
 
 	r, err := gzip.NewReader(bytes.NewReader(data))
