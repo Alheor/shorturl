@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/logger"
@@ -15,6 +16,7 @@ import (
 	"github.com/Alheor/shorturl/internal/userauth"
 )
 
+// AddShorten API обработчик запроса на добавление URL пользователя.
 func AddShorten(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "AddShorten" handler`)
@@ -86,6 +88,7 @@ func AddShorten(resp http.ResponseWriter, req *http.Request) {
 	sendAPIResponse(resp, &response)
 }
 
+// AddShortenBatch API обработчик запроса на массовое добавление URL пользователя.
 func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "AddShortenBatch" handler`)
@@ -157,6 +160,7 @@ func AddShortenBatch(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// GetAllShorten API обработчик запроса на получение всех URL пользователя.
 func GetAllShorten(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "GetAllShorten" handler`)
@@ -173,42 +177,78 @@ func GetAllShorten(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	list, err := service.GetAll(ctx, user)
-	if err != nil {
+	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
 
-		var notFound *models.HistoryNotFoundErr
-		if errors.As(err, &notFound) {
-			resp.WriteHeader(http.StatusNoContent)
+	chList, chErr := service.GetAll(ctx, user)
+	first := true
+	hasEls := false
+
+	for el := range chList {
+		hasEls = true
+
+		if first {
+			_, err := resp.Write([]byte("["))
+			if err != nil {
+				logger.Error(`write response error`, err)
+				resp.WriteHeader(http.StatusInternalServerError)
+
+				return
+			}
+
+		} else {
+			_, err := resp.Write([]byte(","))
+			if err != nil {
+				logger.Error(`write response error`, err)
+				resp.WriteHeader(http.StatusInternalServerError)
+
+				return
+			}
+		}
+		first = false
+
+		short := strings.TrimRight(baseHost, `/`) + `/` + el.ShortURL
+		h := models.HistoryEl{OriginalURL: el.OriginalURL, ShortURL: short}
+		rawByte, err := json.Marshal(h)
+		if err != nil {
+			logger.Error(`response marshal error`, err)
+			resp.WriteHeader(http.StatusInternalServerError)
+
 			return
 		}
 
+		_, err = resp.Write(rawByte)
+		if err != nil {
+			logger.Error(`write response error`, err)
+			resp.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+	}
+
+	if hasEls {
+		_, err := resp.Write([]byte("]"))
+		if err != nil {
+			logger.Error(`write response error`, err)
+			resp.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+	}
+
+	for err := range chErr {
 		logger.Error(`Get all urls error`, err)
 		resp.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
 
-	if len(*list) == 0 {
+	if !hasEls {
 		resp.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	rawByte, err := json.Marshal(list)
-	if err != nil {
-		logger.Error(`response marshal error`, err)
-		resp.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
-	resp.WriteHeader(http.StatusOK)
-
-	_, err = resp.Write(rawByte)
-	if err != nil {
-		logger.Error(`write response error`, err)
-		resp.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
+// DeleteShorten API обработчик запроса на удаление URL пользователя.
 func DeleteShorten(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "DeleteShorten" handler`)
@@ -249,6 +289,7 @@ func DeleteShorten(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusAccepted)
 }
 
+// Подготовка ответа.
 func sendAPIResponse(respWr http.ResponseWriter, resp *models.APIResponse) {
 	rawByte, err := json.Marshal(resp)
 	if err != nil {

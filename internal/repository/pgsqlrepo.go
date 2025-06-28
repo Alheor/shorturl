@@ -17,12 +17,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// PostgresRepo connection structure
+var _ IRepository = (*PostgresRepo)(nil)
+
+// PostgresRepo - структура БД репозитория.
 type PostgresRepo struct {
 	Conn *pgxpool.Pool
 }
 
-// Add Добавить URL
+// Add Добавить URL.
 func (pg *PostgresRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
@@ -58,7 +60,7 @@ func (pg *PostgresRepo) Add(ctx context.Context, user *models.User, name string)
 	return hash, nil
 }
 
-// AddBatch Добавить URL пачкой
+// AddBatch Добавить несколько URL.
 func (pg *PostgresRepo) AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error {
 
 	tx, err := pg.Conn.Begin(ctx)
@@ -86,7 +88,7 @@ func (pg *PostgresRepo) AddBatch(ctx context.Context, user *models.User, list *[
 	return tx.Commit(ctx)
 }
 
-// GetByShortName получить URL по короткому имени
+// GetByShortName Получить URL по короткому имени.
 func (pg *PostgresRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
@@ -122,13 +124,13 @@ func (pg *PostgresRepo) GetByShortName(ctx context.Context, user *models.User, n
 	return originalURL, isDeletedURL, nil
 }
 
-// IsReady готовность репозитория
+// IsReady Готовность репозитория.
 func (pg *PostgresRepo) IsReady(ctx context.Context) bool {
 	err := pg.Conn.Ping(ctx)
 	return err == nil
 }
 
-// RemoveByOriginalURL удалить url
+// RemoveByOriginalURL - удалить URL.
 func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, originalURL string) error {
 	_, err := pg.Conn.Exec(ctx,
 		"DELETE FROM short_url WHERE user_id=@userId AND original_url=@original_url",
@@ -138,7 +140,10 @@ func (pg *PostgresRepo) RemoveByOriginalURL(ctx context.Context, user *models.Us
 	return err
 }
 
-func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+// GetAll получить все URL пользователя.
+func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	out := make(chan models.HistoryEl)
+	errCh := make(chan error, 1)
 
 	rows, err := pg.Conn.Query(ctx,
 		"SELECT short_key, original_url FROM short_url WHERE user_id = @userId",
@@ -146,40 +151,38 @@ func (pg *PostgresRepo) GetAll(ctx context.Context, user *models.User) (*map[str
 	)
 
 	if err != nil {
-		return nil, err
+		close(out)
+		errCh <- err
+		close(errCh)
+		return out, errCh
 	}
 
-	defer rows.Close()
+	go func() {
+		defer rows.Close()
+		defer close(out)
+		defer close(errCh)
 
-	historyList := map[string]string{}
-	for rows.Next() {
-		var shortURL string
-		var originalURL string
+		for rows.Next() {
+			var shortURL, originalURL string
+			if err = rows.Scan(&shortURL, &originalURL); err == nil {
+				out <- models.HistoryEl{OriginalURL: originalURL, ShortURL: shortURL}
 
-		err = rows.Scan(&shortURL, &originalURL)
-		if err != nil {
-			if !errors.Is(err, pgx.ErrNoRows) {
-				return nil, err
+			} else {
+				errCh <- err
+				return
 			}
-
-			return nil, err
 		}
 
-		historyList[shortURL] = originalURL
-	}
-
-	err = rows.Err()
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
+		err = rows.Err()
+		if err != nil {
+			errCh <- err
 		}
+	}()
 
-		return nil, err
-	}
-
-	return &historyList, nil
+	return out, errCh
 }
 
+// RemoveBatch - массовое удаление URL.
 func (pg *PostgresRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	regex := regexp.MustCompile(`\D`)
 	stringIds := ``
@@ -200,6 +203,7 @@ func (pg *PostgresRepo) RemoveBatch(ctx context.Context, user *models.User, list
 	return nil
 }
 
+// Создание схемы БД
 func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 
 	_, err := conn.Exec(ctx, `

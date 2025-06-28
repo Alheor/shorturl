@@ -11,20 +11,45 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var repo Repository
+// Экземпляр репозитория.
+var repo IRepository
+
+// Connection - активное подключение к БД(если используется БД).
 var Connection *pgxpool.Pool
 
-type Repository interface {
+// IRepository - интерфейс репозитория.
+type IRepository interface {
+	// Add - добавить URL.
 	Add(ctx context.Context, user *models.User, name string) (string, error)
+
+	// AddBatch - добавить несколько URL.
 	AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error
+
+	// GetByShortName - получить 1 URL.
 	GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error)
+
+	// IsReady - проверка работоспособности репозитория.
 	IsReady(ctx context.Context) bool
+
+	// RemoveByOriginalURL - удалить URL.
 	RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error
-	GetAll(ctx context.Context, user *models.User) (*map[string]string, error)
+
+	// GetAll - получить все URL.
+	GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error)
+
+	// RemoveBatch - удалить несколько URL.
 	RemoveBatch(ctx context.Context, user *models.User, list []string) error
 }
 
-func Init(ctx context.Context, config *config.Options, repository Repository) error {
+// URL - структура URL элемента.
+type URL struct {
+	UserID string `json:"user_id"`
+	ID     string `json:"id"`
+	URL    string `json:"url"`
+}
+
+// Init - инициализация репозитория, определение типа.
+func Init(ctx context.Context, config *config.Options, repository IRepository) error {
 
 	if repository != nil {
 		repo = repository
@@ -32,7 +57,7 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 	}
 
 	if config.DatabaseDsn != `` {
-		logger.Info(`Repository starting in database mode`)
+		logger.Info(`IRepository starting in database mode`)
 
 		var err error
 
@@ -52,33 +77,30 @@ func Init(ctx context.Context, config *config.Options, repository Repository) er
 			return err
 		}
 
-		logger.Info(`done`)
-
 	} else if config.FileStoragePath != `` {
-		logger.Info(`Repository starting in file mode`)
+		logger.Info(`IRepository starting in file mode`)
 
 		fRepo := &FileRepo{list: make(map[string]map[string]string)}
 
-		err := fRepo.Load(ctx, config.FileStoragePath)
+		err := fRepo.load(ctx, config.FileStoragePath)
 		if err != nil {
 			return err
 		}
 
 		repo = fRepo
 
-		logger.Info(`done`)
-
 	} else {
-		logger.Info(`Repository starting in memory mode`)
+		logger.Info(`IRepository starting in memory mode`)
 
 		repo = &MemoryRepo{list: make(map[string]map[string]string)}
-
-		logger.Info(`done`)
 	}
+
+	logger.Info(`done`)
 
 	return nil
 }
 
-func GetRepository() Repository {
+// GetRepository - метод получения текущего экземпляра репозитория.
+func GetRepository() IRepository {
 	return repo
 }

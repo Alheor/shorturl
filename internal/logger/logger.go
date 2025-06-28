@@ -1,7 +1,13 @@
+// Package logger - сервис логирования.
+//
+// # Описание
+//
+// Сервис предоставляют возможности для логирования событий различного уровня, а так же логирования HTTP запросов.
 package logger
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"time"
 
@@ -9,6 +15,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var _ io.Writer = (*loggingResponseWriter)(nil)
+
+// Структуры HTTP логирования
 type (
 	responseData struct {
 		status int
@@ -25,21 +34,9 @@ type (
 	}
 )
 
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size
-
-	return size, err
-}
-
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode
-}
-
 var logger *zap.Logger
 
-// Init Инициализация логгера
+// Init Инициализация логгера.
 func Init(cfg *zap.Config) error {
 	if logger != nil {
 		return nil
@@ -65,7 +62,21 @@ func Init(cfg *zap.Config) error {
 	return nil
 }
 
-// LoggingHTTPHandler логирование http запросов
+// Write Реализация интерфейса Writer
+func (r *loggingResponseWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size
+
+	return size, err
+}
+
+// WriteHeader Реализация интерфейса Writer
+func (r *loggingResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode
+}
+
+// LoggingHTTPHandler обработчик логирования запросов.
 func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		start := time.Now()
@@ -92,13 +103,13 @@ func LoggingHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// Info info level
+// Info info level.
 func Info(msg string, fields ...zapcore.Field) {
 	logger.Info(msg, fields...)
 	defer logger.Sync()
 }
 
-// Error error level
+// Error error level.
 func Error(msg string, err error) {
 	if err != nil {
 		logger.Error(msg + `: ` + err.Error())
@@ -109,7 +120,7 @@ func Error(msg string, err error) {
 	defer logger.Sync()
 }
 
-// Fatal error level
+// Fatal error level.
 func Fatal(msg string, err error) {
 	if err != nil {
 		logger.Error(msg + `: ` + err.Error())
@@ -122,6 +133,7 @@ func Fatal(msg string, err error) {
 	logger.Fatal(`End`)
 }
 
+// Sync сохранение буфера логгера.
 func Sync() error {
 
 	if logger == nil {

@@ -16,42 +16,44 @@ import (
 	"github.com/Alheor/shorturl/internal/userauth"
 )
 
+// HTTP заголовки
 const (
-	//HeaderContentType header "Content-Type" name
+	// HeaderContentType header "Content-Type" name.
 	HeaderContentType = `Content-Type`
 
-	//HeaderContentEncoding header "Content-Encoding" name
+	// HeaderContentEncoding header "Content-Encoding" name.
 	HeaderContentEncoding = `Content-Encoding`
 
-	//HeaderAcceptEncoding header "Accept-Encoding" name
+	// HeaderAcceptEncoding header "Accept-Encoding" name.
 	HeaderAcceptEncoding = `Accept-Encoding`
 
-	//HeaderLocation header "Location" name
+	// HeaderLocation header "Location" name.
 	HeaderLocation = `Location`
 
-	//HeaderContentTypeJSON header Content-Type value application/json
+	// HeaderContentTypeJSON header Content-Type value application/json.
 	HeaderContentTypeJSON = `application/json`
 
-	//HeaderContentTypeXGzip header Content-Type value application/x-gzip
+	// HeaderContentTypeXGzip header Content-Type value application/x-gzip.
 	HeaderContentTypeXGzip = `application/x-gzip`
 
-	//HeaderContentTypeTextPlain header Content-Type value text/plain
+	// HeaderContentTypeTextPlain header Content-Type value text/plain.
 	HeaderContentTypeTextPlain = `text/plain; charset=utf-8`
 
-	//HeaderContentTypeTextHTML header Content-Type value text/html
+	// HeaderContentTypeTextHTML header Content-Type value text/html.
 	HeaderContentTypeTextHTML = `text/html`
 
-	//HeaderContentEncodingGzip header Content-Encoding value gzip
+	// HeaderContentEncodingGzip header Content-Encoding value gzip.
 	HeaderContentEncodingGzip = `gzip`
 )
 
 var baseHost string
 
+// Init Подготовка HTTP обработчиков к работе.
 func Init(config *config.Options) {
 	baseHost = config.BaseHost
 }
 
-// AddURL контроллер добавления URL
+// AddURL Обработчик запроса на добавление URL пользователя.
 func AddURL(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "AddURL" handler`)
@@ -117,7 +119,7 @@ func AddURL(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// GetURL контроллер получения URL по короткому имени
+// GetURL Обработчик запроса на получение одного URL пользователя.
 func GetURL(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "GetURL" handler`)
@@ -130,13 +132,6 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
-
-	//Костыль для тестов, юзер не учитывается.
-	//user := userauth.GetUser(ctx)
-	//if user == nil {
-	//	resp.WriteHeader(http.StatusUnauthorized)
-	//	return
-	//}
 
 	URL, isRemoved := service.Get(ctx, nil, shortName)
 	if len(URL) == 0 {
@@ -153,6 +148,7 @@ func GetURL(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// Ping Обработчик запроса на проверку работоспособности сервиса.
 func Ping(resp http.ResponseWriter, req *http.Request) {
 
 	logger.Info(`Used "Ping" handler`)

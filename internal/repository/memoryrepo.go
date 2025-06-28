@@ -9,13 +9,15 @@ import (
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
-// MemoryRepo structure
+var _ IRepository = (*MemoryRepo)(nil)
+
+// MemoryRepo - структура репозитория в памяти.
 type MemoryRepo struct {
 	list map[string]map[string]string
 	sync.RWMutex
 }
 
-// Add Добавить URL
+// Add Добавить URL.
 func (fr *MemoryRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
 
 	select {
@@ -46,7 +48,7 @@ func (fr *MemoryRepo) Add(ctx context.Context, user *models.User, name string) (
 	return hash, nil
 }
 
-// AddBatch Добавить URL пачкой
+// AddBatch Добавить несколько URL.
 func (fr *MemoryRepo) AddBatch(ctx context.Context, user *models.User, list *[]models.BatchEl) error {
 
 	select {
@@ -71,7 +73,7 @@ func (fr *MemoryRepo) AddBatch(ctx context.Context, user *models.User, list *[]m
 	return nil
 }
 
-// GetByShortName получить URL по короткому имени
+// GetByShortName Получить URL по короткому имени.
 func (fr *MemoryRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
 
 	select {
@@ -110,7 +112,7 @@ func (fr *MemoryRepo) GetByShortName(ctx context.Context, user *models.User, nam
 	return el, false, nil
 }
 
-// IsReady готовность репозитория
+// IsReady Готовность репозитория.
 func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():
@@ -121,29 +123,49 @@ func (fr *MemoryRepo) IsReady(ctx context.Context) bool {
 	return fr.list != nil
 }
 
+// RemoveByOriginalURL удалить URL.
+// Deprecated: не поддерживается эти типом репозитория.
 func (fr *MemoryRepo) RemoveByOriginalURL(ctx context.Context, user *models.User, url string) error {
 	return errors.New(`method "Remove" from memory repository not supported`)
 }
 
-func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (*map[string]string, error) {
+// GetAll получить все URL пользователя.
+func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (<-chan models.HistoryEl, <-chan error) {
+	out := make(chan models.HistoryEl)
+	errCh := make(chan error, 1)
+
+	defer close(errCh)
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		close(out)
+		errCh <- ctx.Err()
+
+		return out, errCh
 	default:
 	}
 
-	fr.RLock()
-	defer fr.RUnlock()
-
 	list, exists := fr.list[user.ID]
 	if !exists {
-		return nil, &models.HistoryNotFoundErr{}
+		close(out)
+		errCh <- &models.HistoryNotFoundErr{}
+
+		return out, errCh
 	}
 
-	return &list, nil
+	go func() {
+		defer close(out)
+
+		for shortURL, originalURL := range list {
+			out <- models.HistoryEl{OriginalURL: originalURL, ShortURL: shortURL}
+		}
+	}()
+
+	return out, errCh
 }
 
+// RemoveBatch массовое удаление URL.
+// Deprecated: не поддерживается эти типом репозитория.
 func (fr *MemoryRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	return errors.New(`method "RemoveBatch" from memory repository not supported`)
 }
