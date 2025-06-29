@@ -1,3 +1,4 @@
+// Package mocks - mocks репозитория в оперативной памяти
 package mocks
 
 import (
