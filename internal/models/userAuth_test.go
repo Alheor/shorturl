@@ -128,7 +128,7 @@ func TestEmptyUserIDErr_Implements_Error(t *testing.T) {
 
 // TestContextKeyXAuthUser проверяет тип ключа контекста
 func TestContextKeyXAuthUser(t *testing.T) {
-	var key contextKeyXAuthUser = ContextValueName
+	var key = ContextValueName
 	assert.Equal(t, contextKeyXAuthUser("xAuthUser"), key)
 
 	newKey := contextKeyXAuthUser("newKey")

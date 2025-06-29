@@ -251,6 +251,7 @@ func TestUniqueErr_ShortKey(t *testing.T) {
 				Err:      errors.New("test"),
 			}
 			assert.Equal(t, tt.shortKey, err.ShortKey)
+			assert.Equal(t, `test`, err.Err.Error())
 		})
 	}
 }
