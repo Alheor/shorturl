@@ -1,3 +1,4 @@
+// Package mocks - mocks файлового репозитория
 package mocks
 
 import (

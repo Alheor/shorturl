@@ -130,7 +130,7 @@ func Fatal(msg string, err error) {
 
 	logger.Sync()
 
-	logger.Fatal(`End`)
+	panic(`End`)
 }
 
 // Sync сохранение буфера логгера.
