@@ -1,3 +1,4 @@
+// Package models - структуры http запросов и ответов.
 package models
 
 // APIRequest - тело запроса при добавлении URL пользователя.
