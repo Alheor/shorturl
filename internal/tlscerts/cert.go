@@ -18,13 +18,19 @@ import (
 	"time"
 )
 
+// CertOrganization - организация
 var CertOrganization = `Short url`
+
+// CertCountry - Код страны
 var CertCountry = `RU`
+
+// CertLocality - город
 var CertLocality = `Moscow`
 
 var certFileName = `cert.pem`
 var keyFileName = `key.pem`
 
+// PrepareCert формирование самоподписанного сертификата TLS
 func PrepareCert() (cert string, key string, err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
