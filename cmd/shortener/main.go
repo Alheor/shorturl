@@ -28,6 +28,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -45,9 +46,19 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion = `N/A`
+	buildDate    = `N/A`
+	buildCommit  = `N/A`
+)
+
 var shutdownTimeout = 5 * time.Second
 
 func main() {
+
+	fmt.Printf("Build version: %s \n", buildVersion)
+	fmt.Printf("Build date: %s \n", buildDate)
+	fmt.Printf("Build commit: %s \n", buildCommit)
 
 	defer func() {
 		if err := recover(); err != nil {

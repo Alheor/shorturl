@@ -1,3 +1,4 @@
+// Package mocks - mocks репозитория PostgreSQl
 package mocks
 
 import (
