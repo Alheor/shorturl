@@ -16,6 +16,8 @@
 // FileStoragePath - отвечает за возможность сохранения данных сервиса в файл, либо в память.
 // При указании пути к файлу, сервис попытается использовать указанны файл, либо создать его, если его нет.
 // Для работы сервиса в режиме хранения данных в памяти, нужно установить этот параметр как пустую строку.
+//
+// EnableHTTPS - включение поддержки HTTPS. Можно задать через флаг -s или переменную окружения ENABLE_HTTPS.
 package config
 
 import (
@@ -40,6 +42,8 @@ type Options struct {
 	DatabaseDsn string `env:"DATABASE_DSN"`
 	// SignatureKey  - ключ подписи cookie
 	SignatureKey string `env:"SIGNATURE_KEY"`
+	// EnableHTTPS - включение HTTPS
+	EnableHTTPS bool `env:"ENABLE_HTTPS"`
 }
 
 var options Options
@@ -50,6 +54,7 @@ func init() {
 	flag.StringVar(&options.FileStoragePath, `f`, `/tmp/short-url.json`, "path to storage file")
 	flag.StringVar(&options.DatabaseDsn, `d`, ``, "database dsn")
 	flag.StringVar(&options.SignatureKey, `k`, DefaultLSignatureKey, "signature key")
+	flag.BoolVar(&options.EnableHTTPS, `s`, false, "enable HTTPS")
 }
 
 // Load - загрузка конфигурации.
@@ -73,6 +78,12 @@ func Load() Options {
 		println(`signature key status: used default key`)
 	} else {
 		println(`signature key status: key specified by parameter`)
+	}
+
+	if options.EnableHTTPS {
+		println(`HTTPS enabled`)
+	} else {
+		println(`HTTPS disabled`)
 	}
 
 	return options
