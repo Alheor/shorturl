@@ -18,11 +18,15 @@
 // Для работы сервиса в режиме хранения данных в памяти, нужно установить этот параметр как пустую строку.
 //
 // EnableHTTPS - включение поддержки HTTPS. Можно задать через флаг -s или переменную окружения ENABLE_HTTPS.
+//
+// FileConfig - конфигурация загружается из файла.
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
+	"os"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -33,17 +37,19 @@ const DefaultLSignatureKey = `40d40c8d1b5fff17e7edcabc6b2fa4ab`
 // Options - конфигурационные параметры.
 type Options struct {
 	// Addr - адрес, который будет слушать сервис.
-	Addr string `env:"SERVER_ADDRESS"`
+	Addr string `env:"SERVER_ADDRESS" json:"server_address"`
 	// BaseHost - хост сервиса.
-	BaseHost string `env:"BASE_URL"`
+	BaseHost string `env:"BASE_URL" json:"base_url"`
 	// FileStoragePath - путь к файлу для хранения данных (если сервис должен хранить данные в файле или в памяти).
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	// DatabaseDsn - Dsn базы данных (если сервис должен хранить данные в БД).
-	DatabaseDsn string `env:"DATABASE_DSN"`
+	DatabaseDsn string `env:"DATABASE_DSN" json:"database_dsn"`
 	// SignatureKey  - ключ подписи cookie
-	SignatureKey string `env:"SIGNATURE_KEY"`
+	SignatureKey string `env:"SIGNATURE_KEY" json:"signature_key"`
 	// EnableHTTPS - включение HTTPS
-	EnableHTTPS bool `env:"ENABLE_HTTPS"`
+	EnableHTTPS bool `env:"ENABLE_HTTPS" json:"enable_https"`
+	// FileConfig - файл с конфигом
+	FileConfig string `env:"CONFIG"`
 }
 
 var options Options
@@ -55,6 +61,7 @@ func init() {
 	flag.StringVar(&options.DatabaseDsn, `d`, ``, "database dsn")
 	flag.StringVar(&options.SignatureKey, `k`, DefaultLSignatureKey, "signature key")
 	flag.BoolVar(&options.EnableHTTPS, `s`, false, "enable HTTPS")
+	flag.StringVar(&options.FileConfig, `c`, ``, "config file path")
 }
 
 // Load - загрузка конфигурации.
@@ -67,12 +74,21 @@ func Load() Options {
 		log.Fatal(err)
 	}
 
+	err = loadFromFile(&options)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	println(`--- Loaded configuration ---`)
 
 	println(`listen: ` + options.Addr)
 	println(`base host: ` + options.BaseHost)
 	println(`file storage path: ` + options.FileStoragePath)
 	println(`database dsn: ` + options.DatabaseDsn)
+
+	if options.FileConfig != `` {
+		println(`config file path: ` + options.FileConfig)
+	}
 
 	if options.SignatureKey == DefaultLSignatureKey {
 		println(`signature key status: used default key`)
@@ -87,4 +103,49 @@ func Load() Options {
 	}
 
 	return options
+}
+
+func loadFromFile(option *Options) error {
+	if option.FileConfig == `` {
+		return nil
+	}
+
+	fileData, err := os.ReadFile(option.FileConfig)
+	if err != nil {
+		return err
+	}
+
+	if len(fileData) == 0 {
+		return nil
+	}
+
+	op := Options{}
+	err = json.Unmarshal(fileData, &op)
+	if err != nil {
+		return err
+	}
+
+	if option.Addr == `` {
+		option.Addr = op.Addr
+	}
+
+	if option.BaseHost == `` {
+		option.BaseHost = op.BaseHost
+	}
+
+	if option.FileStoragePath == `` {
+		option.FileStoragePath = op.FileStoragePath
+	}
+
+	if option.DatabaseDsn == `` {
+		option.DatabaseDsn = op.DatabaseDsn
+	}
+
+	if option.SignatureKey == `` {
+		option.SignatureKey = op.SignatureKey
+	}
+
+	option.EnableHTTPS = op.EnableHTTPS
+
+	return nil
 }
