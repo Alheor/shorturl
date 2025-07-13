@@ -61,3 +61,6 @@ func (m *MockPostgres) RemoveBatch(ctx context.Context, user *models.User, list 
 	args := m.Called(ctx, user, list)
 	return args.Error(0)
 }
+
+// Close завершение работы с репозиторием
+func (m *MockPostgres) Close() {}

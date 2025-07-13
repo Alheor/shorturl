@@ -19,6 +19,7 @@ import (
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/router"
 	"github.com/Alheor/shorturl/internal/service"
+	"github.com/Alheor/shorturl/internal/shutdown"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 	"github.com/Alheor/shorturl/internal/userauth"
 
@@ -42,6 +43,7 @@ type testData struct {
 }
 
 func TestAddUrl(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -111,6 +113,7 @@ func TestAddUrl(t *testing.T) {
 }
 
 func TestGetUrl(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -183,6 +186,7 @@ func TestGetUrl(t *testing.T) {
 }
 
 func TestGetPing(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -217,6 +221,7 @@ func TestAddUrlUniqIndexError(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)

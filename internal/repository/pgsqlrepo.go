@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/urlhasher"
@@ -26,9 +25,6 @@ type PostgresRepo struct {
 
 // Add Добавить URL.
 func (pg *PostgresRepo) Add(ctx context.Context, user *models.User, name string) (string, error) {
-
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
 
 	hash := urlhasher.GetHash(name)
 
@@ -90,9 +86,6 @@ func (pg *PostgresRepo) AddBatch(ctx context.Context, user *models.User, list *[
 
 // GetByShortName Получить URL по короткому имени.
 func (pg *PostgresRepo) GetByShortName(ctx context.Context, user *models.User, name string) (string, bool, error) {
-
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
 
 	var originalURL string
 	var isDeletedURL bool
@@ -201,6 +194,11 @@ func (pg *PostgresRepo) RemoveBatch(ctx context.Context, user *models.User, list
 	}
 
 	return nil
+}
+
+// Close завершение работы с репозиторием
+func (pg *PostgresRepo) Close() {
+	Connection.Close()
 }
 
 // Создание схемы БД

@@ -69,7 +69,7 @@ func main() {
 		}
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	shutdown.Init()
@@ -99,7 +99,7 @@ func main() {
 		return nil
 	})
 
-	err = repository.Init(ctx, &cfg, nil)
+	err = repository.Init(context.Background(), &cfg, nil)
 	if err != nil {
 		logger.Fatal(`error while initialize repository`, err)
 	}
@@ -109,7 +109,15 @@ func main() {
 		Handler: router.GetRoutes(),
 	}
 
-	shutdown.GetCloser().Add(srv.Shutdown)
+	shutdown.GetCloser().Add(func(ctx context.Context) error {
+		err = srv.Shutdown(ctx)
+		if err != nil {
+			logger.Error(`error while shutting down server`, err)
+		}
+
+		repository.GetRepository().Close()
+		return nil
+	})
 
 	go func() {
 		if cfg.EnableHTTPS {

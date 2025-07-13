@@ -13,6 +13,7 @@ import (
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/service"
+	"github.com/Alheor/shorturl/internal/shutdown"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,7 @@ const targetURL = `https://practicum.yandex.ru`
 var user = &models.User{ID: `6a30af51-b6ac-63ba-9e1c-5da06e1b610e`}
 
 func TestApiAddUrl(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -127,6 +129,7 @@ func TestApiAddUrl(t *testing.T) {
 }
 
 func TestApiAddBatchUrlsSuccess(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -165,6 +168,7 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 }
 
 func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -213,6 +217,7 @@ func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
 }
 
 func TestApiAddBatchUrlsError(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -328,6 +333,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 
 	err := logger.Init(nil)
@@ -377,6 +383,7 @@ func TestApiGetAllUrlsFromDBSuccess(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
@@ -428,6 +435,7 @@ func TestApiGetAllUrlsError(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
@@ -488,6 +496,7 @@ func TestApiRemoveBatch(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
