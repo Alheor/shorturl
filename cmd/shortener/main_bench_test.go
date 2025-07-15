@@ -12,12 +12,14 @@ import (
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/service"
+	"github.com/Alheor/shorturl/internal/shutdown"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 )
 
 var triesN = 100
 
 func BenchmarkApiAddUrlWithFile(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	logger.Init(nil)
@@ -44,6 +46,7 @@ func BenchmarkApiAddUrlWithFile(b *testing.B) {
 }
 
 func BenchmarkApiAddUrlWithMap(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.FileStoragePath = ``
 
@@ -74,6 +77,7 @@ func BenchmarkApiAddUrlWithDB(b *testing.B) {
 
 	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -102,6 +106,7 @@ func BenchmarkApiAddUrlWithDB(b *testing.B) {
 }
 
 func BenchmarkApiAddBatchUrlsWithFile(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	logger.Init(nil)
@@ -135,6 +140,7 @@ func BenchmarkApiAddBatchUrlsWithFile(b *testing.B) {
 }
 
 func BenchmarkApiAddBatchUrlsWithMap(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.FileStoragePath = ``
 
@@ -172,6 +178,7 @@ func BenchmarkApiAddBatchUrlsWithDB(b *testing.B) {
 
 	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -205,6 +212,7 @@ func BenchmarkApiAddBatchUrlsWithDB(b *testing.B) {
 }
 
 func BenchmarkApiGetAllUrlsWithFile(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	logger.Init(nil)
@@ -239,6 +247,7 @@ func BenchmarkApiGetAllUrlsWithFile(b *testing.B) {
 }
 
 func BenchmarkApiGetAllUrlsWithMap(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.FileStoragePath = ``
 
@@ -277,6 +286,7 @@ func BenchmarkApiGetAllUrlsWithDB(b *testing.B) {
 
 	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -314,6 +324,7 @@ func BenchmarkApiGetAllUrlsWithDB(b *testing.B) {
 }
 
 func BenchmarkGetUrlWithFile(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 
 	logger.Init(nil)
@@ -345,6 +356,7 @@ func BenchmarkGetUrlWithFile(b *testing.B) {
 }
 
 func BenchmarkGetUrlWithMap(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.FileStoragePath = ``
 
@@ -380,6 +392,7 @@ func BenchmarkGetUrlWithDB(b *testing.B) {
 
 	b.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
@@ -414,6 +427,7 @@ func BenchmarkGetUrlWithDB(b *testing.B) {
 }
 
 func BenchmarkDeleteUrlWithDB(b *testing.B) {
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 

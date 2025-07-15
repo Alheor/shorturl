@@ -206,6 +206,14 @@ func (fr *FileRepo) RemoveBatch(ctx context.Context, user *models.User, list []s
 	return errors.New(`method "RemoveBatch" from file repository not supported`)
 }
 
+// Close завершение работы с репозиторием
+func (fr *FileRepo) Close() {
+	err := fr.file.Close()
+	if err != nil {
+		logger.Error(`error while closing file`, err)
+	}
+}
+
 // Load - загрузка данных из файла.
 func (fr *FileRepo) load(ctx context.Context, path string) error {
 

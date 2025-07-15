@@ -8,6 +8,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/logger"
+	"github.com/Alheor/shorturl/internal/shutdown"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,7 @@ func TestRepoRunInMemoryMode(t *testing.T) {
 }
 
 func TestRepoRunInFileMode(t *testing.T) {
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.FileStoragePath = `/tmp/short-url.json`
 
@@ -47,6 +49,7 @@ func TestRepoRunInDBMode(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	cfg := config.Load()
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 

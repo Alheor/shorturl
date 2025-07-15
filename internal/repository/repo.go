@@ -39,6 +39,8 @@ type IRepository interface {
 
 	// RemoveBatch - удалить несколько URL.
 	RemoveBatch(ctx context.Context, user *models.User, list []string) error
+
+	Close()
 }
 
 // URL - структура URL элемента.

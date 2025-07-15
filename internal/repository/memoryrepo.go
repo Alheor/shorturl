@@ -169,3 +169,6 @@ func (fr *MemoryRepo) GetAll(ctx context.Context, user *models.User) (<-chan mod
 func (fr *MemoryRepo) RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 	return errors.New(`method "RemoveBatch" from memory repository not supported`)
 }
+
+// Close завершение работы с репозиторием
+func (fr *MemoryRepo) Close() {}

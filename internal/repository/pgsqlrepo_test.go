@@ -9,6 +9,7 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
+	"github.com/Alheor/shorturl/internal/shutdown"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,7 @@ func TestDBGetUrlNotExists(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -43,6 +45,7 @@ func TestDBAddURLAndGetURLSuccess(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -80,6 +83,7 @@ func TestDBAddBatchSuccess(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -116,6 +120,7 @@ func TestDBIsReadySuccess(t *testing.T) {
 
 	t.Skip(`Run with database only`) // Для ручного запуска с локальной БД
 
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
