@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"math/big"
 	"net"
@@ -30,8 +31,18 @@ var CertLocality = `Moscow`
 var certFileName = `cert.pem`
 var keyFileName = `key.pem`
 
-// PrepareCert формирование самоподписанного сертификата TLS
-func PrepareCert() (cert string, key string, err error) {
+// GetCert получение сертификата TLS, либо из конфига, либо самоподписанного
+func GetCert(c string, k string) (cert string, key string, err error) {
+
+	if c != "" && k != "" {
+		return prepareCustomCert(c, k)
+	}
+
+	return prepareCert()
+}
+
+// prepareCert формирование самоподписанного сертификата TLS
+func prepareCert() (cert string, key string, err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return "", "", err
@@ -99,6 +110,46 @@ func PrepareCert() (cert string, key string, err error) {
 	}
 
 	if err := pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyDER}); err != nil {
+		return "", "", err
+	}
+
+	return certFileName, keyFileName, nil
+}
+
+// prepareCustomCert обработка пользовательских TLS сертификата и ключа в формате base64
+func prepareCustomCert(certBase64, keyBase64 string) (cert string, key string, err error) {
+	// Декодируем сертификат из base64
+	certBytes, err := base64.StdEncoding.DecodeString(certBase64)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Декодируем ключ из base64
+	keyBytes, err := base64.StdEncoding.DecodeString(keyBase64)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Создаем временные файлы для сертификата и ключа
+	certOut, err := os.Create(certFileName)
+	if err != nil {
+		return "", "", err
+	}
+	defer certOut.Close()
+
+	_, err = certOut.Write(certBytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	keyOut, err := os.Create(keyFileName)
+	if err != nil {
+		return "", "", err
+	}
+	defer keyOut.Close()
+
+	_, err = keyOut.Write(keyBytes)
+	if err != nil {
 		return "", "", err
 	}
 

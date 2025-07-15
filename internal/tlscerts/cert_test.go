@@ -19,7 +19,7 @@ func TestPrepareCert(t *testing.T) {
 	os.Remove(keyFileName)
 
 	// Проверка создания файлов
-	certPath, keyPath, err := PrepareCert()
+	certPath, keyPath, err := prepareCert()
 	require.NoError(t, err)
 	assert.Equal(t, certFileName, certPath)
 	assert.Equal(t, keyFileName, keyPath)
@@ -40,13 +40,16 @@ func TestPrepareCert(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, cert.Certificate)
+
+	os.Remove(certFileName)
+	os.Remove(keyFileName)
 }
 
 func TestPrepareCert_CertificateProperties(t *testing.T) {
 	os.Remove(certFileName)
 	os.Remove(keyFileName)
 
-	certPath, _, err := PrepareCert()
+	certPath, _, err := prepareCert()
 	require.NoError(t, err)
 
 	// Читаем и парсим сертификат
@@ -87,13 +90,16 @@ func TestPrepareCert_CertificateProperties(t *testing.T) {
 	if timeDiff < -time.Minute || timeDiff > time.Minute {
 		t.Errorf("certificate NotAfter is not approximately 1 year from now")
 	}
+
+	os.Remove(certFileName)
+	os.Remove(keyFileName)
 }
 
 func TestPrepareCert_PrivateKeyProperties(t *testing.T) {
 	os.Remove(certFileName)
 	os.Remove(keyFileName)
 
-	_, keyPath, err := PrepareCert()
+	_, keyPath, err := prepareCert()
 	require.NoError(t, err)
 
 	// Читаем и парсим приватный ключ
@@ -115,6 +121,9 @@ func TestPrepareCert_PrivateKeyProperties(t *testing.T) {
 	} else {
 		t.Error("invalid RSA private key")
 	}
+
+	os.Remove(certFileName)
+	os.Remove(keyFileName)
 }
 
 func TestPrepareCert_FileCleanup(t *testing.T) {
@@ -127,7 +136,7 @@ func TestPrepareCert_FileCleanup(t *testing.T) {
 		t.Fatalf("Failed to create fake key file: %v", err)
 	}
 
-	_, _, err = PrepareCert()
+	_, _, err = prepareCert()
 	if err != nil {
 		t.Fatalf("PrepareCert() returned error: %v", err)
 	}

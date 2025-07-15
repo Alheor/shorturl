@@ -134,7 +134,10 @@ func main() {
 				},
 			}
 
-			certFile, keyFile, err := tlscerts.PrepareCert()
+			var certFile, keyFile string
+
+			certFile, keyFile, err = tlscerts.GetCert(cfg.TLSCert, cfg.TLSKey)
+
 			if err != nil {
 				logger.Fatal(`error while prepare certificates`, err)
 			}

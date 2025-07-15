@@ -18,6 +18,11 @@
 // Для работы сервиса в режиме хранения данных в памяти, нужно установить этот параметр как пустую строку.
 //
 // EnableHTTPS - включение поддержки HTTPS. Можно задать через флаг -s или переменную окружения ENABLE_HTTPS.
+// Если свои сертификат и ключ не выданы, то будут сформированы временные, самоподписанные.
+//
+// TLSCert - свой сертификат для поддержки HTTPS закодированного в base64. Можно задать через флаг -cert или переменную окружения TLS_CERT.
+//
+// TLSKey - свой ключ для поддержки HTTPS закодированного в base64. Можно задать через флаг -key или переменную окружения TLS_KEY.
 //
 // FileConfig - конфигурация загружается из файла.
 package config
@@ -48,6 +53,10 @@ type Options struct {
 	SignatureKey string `env:"SIGNATURE_KEY" json:"signature_key"`
 	// EnableHTTPS - включение HTTPS
 	EnableHTTPS bool `env:"ENABLE_HTTPS" json:"enable_https"`
+	// TLSCert - TLS сертификат в формате base64
+	TLSCert string `env:"TLS_CERT" json:"tls_cert"`
+	// TLSKey - TLS ключ в формате base64
+	TLSKey string `env:"TLS_KEY" json:"tls_key"`
 	// FileConfig - файл с конфигом
 	FileConfig string `env:"CONFIG"`
 }
@@ -61,6 +70,8 @@ func init() {
 	flag.StringVar(&options.DatabaseDsn, `d`, ``, "database dsn")
 	flag.StringVar(&options.SignatureKey, `k`, DefaultLSignatureKey, "signature key")
 	flag.BoolVar(&options.EnableHTTPS, `s`, false, "enable HTTPS")
+	flag.StringVar(&options.TLSCert, `tlscert`, ``, "TLS certificate in base64 format")
+	flag.StringVar(&options.TLSKey, `tlskey`, ``, "TLS private key in base64 format")
 	flag.StringVar(&options.FileConfig, `c`, ``, "config file path")
 }
 
@@ -100,6 +111,12 @@ func Load() Options {
 		println(`HTTPS enabled`)
 	} else {
 		println(`HTTPS disabled`)
+	}
+
+	if options.TLSCert != `` && options.TLSKey != `` {
+		println(`TLS certificate status: used custom TLS certificate`)
+	} else {
+		println(`TLS certificate status: used self-signed TLS certificate`)
 	}
 
 	return options
@@ -143,6 +160,14 @@ func loadFromFile(option *Options) error {
 
 	if option.SignatureKey == `` {
 		option.SignatureKey = op.SignatureKey
+	}
+
+	if option.TLSCert == `` {
+		option.TLSCert = op.TLSCert
+	}
+
+	if option.TLSKey == `` {
+		option.TLSKey = op.TLSKey
 	}
 
 	option.EnableHTTPS = op.EnableHTTPS
