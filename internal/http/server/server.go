@@ -20,6 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// StartServer запуск http сервера
 func StartServer(cfg *config.Options) {
 
 	srv := &http.Server{
