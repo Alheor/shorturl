@@ -64,3 +64,9 @@ func (m *MockPostgres) RemoveBatch(ctx context.Context, user *models.User, list 
 
 // Close завершение работы с репозиторием
 func (m *MockPostgres) Close() {}
+
+// GetStats Статистика по пользователям и сокращенным URL
+func (m *MockPostgres) GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+	args := m.Called(ctx)
+	return &models.APIStatsResponse{}, args.Error(0)
+}

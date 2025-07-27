@@ -59,6 +59,8 @@ type Options struct {
 	TLSKey string `env:"TLS_KEY" json:"tls_key"`
 	// FileConfig - файл с конфигом
 	FileConfig string `env:"CONFIG"`
+	//TrustedSubnet - доверенная подсеть
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 var options Options
@@ -73,6 +75,7 @@ func init() {
 	flag.StringVar(&options.TLSCert, `tlscert`, ``, "TLS certificate in base64 format")
 	flag.StringVar(&options.TLSKey, `tlskey`, ``, "TLS private key in base64 format")
 	flag.StringVar(&options.FileConfig, `c`, ``, "config file path")
+	flag.StringVar(&options.TrustedSubnet, `t`, ``, "trusted subnet")
 }
 
 // Load - загрузка конфигурации.
@@ -117,6 +120,10 @@ func Load() Options {
 		println(`TLS certificate status: used custom TLS certificate`)
 	} else {
 		println(`TLS certificate status: used self-signed TLS certificate`)
+	}
+
+	if options.TrustedSubnet != `` {
+		println(`Allow subnet: ` + options.TrustedSubnet)
 	}
 
 	return options
@@ -168,6 +175,10 @@ func loadFromFile(option *Options) error {
 
 	if option.TLSKey == `` {
 		option.TLSKey = op.TLSKey
+	}
+
+	if option.TrustedSubnet == `` {
+		option.TrustedSubnet = op.TrustedSubnet
 	}
 
 	option.EnableHTTPS = op.EnableHTTPS

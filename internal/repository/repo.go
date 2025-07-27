@@ -40,6 +40,9 @@ type IRepository interface {
 	// RemoveBatch - удалить несколько URL.
 	RemoveBatch(ctx context.Context, user *models.User, list []string) error
 
+	// GetStats Статистика по пользователям и сокращенным URL
+	GetStats(ctx context.Context) (*models.APIStatsResponse, error)
+
 	Close()
 }
 

@@ -63,3 +63,9 @@ func (m *MockFileRepo) RemoveBatch(ctx context.Context, user *models.User, list 
 
 // Close завершение работы с репозиторием
 func (m *MockFileRepo) Close() {}
+
+// GetStats Статистика по пользователям и сокращенным URL
+func (m *MockFileRepo) GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+	args := m.Called(ctx)
+	return &models.APIStatsResponse{}, args.Error(0)
+}

@@ -192,3 +192,47 @@ func TestMemoryIsReadyFileFalse(t *testing.T) {
 
 	assert.False(t, GetRepository().IsReady(ctx))
 }
+
+func TestMemoryGetEmptyStats(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	stats, err := GetRepository().GetStats(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, stats.Urls)
+	assert.Equal(t, 0, stats.Users)
+}
+
+func TestMemoryGetNotEmptyStats(t *testing.T) {
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	cfg := config.Load()
+	cfg.FileStoragePath = ``
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	user1 := &models.User{ID: `1a30af51-b6ac-63ba-9e1c-5da06e1b610e`}
+	_, err = GetRepository().Add(ctx, user, targetURL)
+	_, err = GetRepository().Add(ctx, user1, targetURL+`test`)
+	_, err = GetRepository().Add(ctx, user1, targetURL+`test1`)
+	require.NoError(t, err)
+
+	stats, err := GetRepository().GetStats(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 3, stats.Urls)
+	assert.Equal(t, 2, stats.Users)
+}

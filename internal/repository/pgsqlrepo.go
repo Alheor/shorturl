@@ -201,6 +201,22 @@ func (pg *PostgresRepo) Close() {
 	Connection.Close()
 }
 
+// GetStats Статистика по пользователям и сокращенным URL
+func (pg *PostgresRepo) GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+	row := pg.Conn.QueryRow(
+		ctx,
+		"SELECT COUNT(id) as url_count, COUNT(DISTINCT user_id) as user_count FROM short_url",
+	)
+
+	res := models.APIStatsResponse{}
+	err := row.Scan(&res.Urls, &res.Users)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
 // Создание схемы БД
 func createDBSchema(ctx context.Context, conn *pgxpool.Pool) error {
 

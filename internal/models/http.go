@@ -24,3 +24,8 @@ type APIBatchResponseEl struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
+
+type APIStatsResponse struct {
+	Urls  int `json:"urls"`
+	Users int `json:"users"`
+}

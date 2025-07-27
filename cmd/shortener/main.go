@@ -36,6 +36,7 @@ import (
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/http/handler"
 	"github.com/Alheor/shorturl/internal/http/server"
+	"github.com/Alheor/shorturl/internal/ip"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
 	"github.com/Alheor/shorturl/internal/service"
@@ -88,6 +89,7 @@ func main() {
 	userauth.Init(&cfg)
 	handler.Init(&cfg)
 	service.Init(&cfg)
+	ip.Init(&cfg)
 
 	shutdown.GetCloser().Add(func(ctx context.Context) error {
 		logger.Sync()

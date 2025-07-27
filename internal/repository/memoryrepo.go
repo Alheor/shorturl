@@ -172,3 +172,17 @@ func (fr *MemoryRepo) RemoveBatch(ctx context.Context, user *models.User, list [
 
 // Close завершение работы с репозиторием
 func (fr *MemoryRepo) Close() {}
+
+// GetStats Статистика по пользователям и сокращенным URL
+func (fr *MemoryRepo) GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+
+	userCount := 0
+	urlCount := 0
+
+	for _, el := range fr.list {
+		userCount++
+		urlCount += len(el)
+	}
+
+	return &models.APIStatsResponse{Urls: urlCount, Users: userCount}, nil
+}
