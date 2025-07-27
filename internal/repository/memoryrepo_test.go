@@ -227,7 +227,11 @@ func TestMemoryGetNotEmptyStats(t *testing.T) {
 
 	user1 := &models.User{ID: `1a30af51-b6ac-63ba-9e1c-5da06e1b610e`}
 	_, err = GetRepository().Add(ctx, user, targetURL)
+	require.NoError(t, err)
+
 	_, err = GetRepository().Add(ctx, user1, targetURL+`test`)
+	require.NoError(t, err)
+
 	_, err = GetRepository().Add(ctx, user1, targetURL+`test1`)
 	require.NoError(t, err)
 

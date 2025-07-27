@@ -25,6 +25,7 @@ type APIBatchResponseEl struct {
 	ShortURL      string `json:"short_url"`
 }
 
+// APIStatsResponse - тело ответа ендпоинта статистики
 type APIStatsResponse struct {
 	Urls  int `json:"urls"`
 	Users int `json:"users"`
