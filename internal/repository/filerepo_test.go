@@ -10,6 +10,7 @@ import (
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository/mocks"
+	"github.com/Alheor/shorturl/internal/shutdown"
 	"github.com/Alheor/shorturl/internal/urlhasher"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,7 @@ const targetURL = `https://practicum.yandex.ru/`
 var user = &models.User{ID: `6a30af51-b6ac-63ba-9e1c-5da06e1b610e`}
 
 func TestFileGetUrlNotExists(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -43,6 +45,7 @@ func TestFileGetUrlNotExists(t *testing.T) {
 }
 
 func TestFileAddURLAndGetURLSuccess(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -77,6 +80,7 @@ func TestFileAddURLAndGetURLSuccess(t *testing.T) {
 }
 
 func TestFileAddURLAndGetAllURLSuccess(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -122,6 +126,7 @@ func TestFileAddURLAndGetAllURLSuccess(t *testing.T) {
 }
 
 func TestFileAddExistsURLFileSuccess(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -148,6 +153,7 @@ func TestFileAddExistsURLFileSuccess(t *testing.T) {
 }
 
 func TestFileCreatedFileSuccess(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -171,6 +177,7 @@ func TestFileCreatedFileSuccess(t *testing.T) {
 }
 
 func TestFileLoadFromFileSuccess(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -199,6 +206,7 @@ func TestFileLoadFromFileSuccess(t *testing.T) {
 }
 
 func TestFileAddBatchSuccess(t *testing.T) {
+	shutdown.Init()
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
@@ -232,7 +240,7 @@ func TestFileAddBatchSuccess(t *testing.T) {
 }
 
 func TestFileIsReadyFileSuccess(t *testing.T) {
-
+	shutdown.Init()
 	cfg := config.Load()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -250,7 +258,7 @@ func TestFileIsReadyFileSuccess(t *testing.T) {
 }
 
 func TestFileIsReadyFileFalse(t *testing.T) {
-
+	shutdown.Init()
 	cfg := config.Load()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)

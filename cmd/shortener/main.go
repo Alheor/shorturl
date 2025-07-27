@@ -27,23 +27,20 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/http/handler"
+	"github.com/Alheor/shorturl/internal/http/server"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
-	"github.com/Alheor/shorturl/internal/router"
 	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/shutdown"
 	"github.com/Alheor/shorturl/internal/userauth"
-
-	"go.uber.org/zap"
 )
 
 var (
@@ -67,7 +64,7 @@ func main() {
 		}
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	shutdown.Init()
@@ -89,7 +86,7 @@ func main() {
 	}
 
 	userauth.Init(&cfg)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	shutdown.GetCloser().Add(func(ctx context.Context) error {
@@ -97,25 +94,21 @@ func main() {
 		return nil
 	})
 
-	err = repository.Init(ctx, &cfg, nil)
+	err = repository.Init(context.Background(), &cfg, nil)
 	if err != nil {
 		logger.Fatal(`error while initialize repository`, err)
 	}
 
-	srv := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: router.GetRoutes(),
-	}
+	shutdown.GetCloser().Add(func(ctx context.Context) error {
 
-	shutdown.GetCloser().Add(srv.Shutdown)
-
-	go func() {
-		logger.Info("Starting server", zap.String("addr", cfg.Addr))
-
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatal(`error while starting http server`, err)
+		if repository.GetRepository() != nil {
+			repository.GetRepository().Close()
 		}
-	}()
+
+		return nil
+	})
+
+	server.StartServer(&cfg)
 
 	<-ctx.Done()
 
