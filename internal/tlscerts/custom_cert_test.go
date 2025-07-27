@@ -18,8 +18,8 @@ import (
 )
 
 func TestPrepareCustomCert_SuccessfulLoad(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	certPEM, keyPEM, err := generateTestCertificate()
 	require.NoError(t, err)
@@ -27,90 +27,90 @@ func TestPrepareCustomCert_SuccessfulLoad(t *testing.T) {
 	certBase64 := base64.StdEncoding.EncodeToString([]byte(certPEM))
 	keyBase64 := base64.StdEncoding.EncodeToString([]byte(keyPEM))
 
-	certFile, keyFile, err := prepareCustomCert(certBase64, keyBase64)
+	cert, key, err := LoadCert(certBase64, keyBase64)
 	require.NoError(t, err)
 
-	assert.Equal(t, certFile, certFileName)
-	assert.Equal(t, keyFile, keyFileName)
+	assert.Equal(t, cert, certFile)
+	assert.Equal(t, key, keyFile)
 
-	if _, err := os.Stat(certFile); os.IsNotExist(err) {
+	if _, err := os.Stat(cert); os.IsNotExist(err) {
 		t.Errorf("Certificate file was not created")
 	}
 
-	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
+	if _, err := os.Stat(key); os.IsNotExist(err) {
 		t.Errorf("Key file was not created")
 	}
 
-	certContent, err := os.ReadFile(certFile)
+	certContent, err := os.ReadFile(cert)
 	require.NoError(t, err)
 	assert.Equal(t, string(certContent), certPEM)
 
-	keyContent, err := os.ReadFile(keyFile)
+	keyContent, err := os.ReadFile(key)
 	require.NoError(t, err)
 	assert.Equal(t, string(keyContent), keyPEM)
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCustomCert_InvalidCertificateBase64(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	invalidCertBase64 := "invalid-base64-certificate!!!"
 	validKeyBase64 := base64.StdEncoding.EncodeToString([]byte("valid-key-content"))
 
-	_, _, err := prepareCustomCert(invalidCertBase64, validKeyBase64)
+	_, _, err := LoadCert(invalidCertBase64, validKeyBase64)
 	require.Error(t, err)
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCustomCert_InvalidKeyBase64(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	validCertBase64 := base64.StdEncoding.EncodeToString([]byte("valid-certificate-content"))
 	invalidKeyBase64 := "invalid-base64-key!!!"
 
-	_, _, err := prepareCustomCert(validCertBase64, invalidKeyBase64)
+	_, _, err := LoadCert(validCertBase64, invalidKeyBase64)
 	require.Error(t, err)
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCustomCert_EmptyBase64Values(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
-	_, _, err := prepareCustomCert("", "")
+	_, _, err := LoadCert("", "")
 	require.NoError(t, err)
 
-	if _, err := os.Stat(certFileName); os.IsNotExist(err) {
+	if _, err := os.Stat(certFile); os.IsNotExist(err) {
 		t.Errorf("Certificate file was not created")
 	}
 
-	if _, err := os.Stat(keyFileName); os.IsNotExist(err) {
+	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
 		t.Errorf("Key file was not created")
 	}
 
-	certContent, err := os.ReadFile(certFileName)
+	certContent, err := os.ReadFile(certFile)
 	require.NoError(t, err)
 	assert.True(t, len(certContent) == 0)
 
-	keyContent, err := os.ReadFile(keyFileName)
+	keyContent, err := os.ReadFile(keyFile)
 	require.NoError(t, err)
 	assert.True(t, len(keyContent) == 0)
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestGetCert_WithValidCustomCertificates(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	certPEM, keyPEM, err := generateTestCertificate()
 	require.NoError(t, err)
@@ -118,10 +118,10 @@ func TestGetCert_WithValidCustomCertificates(t *testing.T) {
 	certBase64 := base64.StdEncoding.EncodeToString([]byte(certPEM))
 	keyBase64 := base64.StdEncoding.EncodeToString([]byte(keyPEM))
 
-	certFile, keyFile, err := GetCert(certBase64, keyBase64)
+	cert, key, err := LoadCert(certBase64, keyBase64)
 	require.NoError(t, err)
-	assert.Equal(t, certFile, certFileName)
-	assert.Equal(t, keyFile, keyFileName)
+	assert.Equal(t, cert, certFile)
+	assert.Equal(t, key, keyFile)
 
 	if _, err := os.Stat(certFile); os.IsNotExist(err) {
 		t.Errorf("Certificate file was not created")
@@ -136,19 +136,19 @@ func TestGetCert_WithValidCustomCertificates(t *testing.T) {
 
 	assert.Equal(t, string(certContent), certPEM)
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestGetCert_WithoutCustomCertificates(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
-	certFile, keyFile, err := GetCert("", "")
+	cert, key, err := GenerateCert()
 	require.NoError(t, err)
 
-	assert.Equal(t, certFile, certFileName)
-	assert.Equal(t, keyFile, keyFileName)
+	assert.Equal(t, cert, certFile)
+	assert.Equal(t, key, keyFile)
 
 	if _, err := os.Stat(certFile); os.IsNotExist(err) {
 		t.Errorf("Certificate file was not created")
@@ -158,13 +158,13 @@ func TestGetCert_WithoutCustomCertificates(t *testing.T) {
 		t.Errorf("Key file was not created")
 	}
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestGetCert_WithPartialCustomData(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	testCases := []struct {
 		name     string
@@ -179,14 +179,22 @@ func TestGetCert_WithPartialCustomData(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			os.Remove(certFileName)
-			os.Remove(keyFileName)
+			os.Remove(certFile)
+			os.Remove(keyFile)
 
-			certFile, keyFile, err := GetCert(tc.certData, tc.keyData)
+			var cert, key string
+			var err error
+
+			if tc.certData != `` && tc.keyData != `` {
+				cert, key, err = LoadCert(tc.certData, tc.keyData)
+			} else {
+				cert, key, err = GenerateCert()
+			}
+
 			require.NoError(t, err)
 
-			assert.Equal(t, certFile, certFileName)
-			assert.Equal(t, keyFile, keyFileName)
+			assert.Equal(t, cert, certFile)
+			assert.Equal(t, key, keyFile)
 
 			if _, err := os.Stat(certFile); os.IsNotExist(err) {
 				t.Errorf("Certificate file was not created")
@@ -198,11 +206,14 @@ func TestGetCert_WithPartialCustomData(t *testing.T) {
 		})
 	}
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCustomCert_FileCreationError(t *testing.T) {
+
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	certPEM, keyPEM, err := generateTestCertificate()
 	if err != nil {
@@ -212,18 +223,19 @@ func TestPrepareCustomCert_FileCreationError(t *testing.T) {
 	certBase64 := base64.StdEncoding.EncodeToString([]byte(certPEM))
 	keyBase64 := base64.StdEncoding.EncodeToString([]byte(keyPEM))
 
-	err = os.Mkdir(certFileName, 0755)
+	err = os.Mkdir(certFile, 0755)
 	require.NoError(t, err)
 
-	defer os.Remove(certFileName)
-
-	_, _, err = prepareCustomCert(certBase64, keyBase64)
+	_, _, err = LoadCert(certBase64, keyBase64)
 	require.Error(t, err)
+
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCustomCert_LargeBase64Data(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	largeCertData := make([]byte, 10000) // 10KB данных
 	largeKeyData := make([]byte, 8000)   // 8KB данных
@@ -239,11 +251,11 @@ func TestPrepareCustomCert_LargeBase64Data(t *testing.T) {
 	certBase64 := base64.StdEncoding.EncodeToString(largeCertData)
 	keyBase64 := base64.StdEncoding.EncodeToString(largeKeyData)
 
-	certFile, keyFile, err := prepareCustomCert(certBase64, keyBase64)
+	cert, key, err := LoadCert(certBase64, keyBase64)
 	require.NoError(t, err)
 
-	assert.Equal(t, certFile, certFileName)
-	assert.Equal(t, keyFile, keyFileName)
+	assert.Equal(t, cert, certFile)
+	assert.Equal(t, key, keyFile)
 
 	certContent, err := os.ReadFile(certFile)
 	require.NoError(t, err)
@@ -253,8 +265,8 @@ func TestPrepareCustomCert_LargeBase64Data(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, len(keyContent) == len(largeKeyData))
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 // generateTestCertificate создает тестовый сертификат и ключ для тестирования

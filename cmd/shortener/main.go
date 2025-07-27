@@ -27,25 +27,20 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"errors"
 	"fmt"
-	"net/http"
+
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/http/handler"
+	"github.com/Alheor/shorturl/internal/http/server"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/repository"
-	"github.com/Alheor/shorturl/internal/router"
 	"github.com/Alheor/shorturl/internal/service"
 	"github.com/Alheor/shorturl/internal/shutdown"
-	"github.com/Alheor/shorturl/internal/tlscerts"
 	"github.com/Alheor/shorturl/internal/userauth"
-
-	"go.uber.org/zap"
 )
 
 var (
@@ -91,7 +86,7 @@ func main() {
 	}
 
 	userauth.Init(&cfg)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	shutdown.GetCloser().Add(func(ctx context.Context) error {
@@ -104,56 +99,16 @@ func main() {
 		logger.Fatal(`error while initialize repository`, err)
 	}
 
-	srv := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: router.GetRoutes(),
-	}
-
 	shutdown.GetCloser().Add(func(ctx context.Context) error {
-		err = srv.Shutdown(ctx)
-		if err != nil {
-			logger.Error(`error while shutting down server`, err)
+
+		if repository.GetRepository() != nil {
+			repository.GetRepository().Close()
 		}
 
-		repository.GetRepository().Close()
 		return nil
 	})
 
-	go func() {
-		if cfg.EnableHTTPS {
-			logger.Info("Starting HTTPS server", zap.String("addr", cfg.Addr))
-
-			// Создаем TLS конфигурацию для безопасности
-			srv.TLSConfig = &tls.Config{
-				MinVersion: tls.VersionTLS12,
-				CipherSuites: []uint16{
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				},
-			}
-
-			var certFile, keyFile string
-
-			certFile, keyFile, err = tlscerts.GetCert(cfg.TLSCert, cfg.TLSKey)
-
-			if err != nil {
-				logger.Fatal(`error while prepare certificates`, err)
-			}
-
-			if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Fatal(`error while starting https server`, err)
-			}
-
-		} else {
-			logger.Info("Starting HTTP server", zap.String("addr", cfg.Addr))
-
-			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				logger.Fatal(`error while starting http server`, err)
-			}
-		}
-	}()
+	server.StartServer(&cfg)
 
 	<-ctx.Done()
 

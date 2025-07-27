@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/http/handler"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -30,7 +30,7 @@ func TestApiAddUrl(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -46,7 +46,7 @@ func TestApiAddUrl(t *testing.T) {
 			name:        `API generate short url success`,
 			requestBody: []byte(`{"url":"` + targetURL + `/test"}`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten`,
@@ -55,7 +55,7 @@ func TestApiAddUrl(t *testing.T) {
 				code:     http.StatusCreated,
 				response: `{"result":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`) + `"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
@@ -63,7 +63,7 @@ func TestApiAddUrl(t *testing.T) {
 			name:        `API generate short url success with application/x-gzip header`,
 			requestBody: []byte(`{"url":"` + targetURL + `/test"}`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten`,
@@ -72,55 +72,55 @@ func TestApiAddUrl(t *testing.T) {
 				code:     http.StatusConflict,
 				response: `{"result":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`) + `"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
 		{
 			name:        `API generate short with empty body error`,
 			requestBody: []byte(``),
-			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+			headers:     map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			method:      http.MethodPost,
 			URL:         `/api/shorten`,
 			want: want{
 				code:     http.StatusBadRequest,
 				response: `{"error":"url required"}`,
-				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+				headers:  map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			},
 		},
 		{
 			name:        `API generate short with empty url error`,
 			requestBody: []byte(`{"url":""}`),
-			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+			headers:     map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			method:      http.MethodPost,
 			URL:         `/api/shorten`,
 			want: want{
 				code:     http.StatusBadRequest,
 				response: `{"error":"url required"}`,
-				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+				headers:  map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			},
 		},
 		{
 			name:        `API generate short without url field error`,
 			requestBody: []byte(`{"url_test":""}`),
-			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+			headers:     map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			method:      http.MethodPost,
 			URL:         `/api/shorten`,
 			want: want{
 				code:     http.StatusBadRequest,
 				response: `{"error":"url required"}`,
-				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+				headers:  map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			},
 		}, {
 			name:        `API generate short with empty json doc error`,
 			requestBody: []byte(`{}`),
-			headers:     map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+			headers:     map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			method:      http.MethodPost,
 			URL:         `/api/shorten`,
 			want: want{
 				code:     http.StatusBadRequest,
 				response: `{"error":"url required"}`,
-				headers:  map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON},
+				headers:  map[string]string{handler.HeaderContentType: handler.HeaderContentTypeJSON},
 			},
 		},
 	}
@@ -135,7 +135,7 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -149,7 +149,7 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 			name:        `API add batch urls success`,
 			requestBody: []byte(`[{"correlation_id":"id1","original_url": "` + targetURL + `/test1"},{"correlation_id":"id2","original_url":"` + targetURL + `/test2"}]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -158,7 +158,7 @@ func TestApiAddBatchUrlsSuccess(t *testing.T) {
 				code:     http.StatusCreated,
 				response: `[{"correlation_id":"id1","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test1`) + `"},{"correlation_id":"id2","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test2`) + `"}]`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
@@ -174,7 +174,7 @@ func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -188,7 +188,7 @@ func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
 			name:        `API add batch urls success`,
 			requestBody: []byte(`[{"correlation_id":"id1","original_url":"` + targetURL + `/test1"}]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -197,18 +197,18 @@ func TestApiAddAndGetBatchUrlsSuccess(t *testing.T) {
 				code:     http.StatusCreated,
 				response: `[{"correlation_id":"id1","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test1`) + `"}]`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		}, {
 			name:    `API get url success`,
-			headers: map[string]string{httphandler.HeaderContentType: httphandler.HeaderContentTypeTextPlain},
+			headers: map[string]string{handler.HeaderContentType: handler.HeaderContentTypeTextPlain},
 			method:  http.MethodGet,
 			URL:     `/` + urlhasher.GetHash(targetURL+`/test1`),
 			cookie:  getCookie(),
 			want: want{
 				code:    http.StatusTemporaryRedirect,
-				headers: map[string]string{httphandler.HeaderLocation: targetURL + `/test1`},
+				headers: map[string]string{handler.HeaderLocation: targetURL + `/test1`},
 			},
 		},
 	}
@@ -223,7 +223,7 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -237,7 +237,7 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 			name:        `API add batch urls fail empty body`,
 			requestBody: []byte(``),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -245,14 +245,14 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 				code:     http.StatusBadRequest,
 				response: `{"error":"invalid body"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		}, {
 			name:        `API add batch urls fail empty array`,
 			requestBody: []byte(`[]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -260,14 +260,14 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 				code:     http.StatusBadRequest,
 				response: `{"error":"empty url list"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		}, {
 			name:        `API add batch urls fail empty object`,
 			requestBody: []byte(`[{}]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -275,14 +275,14 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 				code:     http.StatusBadRequest,
 				response: `{"error":"Url '' invalid"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		}, {
 			name:        `API add batch urls fail invalid url`,
 			requestBody: []byte(`[{"correlation_id": "id1","original_url": "invalid_url"}]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -290,14 +290,14 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 				code:     http.StatusBadRequest,
 				response: `{"error":"Url 'invalid_url' invalid"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		}, {
 			name:        `API add batch urls fail invalid object`,
 			requestBody: []byte(`[{"correlation_id": "id1"}]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -305,14 +305,14 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 				code:     http.StatusBadRequest,
 				response: `{"error":"Url '' invalid"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		}, {
 			name:        `API add batch urls fail invalid object`,
 			requestBody: []byte(`[{"original_url": "` + targetURL + `/test1"}]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten/batch`,
@@ -320,7 +320,7 @@ func TestApiAddBatchUrlsError(t *testing.T) {
 				code:     http.StatusBadRequest,
 				response: `{"error":"empty correlation_id"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
@@ -339,7 +339,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
@@ -361,7 +361,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 			name:        `API generate short url success`,
 			requestBody: []byte(`{"url":"` + targetURL + `/test"}`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodPost,
 			URL:    `/api/shorten`,
@@ -370,7 +370,7 @@ func TestApiAddUrlUniqIndexError(t *testing.T) {
 				code:     http.StatusConflict,
 				response: `{"result":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test`) + `"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
@@ -391,7 +391,7 @@ func TestApiGetAllUrlsFromDBSuccess(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -413,7 +413,7 @@ func TestApiGetAllUrlsFromDBSuccess(t *testing.T) {
 		{
 			name: `API get all urls success`,
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodGet,
 			URL:    `/api/user/urls`,
@@ -422,7 +422,7 @@ func TestApiGetAllUrlsFromDBSuccess(t *testing.T) {
 				code:     http.StatusOK,
 				response: `[{"original_url":"` + targetURL + `/test1","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test1`) + `"},{"original_url":"` + targetURL + `/test2","short_url":"` + cfg.BaseHost + `/` + urlhasher.GetHash(targetURL+`/test2`) + `"}]`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
@@ -443,7 +443,7 @@ func TestApiGetAllUrlsError(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -459,7 +459,7 @@ func TestApiGetAllUrlsError(t *testing.T) {
 		{
 			name: `API get all urls without user`,
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodGet,
 			URL:    `/api/user/urls`,
@@ -471,14 +471,14 @@ func TestApiGetAllUrlsError(t *testing.T) {
 				code:     http.StatusUnauthorized,
 				response: `{"error":"Unauthorized"}`,
 				headers: map[string]string{
-					httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+					handler.HeaderContentType: handler.HeaderContentTypeJSON,
 				},
 			},
 		},
 		{
 			name: `API get all urls empty list`,
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodGet,
 			URL:    `/api/user/urls`,
@@ -504,7 +504,7 @@ func TestApiRemoveBatch(t *testing.T) {
 	err := logger.Init(nil)
 	require.NoError(t, err)
 
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -532,7 +532,7 @@ func TestApiRemoveBatch(t *testing.T) {
 			name:        `API remove batch urls success`,
 			requestBody: []byte(`["` + hash1 + `", "` + hash2 + `", "` + hash3 + `"]`),
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodDelete,
 			URL:    `/api/user/urls`,
@@ -544,7 +544,7 @@ func TestApiRemoveBatch(t *testing.T) {
 		{
 			name: `get url success`,
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodGet,
 			URL:    `/` + hash1,
@@ -556,7 +556,7 @@ func TestApiRemoveBatch(t *testing.T) {
 		{
 			name: `get url success`,
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodGet,
 			URL:    `/` + hash2,
@@ -568,7 +568,7 @@ func TestApiRemoveBatch(t *testing.T) {
 		{
 			name: `get url success`,
 			headers: map[string]string{
-				httphandler.HeaderContentType: httphandler.HeaderContentTypeJSON,
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
 			},
 			method: http.MethodGet,
 			URL:    `/` + hash3,

@@ -14,15 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var certFile = baseFilePath + certFileName
+var keyFile = baseFilePath + keyFileName
+
 func TestPrepareCert(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
 	// Проверка создания файлов
-	certPath, keyPath, err := prepareCert()
+	certPath, keyPath, err := GenerateCert()
 	require.NoError(t, err)
-	assert.Equal(t, certFileName, certPath)
-	assert.Equal(t, keyFileName, keyPath)
+	assert.Equal(t, certFile, certPath)
+	assert.Equal(t, keyFile, keyPath)
 
 	// Проверка наличия файлов
 	_, err = os.Stat(certPath)
@@ -41,15 +44,15 @@ func TestPrepareCert(t *testing.T) {
 
 	assert.NotEmpty(t, cert.Certificate)
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCert_CertificateProperties(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
-	certPath, _, err := prepareCert()
+	certPath, _, err := GenerateCert()
 	require.NoError(t, err)
 
 	// Читаем и парсим сертификат
@@ -91,15 +94,15 @@ func TestPrepareCert_CertificateProperties(t *testing.T) {
 		t.Errorf("certificate NotAfter is not approximately 1 year from now")
 	}
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCert_PrivateKeyProperties(t *testing.T) {
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 
-	_, keyPath, err := prepareCert()
+	_, keyPath, err := GenerateCert()
 	require.NoError(t, err)
 
 	// Читаем и парсим приватный ключ
@@ -122,34 +125,34 @@ func TestPrepareCert_PrivateKeyProperties(t *testing.T) {
 		t.Error("invalid RSA private key")
 	}
 
-	os.Remove(certFileName)
-	os.Remove(keyFileName)
+	os.Remove(certFile)
+	os.Remove(keyFile)
 }
 
 func TestPrepareCert_FileCleanup(t *testing.T) {
-	err := os.WriteFile(certFileName, []byte("fake cert"), 0644)
+	err := os.WriteFile(certFile, []byte("fake cert"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create fake cert file: %v", err)
 	}
-	err = os.WriteFile(keyFileName, []byte("fake key"), 0644)
+	err = os.WriteFile(keyFile, []byte("fake key"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create fake key file: %v", err)
 	}
 
-	_, _, err = prepareCert()
+	_, _, err = GenerateCert()
 	if err != nil {
 		t.Fatalf("PrepareCert() returned error: %v", err)
 	}
 
 	// Проверяем что файлы были перезаписаны валидными данными
-	_, err = tls.LoadX509KeyPair(certFileName, keyFileName)
+	_, err = tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		t.Fatalf("Failed to load certificate and key after overwrite: %v", err)
 	}
 
-	err = os.Remove(certFileName)
+	err = os.Remove(certFile)
 	require.NoError(t, err)
 
-	err = os.Remove(keyFileName)
+	err = os.Remove(keyFile)
 	require.NoError(t, err)
 }

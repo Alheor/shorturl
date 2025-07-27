@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/http/handler"
 	"github.com/Alheor/shorturl/internal/logger"
 )
 
@@ -32,18 +32,18 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 // GzipHTTPHandler Gzip обработчик сжатых запросов.
 func GzipHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		if !strings.Contains(req.Header.Get(httphandler.HeaderAcceptEncoding), httphandler.HeaderContentEncodingGzip) {
+		if !strings.Contains(req.Header.Get(handler.HeaderAcceptEncoding), handler.HeaderContentEncodingGzip) {
 			f(resp, req)
 			return
 		}
 
-		ct := req.Header.Get(httphandler.HeaderContentType)
-		if ct != httphandler.HeaderContentTypeJSON && ct != httphandler.HeaderContentTypeTextHTML && ct != httphandler.HeaderContentTypeXGzip {
+		ct := req.Header.Get(handler.HeaderContentType)
+		if ct != handler.HeaderContentTypeJSON && ct != handler.HeaderContentTypeTextHTML && ct != handler.HeaderContentTypeXGzip {
 			f(resp, req)
 			return
 		}
 
-		if ct == httphandler.HeaderContentTypeXGzip {
+		if ct == handler.HeaderContentTypeXGzip {
 			var data []byte
 
 			data, err := io.ReadAll(req.Body)
@@ -71,7 +71,7 @@ func GzipHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 
 		defer gz.Close()
 
-		resp.Header().Set(httphandler.HeaderContentEncoding, httphandler.HeaderContentEncodingGzip)
+		resp.Header().Set(handler.HeaderContentEncoding, handler.HeaderContentEncodingGzip)
 
 		f(gzipWriter{resp, gz}, req)
 	}

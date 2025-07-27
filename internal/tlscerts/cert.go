@@ -28,21 +28,12 @@ var CertCountry = `RU`
 // CertLocality - город
 var CertLocality = `Moscow`
 
+var baseFilePath = `/tmp/shorturl/`
 var certFileName = `cert.pem`
 var keyFileName = `key.pem`
 
-// GetCert получение сертификата TLS, либо из конфига, либо самоподписанного
-func GetCert(c string, k string) (cert string, key string, err error) {
-
-	if c != "" && k != "" {
-		return prepareCustomCert(c, k)
-	}
-
-	return prepareCert()
-}
-
-// prepareCert формирование самоподписанного сертификата TLS
-func prepareCert() (cert string, key string, err error) {
+// GenerateCert формирование самоподписанного сертификата TLS
+func GenerateCert() (cert string, key string, err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return "", "", err
@@ -88,7 +79,15 @@ func prepareCert() (cert string, key string, err error) {
 		return "", "", err
 	}
 
-	certOut, err := os.Create(certFileName)
+	err = os.MkdirAll(baseFilePath, 0755)
+	if err != nil {
+		return "", "", err
+	}
+
+	certPath := baseFilePath + certFileName
+	keyPath := baseFilePath + keyFileName
+
+	certOut, err := os.Create(certPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -98,7 +97,7 @@ func prepareCert() (cert string, key string, err error) {
 		return "", "", err
 	}
 
-	keyOut, err := os.Create(keyFileName)
+	keyOut, err := os.Create(keyPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -113,11 +112,14 @@ func prepareCert() (cert string, key string, err error) {
 		return "", "", err
 	}
 
-	return certFileName, keyFileName, nil
+	return certPath, keyPath, nil
 }
 
-// prepareCustomCert обработка пользовательских TLS сертификата и ключа в формате base64
-func prepareCustomCert(certBase64, keyBase64 string) (cert string, key string, err error) {
+// LoadCert обработка пользовательских TLS сертификата и ключа в формате base64
+func LoadCert(certBase64, keyBase64 string) (cert string, key string, err error) {
+	certPath := baseFilePath + certFileName
+	keyPath := baseFilePath + keyFileName
+
 	// Декодируем сертификат из base64
 	certBytes, err := base64.StdEncoding.DecodeString(certBase64)
 	if err != nil {
@@ -131,7 +133,7 @@ func prepareCustomCert(certBase64, keyBase64 string) (cert string, key string, e
 	}
 
 	// Создаем временные файлы для сертификата и ключа
-	certOut, err := os.Create(certFileName)
+	certOut, err := os.Create(certPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -142,7 +144,7 @@ func prepareCustomCert(certBase64, keyBase64 string) (cert string, key string, e
 		return "", "", err
 	}
 
-	keyOut, err := os.Create(keyFileName)
+	keyOut, err := os.Create(keyPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -153,5 +155,5 @@ func prepareCustomCert(certBase64, keyBase64 string) (cert string, key string, e
 		return "", "", err
 	}
 
-	return certFileName, keyFileName, nil
+	return certPath, keyPath, nil
 }

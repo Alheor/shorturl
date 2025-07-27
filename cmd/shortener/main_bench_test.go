@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/Alheor/shorturl/internal/config"
-	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/http/handler"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -23,7 +23,7 @@ func BenchmarkApiAddUrlWithFile(b *testing.B) {
 	cfg := config.Load()
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -51,7 +51,7 @@ func BenchmarkApiAddUrlWithMap(b *testing.B) {
 	cfg.FileStoragePath = ``
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -82,7 +82,7 @@ func BenchmarkApiAddUrlWithDB(b *testing.B) {
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -110,7 +110,7 @@ func BenchmarkApiAddBatchUrlsWithFile(b *testing.B) {
 	cfg := config.Load()
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -145,7 +145,7 @@ func BenchmarkApiAddBatchUrlsWithMap(b *testing.B) {
 	cfg.FileStoragePath = ``
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -183,7 +183,7 @@ func BenchmarkApiAddBatchUrlsWithDB(b *testing.B) {
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -216,7 +216,7 @@ func BenchmarkApiGetAllUrlsWithFile(b *testing.B) {
 	cfg := config.Load()
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -252,7 +252,7 @@ func BenchmarkApiGetAllUrlsWithMap(b *testing.B) {
 	cfg.FileStoragePath = ``
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -291,7 +291,7 @@ func BenchmarkApiGetAllUrlsWithDB(b *testing.B) {
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -328,7 +328,7 @@ func BenchmarkGetUrlWithFile(b *testing.B) {
 	cfg := config.Load()
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -361,7 +361,7 @@ func BenchmarkGetUrlWithMap(b *testing.B) {
 	cfg.FileStoragePath = ``
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -397,7 +397,7 @@ func BenchmarkGetUrlWithDB(b *testing.B) {
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()
@@ -432,7 +432,7 @@ func BenchmarkDeleteUrlWithDB(b *testing.B) {
 	cfg.DatabaseDsn = `user=app password=pass host=localhost port=5432 dbname=app pool_max_conns=10`
 
 	logger.Init(nil)
-	httphandler.Init(&cfg)
+	handler.Init(&cfg)
 	service.Init(&cfg)
 
 	ctx := context.Background()

@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/Alheor/shorturl/internal/compress"
-	"github.com/Alheor/shorturl/internal/httphandler"
+	"github.com/Alheor/shorturl/internal/http/handler"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/userauth"
 
@@ -24,25 +24,25 @@ func GetRoutes() chi.Router {
 	r := chi.NewRouter()
 
 	r.Get(`/*`,
-		middlewareConveyor(httphandler.GetURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.GetURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	r.Get(`/ping`,
-		middlewareConveyor(httphandler.Ping, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.Ping, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	r.Get(`/api/user/urls`,
-		middlewareConveyor(httphandler.GetAllShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.GetAllShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	r.Delete(`/api/user/urls`,
-		middlewareConveyor(httphandler.DeleteShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.DeleteShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	r.Post(`/`,
-		middlewareConveyor(httphandler.AddURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.AddURL, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	r.Post(`/api/shorten`,
-		middlewareConveyor(httphandler.AddShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.AddShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	r.Post(`/api/shorten/batch`,
-		middlewareConveyor(httphandler.AddShortenBatch, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+		middlewareConveyor(handler.AddShortenBatch, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
 
 	return r
 }
