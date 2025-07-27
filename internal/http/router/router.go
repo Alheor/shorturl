@@ -10,6 +10,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/compress"
 	"github.com/Alheor/shorturl/internal/http/handler"
+	"github.com/Alheor/shorturl/internal/ip"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/userauth"
 
@@ -31,6 +32,9 @@ func GetRoutes() chi.Router {
 
 	r.Get(`/api/user/urls`,
 		middlewareConveyor(handler.GetAllShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))
+
+	r.Get(`/api/internal/stats`,
+		middlewareConveyor(handler.Stats, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, ip.SubnetHTTPHandler))
 
 	r.Delete(`/api/user/urls`,
 		middlewareConveyor(handler.DeleteShorten, logger.LoggingHTTPHandler, compress.GzipHTTPHandler, userauth.AuthHTTPHandler))

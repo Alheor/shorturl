@@ -214,6 +214,20 @@ func (fr *FileRepo) Close() {
 	}
 }
 
+// GetStats Статистика по пользователям и сокращенным URL
+func (fr *FileRepo) GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+
+	userCount := 0
+	urlCount := 0
+
+	for _, el := range fr.list {
+		userCount++
+		urlCount += len(el)
+	}
+
+	return &models.APIStatsResponse{Urls: urlCount, Users: userCount}, nil
+}
+
 // Load - загрузка данных из файла.
 func (fr *FileRepo) load(ctx context.Context, path string) error {
 
