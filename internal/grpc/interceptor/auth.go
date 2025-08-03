@@ -41,11 +41,8 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 	// Ищем токен аутентификации в заголовках
 	var authToken string
 	if values := md.Get("authorization"); len(values) > 0 {
-		authToken = values[0]
-		// Удаляем префикс "Bearer " если он есть
-		if strings.HasPrefix(authToken, "Bearer ") {
-			authToken = strings.TrimPrefix(authToken, "Bearer ")
-		}
+		authToken = strings.TrimPrefix(values[0], "Bearer ")
+
 	}
 
 	// Альтернативно ищем в заголовке x-auth-user
@@ -94,11 +91,7 @@ func StreamAuthInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.Str
 	// Ищем токен аутентификации в заголовках
 	var authToken string
 	if values := md.Get("authorization"); len(values) > 0 {
-		authToken = values[0]
-		// Удаляем префикс "Bearer " если он есть
-		if strings.HasPrefix(authToken, "Bearer ") {
-			authToken = strings.TrimPrefix(authToken, "Bearer ")
-		}
+		authToken = strings.TrimPrefix(values[0], "Bearer ")
 	}
 
 	// Альтернативно ищем в заголовке x-auth-user
