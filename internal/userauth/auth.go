@@ -119,3 +119,37 @@ func getUserCookie() *models.UserCookie {
 func generateUserUUID() string {
 	return uuid.New().String()
 }
+
+// ParseCookieToken парсит строковый токен (для gRPC)
+func ParseCookieToken(token string) (*models.User, error) {
+	if len(token) == 0 {
+		return nil, errors.New("empty token")
+	}
+
+	// Если токен закодирован в base64, декодируем его
+	cookieValue, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		// Возможно, токен уже декодирован, попробуем использовать как есть
+		cookieValue = []byte(token)
+	}
+
+	if len(cookieValue) < sha256.Size {
+		return nil, errors.New("token too short")
+	}
+
+	signature := cookieValue[:sha256.Size]
+	userIDBytes := cookieValue[sha256.Size:]
+
+	userUUID, err := uuid.Parse(string(userIDBytes))
+	if err != nil {
+		return nil, &models.EmptyUserIDErr{Err: err}
+	}
+
+	expectedSignature := GetSignature(userUUID.String())
+
+	if !hmac.Equal(signature, expectedSignature) {
+		return nil, errors.New("invalid signature")
+	}
+
+	return &models.User{ID: userUUID.String()}, nil
+}

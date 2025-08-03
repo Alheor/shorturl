@@ -22,6 +22,7 @@ func TestLoadConfigFromFlagsWithoutFile(t *testing.T) {
 	os.Args = append(os.Args, `-tlscert=cert_test_value`)
 	os.Args = append(os.Args, `-tlskey=cert-key_test_value`)
 	os.Args = append(os.Args, `-s=true`)
+	os.Args = append(os.Args, `-t=trusted_subnet_test_value`)
 
 	Load()
 
@@ -34,6 +35,7 @@ func TestLoadConfigFromFlagsWithoutFile(t *testing.T) {
 	assert.Equal(t, `cert-key_test_value`, options.TLSKey)
 	assert.True(t, options.EnableHTTPS)
 	assert.Equal(t, ``, options.FileConfig)
+	assert.Equal(t, `trusted_subnet_test_value`, options.TrustedSubnet)
 }
 
 func TestLoadConfigFromFlagsWithEmptyFile(t *testing.T) {
@@ -53,6 +55,7 @@ func TestLoadConfigFromFlagsWithEmptyFile(t *testing.T) {
 	os.Args = append(os.Args, `-tlskey=cert-key_test_value`)
 	os.Args = append(os.Args, `-s=true`)
 	os.Args = append(os.Args, `-c=`+filePath)
+	os.Args = append(os.Args, `-t=trusted_subnet_test_value`)
 
 	Load()
 
@@ -65,6 +68,7 @@ func TestLoadConfigFromFlagsWithEmptyFile(t *testing.T) {
 	assert.Equal(t, `cert-key_test_value`, options.TLSKey)
 	assert.True(t, options.EnableHTTPS)
 	assert.Equal(t, filePath, options.FileConfig)
+	assert.Equal(t, `trusted_subnet_test_value`, options.TrustedSubnet)
 
 	err = os.Remove(filePath)
 	require.NoError(t, err)
@@ -100,6 +104,9 @@ func TestLoadConfigFromEnvWithoutFile(t *testing.T) {
 
 	os.Args = append(os.Args, `-c=`)
 
+	err = os.Setenv(`TRUSTED_SUBNET`, `trusted_subnet_test_value`)
+	assert.NoError(t, err)
+
 	Load()
 
 	assert.Equal(t, `addr_test_value`, options.Addr)
@@ -111,6 +118,7 @@ func TestLoadConfigFromEnvWithoutFile(t *testing.T) {
 	assert.Equal(t, `cert-key_test_value`, options.TLSKey)
 	assert.True(t, options.EnableHTTPS)
 	assert.Equal(t, ``, options.FileConfig)
+	assert.Equal(t, `trusted_subnet_test_value`, options.TrustedSubnet)
 }
 
 func TestLoadConfigFromEnvWithEmptyFile(t *testing.T) {
@@ -148,6 +156,9 @@ func TestLoadConfigFromEnvWithEmptyFile(t *testing.T) {
 	err = os.Setenv(`CONFIG`, filePath)
 	assert.NoError(t, err)
 
+	err = os.Setenv(`TRUSTED_SUBNET`, `trusted_subnet_test_value`)
+	assert.NoError(t, err)
+
 	Load()
 
 	assert.Equal(t, `addr_test_value`, options.Addr)
@@ -159,6 +170,7 @@ func TestLoadConfigFromEnvWithEmptyFile(t *testing.T) {
 	assert.Equal(t, `cert-key_test_value`, options.TLSKey)
 	assert.True(t, options.EnableHTTPS)
 	assert.Equal(t, filePath, options.FileConfig)
+	assert.Equal(t, `trusted_subnet_test_value`, options.TrustedSubnet)
 
 	err = os.Remove(filePath)
 	require.NoError(t, err)
@@ -177,6 +189,7 @@ func TestLoadFromFileWithoutFile(t *testing.T) {
 	options.TLSKey = `TLSKey value not changed`
 	options.EnableHTTPS = true
 	options.FileConfig = ``
+	options.TrustedSubnet = `TrustedSubnet value not changed`
 
 	err := loadFromFile(&options)
 	assert.NoError(t, err)
@@ -189,6 +202,7 @@ func TestLoadFromFileWithoutFile(t *testing.T) {
 	assert.Equal(t, `TLSCert value not changed`, options.TLSCert)
 	assert.Equal(t, `TLSKey value not changed`, options.TLSKey)
 	assert.Equal(t, true, options.EnableHTTPS)
+	assert.Equal(t, `TrustedSubnet value not changed`, options.TrustedSubnet)
 }
 
 func TestLoadFromFileWithEmptyFile(t *testing.T) {
@@ -210,6 +224,7 @@ func TestLoadFromFileWithEmptyFile(t *testing.T) {
 	options.TLSKey = `TLSKey value not changed`
 	options.EnableHTTPS = true
 	options.FileConfig = filePath
+	options.TrustedSubnet = `TrustedSubnet value not changed`
 
 	err = loadFromFile(&options)
 	assert.NoError(t, err)
@@ -222,6 +237,7 @@ func TestLoadFromFileWithEmptyFile(t *testing.T) {
 	assert.Equal(t, `TLSCert value not changed`, options.TLSCert)
 	assert.Equal(t, `TLSKey value not changed`, options.TLSKey)
 	assert.Equal(t, true, options.EnableHTTPS)
+	assert.Equal(t, `TrustedSubnet value not changed`, options.TrustedSubnet)
 
 	err = os.Remove(filePath)
 	require.NoError(t, err)
@@ -239,7 +255,8 @@ func TestLoadFromFileFileWithConfig(t *testing.T) {
     "signature_key": "SignatureKey value is changed",
     "tls_cert": "TLSCert value is changed",
     "tls_key": "TLSKey value is changed",
-    "enable_https": true
+    "enable_https": true,
+    "trusted_subnet": "TrustedSubnet value is changed"
 } `
 
 	err := os.WriteFile(filePath, []byte(configStr), 0755)
@@ -258,6 +275,7 @@ func TestLoadFromFileFileWithConfig(t *testing.T) {
 	assert.Equal(t, `TLSCert value is changed`, options.TLSCert)
 	assert.Equal(t, `TLSKey value is changed`, options.TLSKey)
 	assert.True(t, options.EnableHTTPS)
+	assert.Equal(t, `TrustedSubnet value is changed`, options.TrustedSubnet)
 
 	err = os.Remove(filePath)
 	require.NoError(t, err)
@@ -273,7 +291,8 @@ func TestPriorityLoadingConfig(t *testing.T) {
     "signature_key": "SignatureKey first value",
     "tls_cert": "TLSCert first value",
     "tls_key": "TLSKey first value",
-    "enable_https": true
+    "enable_https": true,
+    "trusted_subnet": "TrustedSubnet first value"
 } `
 
 	err := os.WriteFile(filePath, []byte(configStr), 0755)
@@ -288,6 +307,7 @@ func TestPriorityLoadingConfig(t *testing.T) {
 	os.Args = append(os.Args, `-k=signature_key_test_value_from_flags`)
 	os.Args = append(os.Args, `-tlscert=tls_cert_test_value_from_flags`)
 	os.Args = append(os.Args, `-tlskey=tls_key_test_value_from_flags`)
+	os.Args = append(os.Args, `-t=trusted_subnet_value_from_flags`)
 
 	err = os.Setenv(`SERVER_ADDRESS`, `addr_test_value_from_env`)
 	assert.NoError(t, err)
@@ -310,6 +330,9 @@ func TestPriorityLoadingConfig(t *testing.T) {
 	err = os.Setenv(`SIGNATURE_KEY`, `signature_key_test_value_from_env`)
 	assert.NoError(t, err)
 
+	err = os.Setenv(`TRUSTED_SUBNET`, `trusted_subnet_test_value_from_env`)
+	assert.NoError(t, err)
+
 	Load()
 
 	assert.Equal(t, `addr_test_value_from_env`, options.Addr)
@@ -319,6 +342,7 @@ func TestPriorityLoadingConfig(t *testing.T) {
 	assert.Equal(t, `signature_key_test_value_from_env`, options.SignatureKey)
 	assert.Equal(t, `tls_cert_test_value_from_env`, options.TLSCert)
 	assert.Equal(t, `tls_key_test_value_from_env`, options.TLSKey)
+	assert.Equal(t, `trusted_subnet_test_value_from_env`, options.TrustedSubnet)
 
 	err = os.Remove(filePath)
 	require.NoError(t, err)

@@ -112,3 +112,8 @@ func RemoveBatch(ctx context.Context, user *models.User, list []string) error {
 func IsDBReady(ctx context.Context) bool {
 	return repository.GetRepository().IsReady(ctx)
 }
+
+// GetStats Статистика по пользователям и сокращенным URL
+func GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+	return repository.GetRepository().GetStats(ctx)
+}

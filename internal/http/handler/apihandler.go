@@ -289,6 +289,39 @@ func DeleteShorten(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusAccepted)
 }
 
+// Stats Статистика по пользователям и сокращенным URL
+func Stats(resp http.ResponseWriter, req *http.Request) {
+	logger.Info(`Used "Stats" handler`)
+
+	ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+	defer cancel()
+
+	stats, err := service.GetStats(ctx)
+	if err != nil {
+		logger.Error(`Get stats error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp.Header().Add(HeaderContentType, HeaderContentTypeJSON)
+
+	rawByte, err := json.Marshal(stats)
+	if err != nil {
+		logger.Error(`response marshal error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	_, err = resp.Write(rawByte)
+	if err != nil {
+		logger.Error(`write response error`, err)
+		resp.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+}
+
 // Подготовка ответа.
 func sendAPIResponse(respWr http.ResponseWriter, resp *models.APIResponse) {
 	rawByte, err := json.Marshal(resp)

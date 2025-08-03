@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package shorturl.v1;
+option go_package = "github.com/Alheor/shorturl/pkg/shorturl/v1";
+
+import "google/protobuf/empty.proto";
+
+
+service ShortURLService {
+  // AddShorten API обработчик запроса на добавление URL пользователя.
+  rpc AddShorten(AddShortenRequest) returns (AddShortenResponse);
+
+  // GetURL Обработчик запроса на получение одного URL пользователя.
+  rpc GetURL(GetURLRequest) returns (GetURLResponse);
+
+  // AddShortenBatch API обработчик запроса на массовое добавление URL пользователя.
+  rpc AddShortenBatch(AddShortenBatchRequest) returns (AddShortenBatchResponse);
+
+  // GetUserURLs API обработчик запроса на получение всех URL пользователя.
+  rpc GetUserURLs(GetUserURLsRequest) returns (stream GetUserURLsResponse);
+
+  // RemoveURLs API обработчик запроса на удаление URL пользователя.
+  rpc RemoveURLs(RemoveURLsRequest) returns (google.protobuf.Empty);
+
+  // Ping Обработчик запроса на проверку работоспособности сервиса.
+  rpc Ping(google.protobuf.Empty) returns (PingResponse);
+
+  // GetStats Статистика по пользователям и сокращенным URL
+  rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse);
+}
+
+message AddShortenRequest {
+  string url = 1;
+}
+
+message AddShortenResponse {
+  string short_url = 1;
+}
+
+message GetURLRequest {
+  string short_name = 1;
+}
+
+message GetURLResponse {
+  string url = 1;
+  bool is_removed = 2;
+}
+
+message BatchRequestElement {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message AddShortenBatchRequest {
+  repeated BatchRequestElement urls = 1;
+}
+
+message BatchResponseElement {
+  string correlation_id = 1;
+  string short_url = 2;
+}
+
+message AddShortenBatchResponse {
+  repeated BatchResponseElement urls = 1;
+}
+
+message GetUserURLsRequest {
+}
+
+message GetUserURLsResponse {
+  string original_url = 1;
+  string short_url = 2;
+}
+
+message RemoveURLsRequest {
+  repeated string short_names = 1;
+}
+
+message PingResponse {
+  bool ready = 1;
+}
+
+message GetStatsResponse {
+  int32 urls = 1;
+  int32 users = 2;
+}

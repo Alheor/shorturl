@@ -9,6 +9,7 @@ import (
 
 	"github.com/Alheor/shorturl/internal/config"
 	"github.com/Alheor/shorturl/internal/http/handler"
+	"github.com/Alheor/shorturl/internal/ip"
 	"github.com/Alheor/shorturl/internal/logger"
 	"github.com/Alheor/shorturl/internal/models"
 	"github.com/Alheor/shorturl/internal/repository"
@@ -575,6 +576,164 @@ func TestApiRemoveBatch(t *testing.T) {
 			cookie: getCookie(),
 			want: want{
 				code: http.StatusTemporaryRedirect,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestStatsEmptySuccess(t *testing.T) {
+
+	shutdown.Init()
+	cfg := config.Load()
+	cfg.TrustedSubnet = `192.168.0.0/24`
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	handler.Init(&cfg)
+	service.Init(&cfg)
+	ip.Init(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(cfg.FileStoragePath)
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name: `API stats empty success`,
+			headers: map[string]string{
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
+				ip.HeaderXRealIP:          `192.168.0.1`,
+			},
+			method: http.MethodGet,
+			URL:    `/api/internal/stats`,
+			cookie: getCookie(),
+			want: want{
+				code:     http.StatusOK,
+				response: `{"urls":0,"users":0}`,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestStatsNotEmptySuccess(t *testing.T) {
+
+	shutdown.Init()
+	cfg := config.Load()
+	cfg.TrustedSubnet = `192.168.0.0/24`
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	handler.Init(&cfg)
+	service.Init(&cfg)
+	ip.Init(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(cfg.FileStoragePath)
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	var user1 = &models.User{ID: `0b32aa55-b2af-63ba-9e1c-5da06e1b610e`}
+
+	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test1`)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(context.Background(), user, targetURL+`/test2`)
+	require.NoError(t, err)
+
+	_, err = repository.GetRepository().Add(context.Background(), user1, targetURL+`/test3`)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name: `API stats not empty success`,
+			headers: map[string]string{
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
+				ip.HeaderXRealIP:          `192.168.0.1`,
+			},
+			method: http.MethodGet,
+			URL:    `/api/internal/stats`,
+			cookie: getCookie(),
+			want: want{
+				code:     http.StatusOK,
+				response: `{"urls":3,"users":2}`,
+			},
+		},
+	}
+
+	runTests(t, tests)
+}
+
+func TestStatsErrors(t *testing.T) {
+
+	shutdown.Init()
+	cfg := config.Load()
+	cfg.TrustedSubnet = `192.168.0.0/24`
+
+	err := logger.Init(nil)
+	require.NoError(t, err)
+
+	handler.Init(&cfg)
+	service.Init(&cfg)
+	ip.Init(&cfg)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = os.Remove(cfg.FileStoragePath)
+
+	err = repository.Init(ctx, &cfg, nil)
+	require.NoError(t, err)
+
+	tests := []testData{
+		{
+			name: `API stats without header error`,
+			headers: map[string]string{
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
+			},
+			method: http.MethodGet,
+			URL:    `/api/internal/stats`,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusForbidden,
+			},
+		},
+		{
+			name: `API stats invalid subnet error`,
+			headers: map[string]string{
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
+				ip.HeaderXRealIP:          `192.168.1.1`,
+			},
+			method: http.MethodGet,
+			URL:    `/api/internal/stats`,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusForbidden,
+			},
+		},
+		{
+			name: `API stats invalid ip error`,
+			headers: map[string]string{
+				handler.HeaderContentType: handler.HeaderContentTypeJSON,
+				ip.HeaderXRealIP:          `invalid ip`,
+			},
+			method: http.MethodGet,
+			URL:    `/api/internal/stats`,
+			cookie: getCookie(),
+			want: want{
+				code: http.StatusForbidden,
 			},
 		},
 	}

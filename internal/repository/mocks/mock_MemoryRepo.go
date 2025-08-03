@@ -63,3 +63,9 @@ func (m *MockMemoryRepo) RemoveBatch(ctx context.Context, user *models.User, lis
 
 // Close завершение работы с репозиторием
 func (m *MockMemoryRepo) Close() {}
+
+// GetStats Статистика по пользователям и сокращенным URL
+func (m *MockMemoryRepo) GetStats(ctx context.Context) (*models.APIStatsResponse, error) {
+	args := m.Called(ctx)
+	return &models.APIStatsResponse{}, args.Error(0)
+}
