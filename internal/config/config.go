@@ -61,6 +61,10 @@ type Options struct {
 	FileConfig string `env:"CONFIG"`
 	//TrustedSubnet - доверенная подсеть
 	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	// EnableGRPC - включение gRPC сервера
+	EnableGRPC bool `env:"ENABLE_GRPC" json:"enable_grpc"`
+	// GRPCAddr - адрес gRPC сервера
+	GRPCAddr string `env:"GRPC_ADDRESS" json:"grpc_address"`
 }
 
 var options Options
@@ -76,6 +80,8 @@ func init() {
 	flag.StringVar(&options.TLSKey, `tlskey`, ``, "TLS private key in base64 format")
 	flag.StringVar(&options.FileConfig, `c`, ``, "config file path")
 	flag.StringVar(&options.TrustedSubnet, `t`, ``, "trusted subnet")
+	flag.BoolVar(&options.EnableGRPC, `grpc`, false, "enable gRPC server")
+	flag.StringVar(&options.GRPCAddr, `grpcaddr`, `localhost:8090`, "gRPC server address")
 }
 
 // Load - загрузка конфигурации.
@@ -124,6 +130,12 @@ func Load() Options {
 
 	if options.TrustedSubnet != `` {
 		println(`Allow subnet: ` + options.TrustedSubnet)
+	}
+
+	if options.EnableGRPC {
+		println(`gRPC enabled on: ` + options.GRPCAddr)
+	} else {
+		println(`gRPC disabled`)
 	}
 
 	return options
@@ -181,7 +193,12 @@ func loadFromFile(option *Options) error {
 		option.TrustedSubnet = op.TrustedSubnet
 	}
 
+	if option.GRPCAddr == `` {
+		option.GRPCAddr = op.GRPCAddr
+	}
+
 	option.EnableHTTPS = op.EnableHTTPS
+	option.EnableGRPC = op.EnableGRPC
 
 	return nil
 }

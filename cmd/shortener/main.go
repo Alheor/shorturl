@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"github.com/Alheor/shorturl/internal/config"
+	grpcServer "github.com/Alheor/shorturl/internal/grpc/server"
 	"github.com/Alheor/shorturl/internal/http/handler"
 	"github.com/Alheor/shorturl/internal/http/server"
 	"github.com/Alheor/shorturl/internal/ip"
@@ -111,6 +112,7 @@ func main() {
 	})
 
 	server.StartServer(&cfg)
+	grpcServer.StartGRPCServer(&cfg)
 
 	<-ctx.Done()
 
